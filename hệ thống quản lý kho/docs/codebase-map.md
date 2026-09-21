@@ -37,29 +37,51 @@
 | `docs/plans/Buoc-09-*.md` | Kế hoạch Bước 09: Frontend React + Tailwind |
 | `docs/plans/Buoc-10-*.md` | Kế hoạch Bước 10: Bộ Test Pytest & Seed Data |
 | `docs/plans/Buoc-11-*.md` | Kế hoạch Bước 11: Đóng gói, tài liệu SDLC & Demo |
-| `docs/SDLC/KT1/README.md` | Mục tiêu & danh mục deliverable giai đoạn KT1 (chưa có nội dung) |
+| `docs/SDLC/KT1/01_SRS_and_UseCases.md` | Tài liệu đặc tả yêu cầu, phân tích 3 actor, sơ đồ Use Case |
+| `docs/SDLC/KT1/02_Database_Design_ERD.md` | Thiết kế CSDL 9 bảng, Data Dictionary, sơ đồ Mermaid ERD |
+| `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | Kiến trúc AI, bảo mật dữ liệu, bộ Prompt mẫu và Heuristic Fallback |
+| `docs/SDLC/KT1/04_Wireframes.md` | Bản phác thảo giao diện Dashboard, Phiếu nhập/xuất, Thẻ kho, Trợ lý AI |
+| `docs/SDLC/KT1/README.md` | Mục tiêu & danh mục deliverable giai đoạn KT1 |
 | `docs/SDLC/KT2/README.md` | Mục tiêu & danh mục deliverable giai đoạn KT2 (chưa có nội dung) |
 | `docs/SDLC/KT3/README.md` | Mục tiêu & danh mục deliverable giai đoạn KT3 (chưa có nội dung) |
 | `docs/SDLC/final/README.md` | Mục tiêu & danh mục deliverable giai đoạn Cuối kỳ (chưa có nội dung) |
 
-### `backend/` — scaffold Giai đoạn 0 (chưa có nghiệp vụ)
+### Gốc dự án (Cấu hình)
+
+| File | Vai trò |
+|---|---|
+| `.env.example` | Mẫu biến môi trường gốc |
+| `docker-compose.yml` | File điều phối Docker containers (Backend + Frontend) |
+
+### `backend/`
 
 | File | Vai trò |
 |---|---|
 | `backend/requirements.txt` | Danh sách Python dependencies (FastAPI, SQLAlchemy, pydantic-settings, jose, passlib, google-generativeai, pytest, httpx) |
-| `backend/.env.example` | Mẫu biến môi trường — copy thành `.env` trước khi chạy |
-| `backend/app/main.py` | Điểm vào FastAPI: khởi tạo app, CORS middleware, endpoint `/` và `/health` |
+| `backend/.env.example` | Mẫu biến môi trường backend |
+| `backend/.env` | Cấu hình môi trường backend cục bộ (SQLite) |
+| `backend/Dockerfile` | Dockerfile đóng gói backend FastAPI |
+| `backend/app/main.py` | Điểm vào FastAPI: khởi tạo app, CORS middleware, endpoint `/` và `/health`, tự động tạo bảng CSDL |
 | `backend/app/__init__.py` | Package marker |
 | `backend/app/core/config.py` | Pydantic Settings — đọc `.env`, export `settings` singleton |
 | `backend/app/core/database.py` | SQLAlchemy engine + SessionLocal + `get_db()` dependency |
 | `backend/app/api/__init__.py` | Package marker |
-| `backend/app/api/v1/__init__.py` | Package marker — router sẽ đăng ký tại đây |
-| `backend/app/models/__init__.py` | Package marker — ORM models sẽ import ở đây |
-| `backend/app/schemas/__init__.py` | Package marker — Pydantic schemas sẽ import ở đây |
-| `backend/app/services/__init__.py` | Package marker — business logic sẽ import ở đây |
-| `backend/tests/__init__.py` | Package marker — pytest test files sẽ thêm vào đây |
+| `backend/app/api/v1/__init__.py` | Package marker |
+| `backend/app/api/v1/api.py` | Router gốc API v1 |
+| `backend/app/models/__init__.py` | Import và export 9 ORM models |
+| `backend/app/models/user.py` | Model tài khoản người dùng (`users`) |
+| `backend/app/models/category.py` | Model nhóm hàng (`categories`) |
+| `backend/app/models/product.py` | Model hàng hóa (`products`) kèm CheckConstraint chống tồn âm |
+| `backend/app/models/supplier.py` | Model nhà cung cấp (`suppliers`) |
+| `backend/app/models/import_note.py` | Models phiếu nhập và chi tiết phiếu nhập |
+| `backend/app/models/export_note.py` | Models phiếu xuất và chi tiết phiếu xuất |
+| `backend/app/models/stock_ledger.py` | Model thẻ kho (`stock_ledger`) |
+| `backend/app/schemas/__init__.py` | Package marker |
+| `backend/app/services/__init__.py` | Package marker |
+| `backend/tests/__init__.py` | Package marker |
+| `backend/tests/test_foundation.py` | Bộ test kiểm thử endpoint /health, tạo 9 bảng và ràng buộc CHECK tồn âm |
 
-### `frontend/` — scaffold Giai đoạn 0 (placeholder UI)
+### `frontend/`
 
 | File | Vai trò |
 |---|---|
@@ -70,7 +92,9 @@
 | `frontend/tailwind.config.js` | Tailwind config |
 | `frontend/src/main.jsx` | React root — mount `<App />` vào `#root` |
 | `frontend/src/index.css` | Tailwind directives + base styles |
-| `frontend/src/App.jsx` | Placeholder "Scaffolding Ready" — sẽ thay bằng router + layout ở Giai đoạn 6 |
+| `frontend/src/App.jsx` | Màn hình khởi đầu hiển thị trạng thái khung ứng dụng |
+| `frontend/Dockerfile` | Dockerfile đóng gói frontend React + Nginx |
+| `frontend/nginx.conf` | Cấu hình Nginx reverse proxy cho frontend |
 
 ---
 
@@ -78,7 +102,6 @@
 
 | File | Sẽ tạo ở Giai đoạn |
 |---|:---:|
-| `backend/app/models/*.py`  | 1 |
 | `backend/app/schemas/*.py` | 2 |
 | `backend/app/core/security.py` | 2 |
 | `backend/app/api/v1/endpoints/auth.py` | 2 |
@@ -105,10 +128,6 @@
 | `frontend/src/pages/Exports.jsx` | 6 |
 | `frontend/src/pages/Reports.jsx` | 6 |
 | `frontend/src/pages/AIAssistant.jsx` | 6 |
-| `docs/SDLC/KT1/01_SRS_and_UseCases.md` | 1 |
-| `docs/SDLC/KT1/02_Database_Design_ERD.md` | 1 |
-| `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | 1 |
-| `docs/SDLC/KT1/04_Wireframes.md` | 1 |
 | `docs/SDLC/KT2/01_API_Specifications.md` | 2 |
 | `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md` | 3 |
 | `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md` | 3 |

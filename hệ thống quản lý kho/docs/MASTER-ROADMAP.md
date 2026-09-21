@@ -24,8 +24,8 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | Giai đoạn | Mô tả | Mốc SDLC | Tiến độ |
 |:---:|---|:---:|:---:|
-| **0** | Nền tảng dự án | — | ⬜ Chưa bắt đầu |
-| **1** | Tài liệu KT1 + DB Models | KT1 | ⬜ Chưa bắt đầu |
+| **0** | Nền tảng dự án | — | ✅ Hoàn thành |
+| **1** | Tài liệu KT1 + DB Models | KT1 | ✅ Hoàn thành |
 | **2** | Backend Auth + CRUD | KT2 | ⬜ Chưa bắt đầu |
 | **3** | Transaction ACID + Stock Ledger | KT2 | ⬜ Chưa bắt đầu |
 | **4** | Tích hợp AI + Fallback Engine | KT3 | ⬜ Chưa bắt đầu |
@@ -48,10 +48,10 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 |---|---|:---:|---|---|:---:|
-| 0.1 | Tạo cấu trúc thư mục đầy đủ theo `Prompt.md §6` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | Cây thư mục khớp đặc tả | ⬜ |
-| 0.2 | `requirements.txt` + `.env.example` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | `backend/requirements.txt`, `backend/.env.example` | ⬜ |
-| 0.3 | FastAPI app khung: `main.py`, `core/config.py`, `core/database.py` | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | Backend khởi động được tại `uvicorn app.main:app` | ⬜ |
-| 0.4 | React + Vite + Tailwind CSS khởi tạo | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | Frontend chạy được tại `localhost:5173` | ⬜ |
+| 0.1 | Tạo cấu trúc thư mục đầy đủ theo `Prompt.md §6` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | Cây thư mục khớp đặc tả | ✅ |
+| 0.2 | `requirements.txt` + `.env.example` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | `backend/requirements.txt`, `backend/.env.example` | ✅ |
+| 0.3 | FastAPI app khung: `main.py`, `core/config.py`, `core/database.py` | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | Backend khởi động được tại `uvicorn app.main:app` | ✅ |
+| 0.4 | React + Vite + Tailwind CSS khởi tạo | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | Frontend chạy được tại `localhost:5173` | ✅ |
 
 **Tiêu chí hoàn thành Giai đoạn 0:** Backend trả `200 OK` tại `/health`, frontend hiển thị trang trắng không lỗi.
 
@@ -65,12 +65,12 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 |---|---|:---:|---|---|:---:|
-| 1.1 | Tài liệu SRS + Use Case (3 Actor, 8 luồng nghiệp vụ) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/01_SRS_and_UseCases.md` | ⬜ |
-| 1.2 | Thiết kế ERD + Data Dictionary (9 bảng) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `docs/SDLC/KT1/02_Database_Design_ERD.md` | ⬜ |
-| 1.3 | Kiến trúc AI + Prompt mẫu (anti-hallucination) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | ⬜ |
-| 1.4 | Wireframes: Dashboard, Phiếu nhập/xuất, Trợ lý AI | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/04_Wireframes.md` | ⬜ |
-| 1.5 | 9 SQLAlchemy Models (`users`, `categories`, `products`, `suppliers`, `import_notes`, `import_note_details`, `export_notes`, `export_note_details`, `stock_ledger`) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `backend/app/models/*.py` | ⬜ |
-| 1.6 | `Base.metadata.create_all()` — tạo bảng khi khởi động | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | DB schema khớp ERD, `CHECK (current_stock >= 0)` | ⬜ |
+| 1.1 | Tài liệu SRS + Use Case (3 Actor, 8 luồng nghiệp vụ) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/01_SRS_and_UseCases.md` | ✅ |
+| 1.2 | Thiết kế ERD + Data Dictionary (9 bảng) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `docs/SDLC/KT1/02_Database_Design_ERD.md` | ✅ |
+| 1.3 | Kiến trúc AI + Prompt mẫu (anti-hallucination) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | ✅ |
+| 1.4 | Wireframes: Dashboard, Phiếu nhập/xuất, Trợ lý AI | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/04_Wireframes.md` | ✅ |
+| 1.5 | 9 SQLAlchemy Models (`users`, `categories`, `products`, `suppliers`, `import_notes`, `import_note_details`, `export_notes`, `export_note_details`, `stock_ledger`) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `backend/app/models/*.py` | ✅ |
+| 1.6 | `Base.metadata.create_all()` — tạo bảng khi khởi động | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | DB schema khớp ERD, `CHECK (current_stock >= 0)` | ✅ |
 
 **Tiêu chí hoàn thành Giai đoạn 1:** 4 file deliverable KT1 tồn tại và có nội dung; chạy backend tạo đúng 9 bảng trong SQLite.
 
@@ -202,5 +202,6 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | Ngày | Phiên | Nội dung thay đổi |
 |:---:|:---:|---|
 | 2026-09-20 | #1 | Tạo mới — thiết lập toàn bộ 8 giai đoạn |
+| 2026-09-21 | #2 | Hoàn thành Giai đoạn 0 (Scaffolding Backend/Frontend) và Giai đoạn 1 (Tài liệu KT1 + 9 DB Models) |
 
 > **Quy ước ghi lịch sử:** Mỗi lần cập nhật file này (thay đổi trạng thái, thêm/sửa nhiệm vụ, điều chỉnh kế hoạch), thêm 1 dòng vào bảng trên với ngày và lý do. Không xóa dòng cũ.
