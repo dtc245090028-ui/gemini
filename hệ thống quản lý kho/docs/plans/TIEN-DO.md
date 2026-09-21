@@ -18,10 +18,10 @@
 
 | Ngày cập nhật | Mã bước | Tên bước thực hiện | Trạng thái | Sản phẩm bàn giao (Deliverables) đã sinh | Ghi chú / Đánh giá |
 | :---: | :---: | :--- | :---: | :--- | :--- |
-| 2026-09-20 | Bước 01 | Đặc tả Yêu cầu & Phân tích Nghiệp vụ | Chưa bắt đầu | `docs/SDLC/KT1/01_SRS_and_UseCases.md` | Khởi tạo tài liệu đặc tả SRS, Use Case |
-| 2026-09-20 | Bước 02 | Thiết kế CSDL & Sơ đồ ERD Chuẩn | Chưa bắt đầu | `docs/SDLC/KT1/02_Database_Design_ERD.md` | Thiết kế 9 bảng, quan hệ, ràng buộc |
-| 2026-09-20 | Bước 03 | Cấu hình Môi trường, Docker & CSDL | Chưa bắt đầu | `.env.example`, `docker-compose.yml`, `Dockerfile` | SQLite / PostgreSQL, Dockerization |
-| 2026-09-20 | Bước 04 | Cấu trúc Backend & Database Session | Chưa bắt đầu | `backend/app/main.py`, `core/database.py`, `core/config.py` | FastAPI phân tầng, middleware, error handlers |
+| 2026-09-21 | Bước 01 | Đặc tả Yêu cầu & Phân tích Nghiệp vụ | Hoàn thành | `docs/SDLC/KT1/01_SRS_and_UseCases.md`, `03_AI_Architecture_and_Prompts.md`, `04_Wireframes.md` | Đã hoàn thiện SRS, 3 Actor, Use Case, kiến trúc AI & wireframes |
+| 2026-09-21 | Bước 02 | Thiết kế CSDL & Sơ đồ ERD Chuẩn | Hoàn thành | `docs/SDLC/KT1/02_Database_Design_ERD.md`, `backend/app/models/*.py` | Thiết kế 9 bảng CSDL, Mermaid ERD, CheckConstraint chống tồn âm |
+| 2026-09-21 | Bước 03 | Cấu hình Môi trường, Docker & CSDL | Hoàn thành | `.env.example`, `docker-compose.yml`, `Dockerfile` | Hoàn thành .env.example, docker-compose.yml và Dockerfile backend/frontend |
+| 2026-09-21 | Bước 04 | Cấu trúc Backend & Database Session | Hoàn thành | `backend/app/main.py`, `core/database.py`, `core/config.py` | FastAPI phân tầng, 9 tables tạo thành công, pytest 3/3 passed |
 | 2026-09-20 | Bước 05 | Xác thực, Đăng nhập & Phân quyền RBAC | Chưa bắt đầu | `backend/app/api/v1/endpoints/auth.py`, `core/security.py` | JWT, bcrypt, 3 vai trò (Admin, Thủ kho, Kế toán) |
 | 2026-09-20 | Bước 06 | Module Hàng hóa, Nhóm hàng & Nhà cung cấp | Chưa bắt đầu | `backend/app/models/product.py`, `api/v1/endpoints/products.py` | CRUD Master data, min_stock, unit |
 | 2026-09-20 | Bước 07 | Module Nhập/Xuất kho & Thẻ kho (Transaction) | Chưa bắt đầu | `backend/app/services/inventory_service.py`, `models/stock_ledger.py` | ACID Transaction, chống tồn âm, Stock Ledger |
