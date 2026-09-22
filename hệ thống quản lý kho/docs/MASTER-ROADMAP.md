@@ -26,8 +26,8 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 |:---:|---|:---:|:---:|
 | **0** | Nền tảng dự án | — | ✅ Hoàn thành |
 | **1** | Tài liệu KT1 + DB Models | KT1 | ✅ Hoàn thành |
-| **2** | Backend Auth + CRUD | KT2 | ⬜ Chưa bắt đầu |
-| **3** | Transaction ACID + Stock Ledger | KT2 | ⬜ Chưa bắt đầu |
+| **2** | Backend Auth + CRUD | KT2 | ✅ Hoàn thành |
+| **3** | Transaction ACID + Stock Ledger | KT2 | ✅ Hoàn thành |
 | **4** | Tích hợp AI + Fallback Engine | KT3 | ⬜ Chưa bắt đầu |
 | **5** | Kiểm thử tự động (Pytest) | KT3 | ⬜ Chưa bắt đầu |
 | **6** | Frontend React + Tailwind | Cuối kỳ | ⬜ Chưa bắt đầu |
@@ -83,12 +83,12 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 |---|---|:---:|---|---|:---:|
-| 2.1 | Pydantic Schemas cho tất cả models | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | `backend/app/schemas/*.py` | ⬜ |
-| 2.2 | Auth: bcrypt + JWT + endpoint `/auth/login` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | `backend/app/core/security.py`, `api/v1/endpoints/auth.py` | ⬜ |
-| 2.3 | RBAC dependency `require_role(["ADMIN", ...])` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | Tích hợp vào tất cả protected endpoints | ⬜ |
-| 2.4 | CRUD: Categories, Products (với `min_stock`, `current_stock`) | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/products.py` + Swagger OK | ⬜ |
-| 2.5 | CRUD: Suppliers | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/suppliers.py` + Swagger OK | ⬜ |
-| 2.6 | Tài liệu API Spec KT2 | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `docs/SDLC/KT2/01_API_Specifications.md` | ⬜ |
+| 2.1 | Pydantic Schemas cho tất cả models | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | `backend/app/schemas/*.py` | ✅ |
+| 2.2 | Auth: bcrypt + JWT + endpoint `/auth/login` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | `backend/app/core/security.py`, `api/v1/endpoints/auth.py` | ✅ |
+| 2.3 | RBAC dependency `require_role(["ADMIN", ...])` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | Tích hợp vào tất cả protected endpoints | ✅ |
+| 2.4 | CRUD: Categories, Products (với `min_stock`, `current_stock`) | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/products.py` + Swagger OK | ✅ |
+| 2.5 | CRUD: Suppliers | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/suppliers.py` + Swagger OK | ✅ |
+| 2.6 | Tài liệu API Spec KT2 | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `docs/SDLC/KT2/01_API_Specifications.md` | ✅ |
 
 **Tiêu chí hoàn thành Giai đoạn 2:** Login trả JWT; CRUD products/suppliers pass test; Swagger UI hiển thị đủ endpoints.
 
@@ -102,14 +102,14 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 |---|---|:---:|---|---|:---:|
-| 3.1 | `InventoryService.create_import()` — Transaction ACID nhập hàng + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ⬜ |
-| 3.2 | `InventoryService.create_export()` — Atomic check tồn + Rollback nếu âm + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ⬜ |
-| 3.3 | API endpoints nhập/xuất kho (`/import-notes`, `/export-notes`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/import_notes.py`, `export_notes.py` | ⬜ |
-| 3.4 | State Machine phiếu: `DRAFT → COMPLETED → CANCELLED` (hoàn trả tồn kho khi hủy) | 🟡 P1 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Logic trong `inventory_service.py` | ⬜ |
-| 3.5 | API Báo cáo Nhập-Xuất-Tồn theo kỳ + tra cứu Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/reports.py`, `stock_ledger.py` | ⬜ |
-| 3.6 | API cảnh báo hàng dưới tồn tối thiểu | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Tích hợp vào `/products` hoặc `/reports/alerts` | ⬜ |
-| 3.7 | Tài liệu Transaction Design KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md` | ⬜ |
-| 3.8 | Minh chứng dùng AI trong SDLC KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md` | ⬜ |
+| 3.1 | `InventoryService.create_import()` — Transaction ACID nhập hàng + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
+| 3.2 | `InventoryService.create_export()` — Atomic check tồn + Rollback nếu âm + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
+| 3.3 | API endpoints nhập/xuất kho (`/import-notes`, `/export-notes`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/import_notes.py`, `export_notes.py` | ✅ |
+| 3.4 | State Machine phiếu: `DRAFT → COMPLETED → CANCELLED` (hoàn trả tồn kho khi hủy) | 🟡 P1 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Logic trong `inventory_service.py` | ✅ |
+| 3.5 | API Báo cáo Nhập-Xuất-Tồn theo kỳ + tra cứu Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/reports.py`, `stock_ledger.py` | ✅ |
+| 3.6 | API cảnh báo hàng dưới tồn tối thiểu | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Tích hợp vào `/products` hoặc `/reports/alerts` | ✅ |
+| 3.7 | Tài liệu Transaction Design KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md` | ✅ |
+| 3.8 | Minh chứng dùng AI trong SDLC KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md` | ✅ |
 
 **Tiêu chí hoàn thành Giai đoạn 3:** Xuất quá tồn → HTTP 400, `current_stock` không đổi; mỗi nhập/xuất tạo bản ghi `stock_ledger`; công thức `Tồn đầu + Nhập - Xuất = Tồn cuối` khớp.
 
@@ -203,5 +203,51 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 |:---:|:---:|---|
 | 2026-09-20 | #1 | Tạo mới — thiết lập toàn bộ 8 giai đoạn |
 | 2026-09-21 | #2 | Hoàn thành Giai đoạn 0 (Scaffolding Backend/Frontend) và Giai đoạn 1 (Tài liệu KT1 + 9 DB Models) |
+| 2026-09-22 | #3 | Hoàn thành phần Auth & RBAC (Bước 05 / Nhiệm vụ 2.2, 2.3) thuộc Giai đoạn 2: Tích hợp bcrypt thuần, PyJWT HS256, idempotent seed 3 tài khoản, SQLite FK và 14/14 tests pass |
+| 2026-09-22 | #4 | Hoàn thành toàn bộ Giai đoạn 2 (Bước 06 & Tài liệu KT2 API Spec): Hoàn thiện CRUD Category, Product, Supplier, cảnh báo tồn kho, RBAC và 18/18 tests pass |
+| 2026-09-22 | #5 | Hoàn thành toàn bộ Giai đoạn 3 (Bước 07 & 3 tài liệu KT2/Architecture): Transaction ACID, Chống tồn âm, Guard-check Hủy phiếu, Thẻ kho, Báo cáo Nhập-Xuất-Tồn và 24/24 tests pass |
 
 > **Quy ước ghi lịch sử:** Mỗi lần cập nhật file này (thay đổi trạng thái, thêm/sửa nhiệm vụ, điều chỉnh kế hoạch), thêm 1 dòng vào bảng trên với ngày và lý do. Không xóa dòng cũ.
+
+---
+
+## CHANGELOG
+
+### [2026-09-22] Hoàn thành Giai đoạn 3 (Bước 07: Module Nhập/Xuất kho & Thẻ kho Transaction ACID)
+- **Nghiệp vụ cốt lõi (Core Inventory Service):**
+  - `backend/app/services/inventory_service.py`: Transaction ACID cho Nhập/Xuất kho, kiểm tra chống tồn âm, sinh mã tự động với Retry Pattern, Guard-check hủy phiếu (Phương án B), điều chỉnh kiểm kê (Phương án A) và báo cáo Nhập-Xuất-Tồn chuẩn kế toán.
+  - `backend/app/schemas/`: Đầy đủ schemas cho ImportNote, ExportNote, StockLedger, Report.
+  - `backend/app/api/v1/endpoints/`: Đăng ký các endpoints `/import-notes`, `/export-notes`, `/stock-ledger`, `/reports`.
+- **Tài liệu bàn giao KT2:**
+  - `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md`: Tài liệu thiết kế Transaction và chống tồn âm.
+  - `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md`: Minh chứng sinh viên ứng dụng AI trong quy trình SDLC.
+  - `docs/architecture.md`: Tài liệu kiến trúc hệ thống 3 tầng và các sơ đồ luồng dữ liệu.
+- **Kiểm thử tự động:**
+  - `backend/tests/test_stock_transactions.py` (6 bài test lớn kiểm tra trọn vẹn mọi luồng).
+  - Kết quả toàn dự án: **24/24 test cases PASS 100%**.
+
+### [2026-09-22] Hoàn thành Giai đoạn 2 (Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp)
+- **Hoàn thành các nhiệm vụ Giai đoạn 2:**
+  - `backend/app/schemas/`: Toàn bộ Schemas cho Category, Product, Supplier và User.
+  - `backend/app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa, chặn xóa khi có sản phẩm liên kết.
+  - `backend/app/api/v1/endpoints/products.py`: CRUD hàng hóa, tìm kiếm theo tên/SKU, lọc theo nhóm hàng, lọc cảnh báo tồn `is_low_stock`, soft delete `DISCONTINUED`.
+  - `backend/app/api/v1/endpoints/suppliers.py`: CRUD nhà cung cấp, chuyển `is_active=False` khi đã có phiếu nhập.
+  - Phân quyền RBAC chặt chẽ: `ACCOUNTANT` chỉ đọc, `WAREHOUSE_KEEPER` thêm/sửa, `ADMIN` toàn quyền.
+- **Tài liệu bàn giao KT2:**
+  - Hoàn thành `docs/SDLC/KT2/01_API_Specifications.md` đặc tả toàn bộ RESTful APIs và RBAC Matrix.
+- **Kiểm thử tự động:**
+  - `backend/tests/test_master_data.py`: Đạt 4/4 test suites lớn. Tổng cộng 18/18 tests toàn dự án PASS 100%.
+
+### [2026-09-22] Cập nhật Giai đoạn 2 (Bước 05: Auth & RBAC)
+- **Hoàn thành các mục trong Bước 05:**
+  - `backend/app/core/security.py`: Sử dụng `bcrypt` thuần (loại bỏ phụ thuộc `passlib` để tương thích hoàn toàn Python 3.14) và `pyjwt` (HS256).
+  - Chuẩn hóa JWT tối thiểu: `ACCESS_TOKEN_EXPIRE_MINUTES = 60` (được đọc từ `.env`).
+  - `backend/app/schemas/user.py`: Cung cấp các Pydantic schema cho đăng nhập, thông tin người dùng và token.
+  - `backend/app/api/deps.py`: Dependency `get_current_user` và `require_roles` phân quyền 3 vai trò (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`).
+  - `backend/app/api/v1/endpoints/auth.py`: Đăng ký router `/api/v1/auth` gồm các endpoint `/login`, `/login-form`, `/me`, `/users`.
+- **Cải tiến kỹ thuật & 2 đề xuất của người dùng:**
+  - **SQLite Foreign Keys:** Kích hoạt `PRAGMA foreign_keys = ON;` qua SQLAlchemy connection listener tại `database.py`.
+  - **Exception Handler:** Bắt riêng `IntegrityError` trả về HTTP 400 trong `main.py`.
+  - **Idempotent Seed:** Thêm `backend/app/core/seed.py` tự động nạp 3 tài khoản mẫu (`admin`, `thukho`, `ketoan`) an toàn trong `lifespan`.
+- **Chất lượng kiểm thử:**
+  - `backend/tests/test_auth.py` đạt 11/11 tests. Tổng cộng bộ test hiện tại 14/14 tests PASS 100%.
