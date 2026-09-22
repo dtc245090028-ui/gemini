@@ -65,15 +65,37 @@ backend/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
-- [ ] Không thể tạo sản phẩm với mã SKU trùng lặp (trả về lỗi 400 rõ ràng).
-- [ ] Bộ lọc `is_low_stock=true` trả về chính xác danh sách các mặt hàng có `current_stock <= min_stock`.
-- [ ] Pydantic chặn đứng mọi yêu cầu nhập số lượng hoặc giá trị âm.
+- [x] Không thể tạo sản phẩm với mã SKU trùng lặp (trả về lỗi 400 rõ ràng).
+- [x] Bộ lọc `is_low_stock=true` trả về chính xác danh sách các mặt hàng có `current_stock <= min_stock`.
+- [x] Pydantic chặn đứng mọi yêu cầu nhập số lượng hoặc giá trị âm.
 
 ---
 
 ## 5. Cập nhật tiến độ
-Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 06** theo đúng mẫu sau:
+Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/gemini/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 06** theo đúng mẫu sau:
 
 ```markdown
-| YYYY-MM-DD | Bước 06 | Module Hàng hóa, Nhóm hàng & Nhà cung cấp | Hoàn thành | `backend/app/models/product.py`, `api/v1/endpoints/products.py` | Đã hoàn thiện CRUD Nhóm hàng, Hàng hóa, Nhà cung cấp và API cảnh báo tồn |
+| 2026-09-22 | Bước 06 | Module Hàng hóa, Nhóm hàng & Nhà cung cấp | Hoàn thành | `backend/app/schemas/*.py`, `backend/app/api/v1/endpoints/*.py`, `docs/SDLC/KT2/01_API_Specifications.md` | Đã hoàn thiện CRUD Nhóm hàng, Hàng hóa, Nhà cung cấp, cảnh báo tồn kho và tài liệu API Spec KT2 |
 ```
+
+---
+
+## 6. CHANGELOG
+
+### [2026-09-22] Hoàn thành Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp
+- **Pydantic Schemas:**
+  - `backend/app/schemas/category.py`: `CategoryCreate`, `CategoryUpdate`, `CategoryResponse`.
+  - `backend/app/schemas/product.py`: `ProductCreate`, `ProductUpdate`, `ProductResponse` với computed field `@computed_field is_low_stock` tự động tính `current_stock <= min_stock`.
+  - `backend/app/schemas/supplier.py`: `SupplierCreate`, `SupplierUpdate`, `SupplierResponse`.
+  - Xuất toàn bộ schema tại `backend/app/schemas/__init__.py`.
+- **API Endpoints & RBAC:**
+  - `backend/app/api/v1/endpoints/categories.py`: CRUD nhóm hàng, tìm kiếm, phân trang, chặn xóa nhóm hàng khi có sản phẩm liên kết (HTTP 400).
+  - `backend/app/api/v1/endpoints/products.py`: CRUD hàng hóa, lọc theo nhóm hàng, từ khóa SKU/tên, lọc cảnh báo tồn `is_low_stock`, bảo toàn lịch sử bằng soft delete (`DISCONTINUED`).
+  - `backend/app/api/v1/endpoints/suppliers.py`: CRUD nhà cung cấp, kiểm tra trùng mã, chuyển `is_active=False` nếu đã có phiếu nhập liên kết.
+  - Đăng ký toàn bộ routers vào `backend/app/api/v1/api.py`.
+- **Tài liệu bàn giao KT2:**
+  - Hoàn thành `docs/SDLC/KT2/01_API_Specifications.md` đặc tả chi tiết toàn bộ RESTful APIs và ma trận phân quyền RBAC.
+- **Kiểm thử tự động:**
+  - Viết `backend/tests/test_master_data.py` (4 test functions lớn bao quát vòng đời Category, Product, Supplier và RBAC).
+  - Tổng số test cases toàn dự án: **18/18 PASS 100%**.
+

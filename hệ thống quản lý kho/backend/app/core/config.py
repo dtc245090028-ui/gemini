@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # Bảo mật & JWT
     SECRET_KEY: str = "kho-ai-secret-key-super-secure-change-in-production-2026"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # Cơ sở dữ liệu
     DATABASE_URL: str = "sqlite:///./warehouse.db"

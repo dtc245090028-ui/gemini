@@ -6,19 +6,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
+from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
 from app.api.v1.api import api_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Quản lý vòng đời ứng dụng: Tự động khởi tạo cấu trúc bảng CSDL khi khởi động."""
+    """Quản lý vòng đời ứng dụng: Tự động khởi tạo cấu trúc bảng CSDL và nạp dữ liệu ban đầu."""
     # Tự động tạo các bảng CSDL nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
+
+    # Tự động nạp dữ liệu tài khoản mặc định (Idempotent seed an toàn)
+    db = SessionLocal()
+    try:
+        seed_default_users(db)
+    finally:
+        db.close()
+
     yield
     # Dọn dẹp tài nguyên khi tắt app nếu cần
 
@@ -64,6 +73,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "detail": "Dữ liệu gửi lên không đúng định dạng hợp lệ.",
             "errors": exc.errors(),
             "error_code": "VALIDATION_ERROR",
+        },
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_exception_handler(request: Request, exc: IntegrityError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "success": False,
+            "detail": "Dữ liệu vi phạm ràng buộc toàn vẹn cơ sở dữ liệu (trùng lặp mã duy nhất hoặc vi phạm ràng buộc kiểm tra dữ liệu).",
+            "error_code": "INTEGRITY_ERROR",
         },
     )
 

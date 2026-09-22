@@ -30,3 +30,7 @@ class Product(Base):
     import_details = relationship("ImportNoteDetail", back_populates="product")
     export_details = relationship("ExportNoteDetail", back_populates="product")
     ledger_entries = relationship("StockLedger", back_populates="product")
+
+    @property
+    def category_name(self):
+        return self.category.name if self.category else None
