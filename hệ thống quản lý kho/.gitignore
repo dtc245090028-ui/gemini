@@ -51,3 +51,5 @@ secrets/
 
 backend/warehouse.db
 hệ thống quản lý kho/backend/warehouse.db
+
+hệ thống quản lý kho/api_keys
