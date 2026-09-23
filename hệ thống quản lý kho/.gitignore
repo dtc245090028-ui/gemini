@@ -42,5 +42,12 @@ node_modules/
 dist/
 .npm
 
+# API Keys & Secrets
+api_keys/
+api_secrets/
+secrets/
+*.key
+*.token
 
+backend/warehouse.db
 hệ thống quản lý kho/backend/warehouse.db
