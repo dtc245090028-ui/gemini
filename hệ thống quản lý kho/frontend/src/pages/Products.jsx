@@ -4,11 +4,12 @@ import {
   Plus,
   Search,
   Filter,
-  AlertCircle,
-  Eye,
+  AlertTriangle,
   Edit2,
   Trash2,
-  AlertTriangle,
+  Eye,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,8 @@ export const Products = ({ onSelectProductLedger }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Filters State
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
@@ -27,7 +30,7 @@ export const Products = ({ onSelectProductLedger }) => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [currentProduct, setCurrentProduct] = useState(null);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -73,14 +76,12 @@ export const Products = ({ onSelectProductLedger }) => {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchProducts();
-    }, 200);
-    return () => clearTimeout(timer);
+    fetchProducts();
   }, [search, selectedCategory, filterLowStock]);
 
   const handleOpenCreate = () => {
     setModalMode('create');
+    setCurrentProduct(null);
     setFormData({
       code: `SP${String(products.length + 1).padStart(3, '0')}`,
       name: '',
@@ -95,7 +96,7 @@ export const Products = ({ onSelectProductLedger }) => {
 
   const handleOpenEdit = (p) => {
     setModalMode('edit');
-    setSelectedProduct(p);
+    setCurrentProduct(p);
     setFormData({
       code: p.code,
       name: p.name,
@@ -108,7 +109,7 @@ export const Products = ({ onSelectProductLedger }) => {
     setIsModalOpen(true);
   };
 
-  const handleSaveProduct = async (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     setFormError(null);
     try {
@@ -120,7 +121,7 @@ export const Products = ({ onSelectProductLedger }) => {
           standard_price: Number(formData.standard_price),
         });
       } else {
-        await apiClient.products.update(selectedProduct.id, {
+        await apiClient.products.update(currentProduct.id, {
           name: formData.name,
           category_id: Number(formData.category_id),
           unit: formData.unit,
@@ -131,17 +132,18 @@ export const Products = ({ onSelectProductLedger }) => {
       setIsModalOpen(false);
       fetchProducts();
     } catch (err) {
-      setFormError(err.response?.data?.detail || 'Không thể lưu hàng hóa');
+      const msg = err.response?.data?.detail || 'Đã có lỗi xảy ra khi lưu mặt hàng.';
+      setFormError(msg);
     }
   };
 
   const handleDeleteProduct = async (p) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn ngưng hoạt động mặt hàng "${p.name}"?`)) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn ngưng kinh doanh mặt hàng "${p.name}"?`)) return;
     try {
       await apiClient.products.delete(p.id);
       fetchProducts();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể xóa mặt hàng này');
+      alert(err.response?.data?.detail || 'Không thể xóa mặt hàng này.');
     }
   };
 
@@ -150,14 +152,14 @@ export const Products = ({ onSelectProductLedger }) => {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Danh Mục Hàng Hóa</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Quản lý mã SKU, đơn vị tính, định mức tồn kho an toàn và giá chuẩn</p>
+          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Danh Mục Hàng Hóa</h2>
+          <p className="text-xs text-wood-600 mt-0.5">Quản lý mã SKU, đơn vị tính, định mức tồn kho an toàn và giá chuẩn</p>
         </div>
 
         {canEdit && (
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+            className="btn-primary"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm Mặt Hàng Mới</span>
@@ -166,23 +168,23 @@ export const Products = ({ onSelectProductLedger }) => {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="card-wood p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-wood-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo mã SKU hoặc tên hàng..."
-              className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
             />
           </div>
 
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="py-2 px-3 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20"
           >
             <option value="">Tất cả nhóm hàng</option>
             {categories.map((c) => (
@@ -194,45 +196,45 @@ export const Products = ({ onSelectProductLedger }) => {
         </div>
 
         {/* Low Stock Toggle */}
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+        <label className="flex items-center gap-2 text-xs font-medium text-wood-800 cursor-pointer select-none bg-wood-50/70 px-3 py-2 rounded-xl border border-wood-200">
           <input
             type="checkbox"
             checked={filterLowStock}
             onChange={(e) => setFilterLowStock(e.target.checked)}
-            className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+            className="rounded text-wood-600 focus:ring-wood-500 w-4 h-4 cursor-pointer accent-wood-500"
           />
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+          <AlertTriangle className="w-3.5 h-3.5 text-rust-500" />
           <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
         </label>
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="card-wood overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+            <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
               <tr>
-                <th className="py-3 px-4">Mã SKU</th>
-                <th className="py-3 px-4">Tên hàng hóa</th>
-                <th className="py-3 px-4">Nhóm hàng</th>
-                <th className="py-3 px-4 text-center">ĐVT</th>
-                <th className="py-3 px-4 text-center">Tồn hiện tại</th>
-                <th className="py-3 px-4 text-center">Tồn an toàn</th>
-                <th className="py-3 px-4 text-right">Giá chuẩn</th>
-                <th className="py-3 px-4 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-right">Thao tác</th>
+                <th className="py-3.5 px-4">Mã SKU</th>
+                <th className="py-3.5 px-4">Tên hàng hóa</th>
+                <th className="py-3.5 px-4">Nhóm hàng</th>
+                <th className="py-3.5 px-4 text-center">ĐVT</th>
+                <th className="py-3.5 px-4 text-center">Tồn hiện tại</th>
+                <th className="py-3.5 px-4 text-center">Tồn an toàn</th>
+                <th className="py-3.5 px-4 text-right">Giá chuẩn</th>
+                <th className="py-3.5 px-4 text-center">Trạng thái</th>
+                <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-wood-100">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-slate-400">
+                  <td colSpan="9" className="text-center py-10 text-wood-400">
                     Đang tải danh sách hàng hóa...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-slate-400">
+                  <td colSpan="9" className="text-center py-10 text-wood-400">
                     Không tìm thấy sản phẩm nào khớp với bộ lọc.
                   </td>
                 </tr>
@@ -240,24 +242,24 @@ export const Products = ({ onSelectProductLedger }) => {
                 products.map((p) => {
                   const isLow = p.current_stock <= p.min_stock;
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-semibold text-blue-600">{p.code}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-800">{p.name}</td>
-                      <td className="py-3.5 px-4 text-slate-500">{p.category?.name || 'N/A'}</td>
-                      <td className="py-3.5 px-4 text-center text-slate-600">{p.unit}</td>
+                    <tr key={p.id} className="hover:bg-wood-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-semibold text-wood-700">{p.code}</td>
+                      <td className="py-3.5 px-4 font-medium text-wood-900">{p.name}</td>
+                      <td className="py-3.5 px-4 text-wood-600">{p.category?.name || 'N/A'}</td>
+                      <td className="py-3.5 px-4 text-center text-wood-600">{p.unit}</td>
                       <td className="py-3.5 px-4 text-center">
                         <span
                           className={`font-bold px-2 py-0.5 rounded ${
                             isLow
-                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-rust-50 text-rust-600 border border-rust-200'
+                              : 'bg-forest-50 text-forest-700 border border-forest-200'
                           }`}
                         >
                           {p.current_stock}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-slate-500 font-medium">{p.min_stock}</td>
-                      <td className="py-3.5 px-4 text-right font-medium text-slate-700">
+                      <td className="py-3.5 px-4 text-center text-wood-600 font-medium">{p.min_stock}</td>
+                      <td className="py-3.5 px-4 text-right font-medium text-wood-800">
                         {p.standard_price.toLocaleString()} đ
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -270,7 +272,7 @@ export const Products = ({ onSelectProductLedger }) => {
                           <button
                             onClick={() => onSelectProductLedger(p.id)}
                             title="Xem lịch sử thẻ kho"
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -278,7 +280,7 @@ export const Products = ({ onSelectProductLedger }) => {
                             <button
                               onClick={() => handleOpenEdit(p)}
                               title="Sửa hàng hóa"
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -287,7 +289,7 @@ export const Products = ({ onSelectProductLedger }) => {
                             <button
                               onClick={() => handleDeleteProduct(p)}
                               title="Ngưng kinh doanh"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -303,40 +305,42 @@ export const Products = ({ onSelectProductLedger }) => {
         </div>
       </div>
 
-      {/* Modal Thêm / Sửa Hàng Hóa */}
+      {/* Modal Thêm / Sửa Mặt Hàng */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={modalMode === 'create' ? 'Thêm Mặt Hàng Mới' : 'Cập Nhật Hàng Hóa'}
       >
-        {formError && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-            <span>{formError}</span>
-          </div>
-        )}
+        <form onSubmit={handleSubmitForm} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rust-500 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSaveProduct} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Mã SKU</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Mã SKU</label>
               <input
                 type="text"
                 disabled={modalMode === 'edit'}
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono uppercase disabled:opacity-60"
+                placeholder="VD: SP001..."
+                className="input-wood disabled:bg-wood-100/60 disabled:text-wood-400"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Nhóm hàng hóa</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Nhóm hàng</label>
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="input-wood"
                 required
               >
+                <option value="">Chọn nhóm hàng</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -347,65 +351,65 @@ export const Products = ({ onSelectProductLedger }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Tên mặt hàng</label>
+            <label className="block text-xs font-semibold text-wood-800 mb-1">Tên mặt hàng</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="VD: Bàn phím cơ Akko 3087..."
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              placeholder="VD: Bàn làm việc gỗ sồi tự nhiên..."
+              className="input-wood"
               required
             />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Đơn vị tính</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Đơn vị tính</label>
               <input
                 type="text"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                placeholder="Chiếc, Hộp..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                placeholder="Chiếc, Bộ..."
+                className="input-wood"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Tồn tối thiểu</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Tồn an toàn</label>
               <input
                 type="number"
                 min="0"
                 value={formData.min_stock}
                 onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="input-wood"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Giá chuẩn (đ)</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Giá chuẩn (đ)</label>
               <input
                 type="number"
                 min="0"
                 step="1000"
                 value={formData.standard_price}
                 onChange={(e) => setFormData({ ...formData, standard_price: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="input-wood"
                 required
               />
             </div>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-wood-200">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              className="btn-outline"
             >
               Hủy bỏ
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="btn-primary"
             >
               {modalMode === 'create' ? 'Tạo mới' : 'Cập nhật'}
             </button>

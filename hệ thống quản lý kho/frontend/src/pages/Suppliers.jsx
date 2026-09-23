@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Plus, Search, Edit2, Trash2, Phone, Mail, MapPin, AlertCircle } from 'lucide-react';
+import {
+  Truck,
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Phone,
+  Mail,
+  MapPin,
+  AlertCircle,
+  Building2,
+} from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
@@ -112,14 +123,14 @@ export const Suppliers = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Đối Tác Nhà Cung Cấp</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Quản lý mạng lưới các đối tác cung ứng thiết bị và linh kiện</p>
+          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Đối Tác Nhà Cung Cấp</h2>
+          <p className="text-xs text-wood-600 mt-0.5">Quản lý mạng lưới các đối tác cung ứng thiết bị và nguyên vật liệu</p>
         </div>
 
         {canEdit && (
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+            className="btn-primary"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm Nhà Cung Cấp</span>
@@ -128,187 +139,176 @@ export const Suppliers = () => {
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <div className="card-wood p-4">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-wood-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên hoặc mã nhà cung cấp..."
-            className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            placeholder="Tìm theo mã hoặc tên nhà cung cấp..."
+            className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
           />
         </div>
       </div>
 
-      {/* Suppliers Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4">Mã đối tác</th>
-                <th className="py-3 px-4">Tên nhà cung cấp</th>
-                <th className="py-3 px-4">Điện thoại</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Địa chỉ trụ sở</th>
-                <th className="py-3 px-4 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 text-slate-400">
-                    Đang tải danh sách nhà cung cấp...
-                  </td>
-                </tr>
-              ) : filteredSuppliers.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 text-slate-400">
-                    Không có nhà cung cấp nào.
-                  </td>
-                </tr>
-              ) : (
-                filteredSuppliers.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-blue-600">{s.code}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-800">{s.name}</td>
-                    <td className="py-3.5 px-4 text-slate-600 flex items-center gap-1.5 mt-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{s.phone || 'Chưa cập nhật'}</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{s.email || 'Chưa cập nhật'}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate max-w-[200px]">{s.address || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <Badge variant={s.is_active ? 'green' : 'gray'}>
-                        {s.is_active ? 'Đang hợp tác' : 'Ngưng hợp tác'}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {canEdit && (
-                          <button
-                            onClick={() => handleOpenEdit(s)}
-                            title="Sửa thông tin"
-                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDeleteSupplier(s)}
-                            title="Ngưng hợp tác"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Supplier Grid Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading ? (
+          <div className="col-span-full py-12 text-center text-xs text-wood-400">
+            Đang tải dữ liệu nhà cung cấp...
+          </div>
+        ) : filteredSuppliers.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-xs text-wood-400">
+            Không tìm thấy nhà cung cấp nào.
+          </div>
+        ) : (
+          filteredSuppliers.map((s) => (
+            <div
+              key={s.id}
+              className="card-wood p-5 flex flex-col justify-between hover:shadow-md hover:border-wood-300 transition-all"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-wood-100 border border-wood-200 flex items-center justify-center text-wood-700">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif font-bold text-wood-900 text-sm leading-tight">{s.name}</h4>
+                      <span className="font-mono text-[11px] text-wood-500 font-semibold">{s.code}</span>
+                    </div>
+                  </div>
+                  <Badge variant={s.is_active ? 'green' : 'gray'}>
+                    {s.is_active ? 'Đang hợp tác' : 'Ngưng hợp tác'}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-wood-700 mt-4 border-t border-wood-100 pt-3">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-wood-400 shrink-0" />
+                    <span>{s.phone || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-wood-400 shrink-0" />
+                    <span className="truncate">{s.email || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-wood-400 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2 text-wood-600">{s.address || 'Chưa cập nhật'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-1 mt-4 pt-3 border-t border-wood-100">
+                {canEdit && (
+                  <button
+                    onClick={() => handleOpenEdit(s)}
+                    className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+                    title="Sửa thông tin"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDeleteSupplier(s)}
+                    className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                    title="Ngưng hợp tác"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Modal Thêm/Sửa */}
+      {/* Modal Add/Edit Supplier */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={modalMode === 'create' ? 'Thêm Nhà Cung Cấp Mới' : 'Cập Nhật Nhà Cung Cấp'}
       >
-        {formError && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-            <span>{formError}</span>
-          </div>
-        )}
-
         <form onSubmit={handleSaveSupplier} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Mã NCC</label>
-              <input
-                type="text"
-                disabled={modalMode === 'edit'}
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono uppercase disabled:opacity-60"
-                required
-              />
+          {formError && (
+            <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rust-500 shrink-0" />
+              <span>{formError}</span>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Tên nhà cung cấp</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Công ty TNHH Viễn Đông..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                required
-              />
-            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-wood-800 mb-1">Mã nhà cung cấp</label>
+            <input
+              type="text"
+              disabled={modalMode === 'edit'}
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              className="input-wood disabled:bg-wood-100/60 disabled:text-wood-400"
+              required
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-wood-800 mb-1">Tên nhà cung cấp</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="VD: Công ty TNHH Gỗ Lâm Nghiệp..."
+              className="input-wood"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Số điện thoại</label>
               <input
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="0243..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                placeholder="0912345678"
+                className="input-wood"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Địa chỉ Email</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="contact@company.com"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                placeholder="contact@supplier.com"
+                className="input-wood"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Địa chỉ trụ sở</label>
-            <input
-              type="text"
+            <label className="block text-xs font-semibold text-wood-800 mb-1">Địa chỉ</label>
+            <textarea
+              rows="3"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Số nhà, đường, thành phố..."
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-            />
+              placeholder="Địa chỉ trụ sở hoặc kho..."
+              className="input-wood"
+            ></textarea>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-wood-200">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              className="btn-outline"
             >
               Hủy bỏ
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="btn-primary"
             >
               {modalMode === 'create' ? 'Tạo mới' : 'Cập nhật'}
             </button>

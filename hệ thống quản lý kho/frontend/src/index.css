@@ -2,7 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #FAFAF7;
+    color: #3C3C3C;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer components {
+  /* Button Styles từ Figma Section 03 (Radius 6px) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-wood-500 hover:bg-wood-600 active:bg-wood-700 text-wood-50 rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-wood-400 hover:bg-wood-300 active:bg-[#A3712F] text-wood-900 rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-wood-500 text-wood-500 hover:bg-wood-500/10 active:bg-wood-500/20 rounded-btn text-xs font-semibold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-rust-500 hover:bg-rust-600 active:bg-rust-700 text-white rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 text-wood-500 hover:bg-wood-200/40 active:text-wood-700 rounded-btn text-xs font-medium transition-colors cursor-pointer;
+  }
+
+  /* Card Styles & Elevation từ Figma Section 04 */
+  .card-wood {
+    @apply bg-white border border-wood-200/90 rounded-2xl shadow-xs transition-shadow;
+  }
+
+  .card-warm {
+    @apply bg-wood-50 border border-wood-200/80 rounded-2xl shadow-xs;
+  }
+
+  .card-linen {
+    @apply bg-wood-100 border border-wood-200/80 rounded-2xl shadow-xs;
+  }
+
+  /* Input fields từ Figma Section 06 */
+  .input-wood {
+    @apply w-full bg-wood-50/70 border border-wood-200 rounded-xl px-3 py-2 text-xs text-wood-900 placeholder:text-wood-400 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500 transition-all;
+  }
 }
