@@ -5,10 +5,9 @@ import {
   Trash2,
   Eye,
   AlertCircle,
-  FileText,
-  Calendar,
-  DollarSign,
   Ban,
+  CheckCircle,
+  FileText,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -72,17 +71,20 @@ export const ImportNotes = () => {
   };
 
   const handleAddItemRow = () => {
+    if (products.length === 0) return;
+    const defaultProd = products[0];
     setItems([
       ...items,
       {
-        product_id: products[0]?.id || '',
+        product_id: defaultProd.id,
         quantity: 1,
-        unit_price: Math.round((products[0]?.standard_price || 100000) * 0.75),
+        unit_price: Math.round(defaultProd.standard_price * 0.75),
       },
     ]);
   };
 
   const handleRemoveItemRow = (idx) => {
+    if (items.length <= 1) return;
     setItems(items.filter((_, i) => i !== idx));
   };
 
@@ -141,9 +143,16 @@ export const ImportNotes = () => {
   };
 
   const handleCancelNote = async (note) => {
-    if (!window.confirm(`Bạn có chắc muốn HỦY phiếu nhập ${note.code}? Tồn kho tương ứng sẽ bị trừ đi an toàn.`)) return;
+    if (
+      !window.confirm(
+        `Xác nhận hủy phiếu nhập ${note.code}? Hệ thống sẽ hoàn trừ tồn kho tương ứng nếu đủ điều kiện.`
+      )
+    )
+      return;
+
     try {
       await apiClient.importNotes.cancel(note.id);
+      alert('Đã hủy phiếu nhập và hoàn trừ tồn kho thành công!');
       fetchData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Không thể hủy phiếu nhập');
@@ -155,14 +164,14 @@ export const ImportNotes = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Quản Lý Phiếu Nhập Kho</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Lập phiếu nhập hàng nhà cung cấp, tăng tồn kho và ghi nhận thẻ kho tự động</p>
+          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Quản Lý Phiếu Nhập Kho</h2>
+          <p className="text-xs text-wood-600 mt-0.5">Lập phiếu nhập hàng nhà cung cấp, tăng tồn kho và ghi nhận thẻ kho tự động</p>
         </div>
 
         {canCreate && (
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+            className="btn-primary"
           >
             <Plus className="w-4 h-4" />
             <span>Lập Phiếu Nhập Mới</span>
@@ -171,43 +180,43 @@ export const ImportNotes = () => {
       </div>
 
       {/* Import Notes Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="card-wood overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+            <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
               <tr>
-                <th className="py-3 px-4">Mã phiếu</th>
-                <th className="py-3 px-4">Nhà cung cấp</th>
-                <th className="py-3 px-4">Ngày chứng từ</th>
-                <th className="py-3 px-4">Người lập</th>
-                <th className="py-3 px-4 text-right">Tổng tiền (đ)</th>
-                <th className="py-3 px-4 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-right">Thao tác</th>
+                <th className="py-3.5 px-4">Mã phiếu</th>
+                <th className="py-3.5 px-4">Nhà cung cấp</th>
+                <th className="py-3.5 px-4">Ngày chứng từ</th>
+                <th className="py-3.5 px-4">Người lập</th>
+                <th className="py-3.5 px-4 text-right">Tổng tiền (đ)</th>
+                <th className="py-3.5 px-4 text-center">Trạng thái</th>
+                <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-wood-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-slate-400">
+                  <td colSpan="7" className="text-center py-10 text-wood-400">
                     Đang tải danh sách phiếu nhập...
                   </td>
                 </tr>
               ) : importNotes.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-slate-400">
+                  <td colSpan="7" className="text-center py-10 text-wood-400">
                     Chưa có phiếu nhập kho nào.
                   </td>
                 </tr>
               ) : (
                 importNotes.map((n) => (
-                  <tr key={n.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-emerald-600">{n.code}</td>
-                    <td className="py-3.5 px-4 font-medium text-slate-800">{n.supplier?.name || 'N/A'}</td>
-                    <td className="py-3.5 px-4 text-slate-500">
+                  <tr key={n.id} className="hover:bg-wood-50/80 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-wood-700">{n.code}</td>
+                    <td className="py-3.5 px-4 font-medium text-wood-900">{n.supplier?.name || 'N/A'}</td>
+                    <td className="py-3.5 px-4 text-wood-600">
                       {new Date(n.note_date).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600">{n.creator?.full_name || 'Hệ thống'}</td>
-                    <td className="py-3.5 px-4 text-right font-bold text-slate-800">
+                    <td className="py-3.5 px-4 text-wood-600">{n.creator?.full_name || 'Hệ thống'}</td>
+                    <td className="py-3.5 px-4 text-right font-bold text-wood-900">
                       {n.total_amount?.toLocaleString()} đ
                     </td>
                     <td className="py-3.5 px-4 text-center">
@@ -220,7 +229,7 @@ export const ImportNotes = () => {
                         <button
                           onClick={() => handleViewDetail(n)}
                           title="Xem chi tiết"
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -228,7 +237,7 @@ export const ImportNotes = () => {
                           <button
                             onClick={() => handleCancelNote(n)}
                             title="Hủy phiếu nhập (Hoàn trừ kho)"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
                           >
                             <Ban className="w-4 h-4" />
                           </button>
@@ -246,137 +255,130 @@ export const ImportNotes = () => {
       {/* Modal Lập Phiếu Nhập */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập Phiếu Nhập Kho Mới" maxWidth="max-w-3xl">
         {formError && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+          <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-xl flex items-center gap-2 text-xs text-rust-700">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rust-500" />
             <span>{formError}</span>
           </div>
         )}
 
-        <form onSubmit={handleCreateSubmit} className="space-y-5">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Đối tác Nhà cung cấp</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Nhà cung cấp đối tác</label>
               <select
                 value={supplierId}
                 onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="input-wood"
                 required
               >
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.code})
+                    {s.code} - {s.name}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Ghi chú chứng từ</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Ghi chú chứng từ</label>
               <input
                 type="text"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="VD: Nhập lô bàn phím Akko đợt 2..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                placeholder="VD: Nhập lô hàng gỗ xuất khẩu đợt 1..."
+                className="input-wood"
               />
             </div>
           </div>
 
-          {/* Dòng hàng chi tiết */}
-          <div>
+          {/* Chi tiết mặt hàng */}
+          <div className="border border-wood-200 rounded-xl p-3 bg-wood-50/50">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-700">Danh sách hàng hóa nhập</label>
+              <h4 className="text-xs font-bold text-wood-900 uppercase tracking-wider">Danh mục sản phẩm nhập kho</h4>
               <button
                 type="button"
                 onClick={handleAddItemRow}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-wood-600 hover:text-wood-800 font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Thêm dòng hàng</span>
+                <span>Thêm dòng sản phẩm</span>
               </button>
             </div>
 
-            <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-              {items.map((row, idx) => {
-                const subtotal = (Number(row.quantity) || 0) * (Number(row.unit_price) || 0);
-                return (
-                  <div key={idx} className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 text-xs">
-                    <div className="flex-1">
-                      <select
-                        value={row.product_id}
-                        onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-                      >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.code} - {p.name} (Tồn: {p.current_stock})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="w-24">
-                      <input
-                        type="number"
-                        min="1"
-                        value={row.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                        placeholder="Số lượng"
-                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-center"
-                        required
-                      />
-                    </div>
-
-                    <div className="w-32">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={row.unit_price}
-                        onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
-                        placeholder="Đơn giá nhập"
-                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-right"
-                        required
-                      />
-                    </div>
-
-                    <div className="w-28 text-right font-semibold text-slate-700">
-                      {subtotal.toLocaleString()} đ
-                    </div>
-
-                    {items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItemRow(idx)}
-                        className="text-slate-400 hover:text-rose-500 p-1 rounded cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {items.map((row, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-wood-200">
+                  <div className="flex-1">
+                    <select
+                      value={row.product_id}
+                      onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 focus:outline-none"
+                      required
+                    >
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.code} - {p.name} (Tồn: {p.current_stock})
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                );
-              })}
+                  <div className="w-24">
+                    <input
+                      type="number"
+                      min="1"
+                      value={row.quantity}
+                      onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                      placeholder="Số lượng"
+                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-center focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="w-32">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={row.unit_price}
+                      onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                      placeholder="Giá nhập"
+                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-right focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="w-28 text-right font-medium text-xs text-wood-900 pr-1">
+                    {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItemRow(idx)}
+                    disabled={items.length <= 1}
+                    className="text-wood-400 hover:text-rust-500 disabled:opacity-30 p-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Footer */}
+            <div className="mt-3 pt-3 border-t border-wood-200 flex items-center justify-between text-xs">
+              <span className="font-semibold text-wood-700">Tổng giá trị đơn nhập dự tính:</span>
+              <span className="font-bold text-base text-wood-900">{totalCalculated.toLocaleString()} đ</span>
             </div>
           </div>
 
-          {/* Tổng tiền */}
-          <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-            <span className="text-xs font-semibold text-emerald-800">Tổng giá trị đơn nhập:</span>
-            <span className="text-base font-bold text-emerald-700">{totalCalculated.toLocaleString()} đ</span>
-          </div>
-
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              className="btn-outline"
             >
-              Hủy
+              Hủy bỏ
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="btn-primary"
             >
-              Xác Nhận Nhập Kho
+              Lưu & Nhập kho
             </button>
           </div>
         </form>
@@ -386,53 +388,60 @@ export const ImportNotes = () => {
       <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Chi Tiết Phiếu Nhập: ${selectedNote?.code}`}>
         {selectedNote && (
           <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-wood-50 rounded-xl border border-wood-200">
               <div>
-                <span className="text-slate-400">Nhà cung cấp:</span>{' '}
-                <strong className="text-slate-800">{selectedNote.supplier?.name}</strong>
+                <span className="text-wood-500 block">Nhà cung cấp:</span>
+                <span className="font-semibold text-wood-900">{selectedNote.supplier?.name || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-slate-400">Ngày lập:</span>{' '}
-                <strong className="text-slate-800">{new Date(selectedNote.note_date).toLocaleString('vi-VN')}</strong>
+                <span className="text-wood-500 block">Ngày tạo:</span>
+                <span className="font-semibold text-wood-900">{new Date(selectedNote.note_date).toLocaleString('vi-VN')}</span>
               </div>
               <div>
-                <span className="text-slate-400">Người tạo:</span>{' '}
-                <strong className="text-slate-800">{selectedNote.creator?.full_name || 'Hệ thống'}</strong>
+                <span className="text-wood-500 block">Người thực hiện:</span>
+                <span className="font-semibold text-wood-900">{selectedNote.creator?.full_name || 'Hệ thống'}</span>
               </div>
               <div>
-                <span className="text-slate-400">Trạng thái:</span>{' '}
+                <span className="text-wood-500 block">Trạng thái:</span>
                 <Badge variant={selectedNote.status === 'COMPLETED' ? 'green' : 'red'}>
                   {selectedNote.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}
                 </Badge>
               </div>
             </div>
 
-            <table className="w-full text-left border border-slate-200 rounded-xl overflow-hidden">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3">Mã hàng</th>
-                  <th className="py-2.5 px-3">Tên sản phẩm</th>
-                  <th className="py-2.5 px-3 text-center">Số lượng</th>
-                  <th className="py-2.5 px-3 text-right">Đơn giá nhập</th>
-                  <th className="py-2.5 px-3 text-right">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {selectedNote.details?.map((d) => (
-                  <tr key={d.id}>
-                    <td className="py-2.5 px-3 font-mono text-blue-600">{d.product?.code}</td>
-                    <td className="py-2.5 px-3 font-medium text-slate-800">{d.product?.name}</td>
-                    <td className="py-2.5 px-3 text-center font-bold text-slate-700">{d.quantity}</td>
-                    <td className="py-2.5 px-3 text-right">{d.unit_price?.toLocaleString()} đ</td>
-                    <td className="py-2.5 px-3 text-right font-bold text-slate-800">{d.subtotal?.toLocaleString()} đ</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="text-right p-3 bg-slate-50 rounded-xl">
-              <span className="text-xs text-slate-500 mr-2">Tổng thanh toán:</span>
-              <span className="text-base font-bold text-emerald-600">{selectedNote.total_amount?.toLocaleString()} đ</span>
+            <div>
+              <h5 className="font-bold text-wood-900 uppercase tracking-wider mb-2">Chi tiết sản phẩm đã nhập:</h5>
+              <div className="border border-wood-200 rounded-xl overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
+                    <tr>
+                      <th className="p-2.5">Sản phẩm</th>
+                      <th className="p-2.5 text-center">Số lượng</th>
+                      <th className="p-2.5 text-right">Đơn giá nhập</th>
+                      <th className="p-2.5 text-right">Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-wood-100">
+                    {selectedNote.details?.map((d) => (
+                      <tr key={d.id}>
+                        <td className="p-2.5">
+                          <p className="font-medium text-wood-900">{d.product_name}</p>
+                          <p className="text-[11px] font-mono text-wood-500">{d.product_code}</p>
+                        </td>
+                        <td className="p-2.5 text-center font-bold text-wood-900">{d.quantity}</td>
+                        <td className="p-2.5 text-right text-wood-700">{d.unit_price?.toLocaleString()} đ</td>
+                        <td className="p-2.5 text-right font-bold text-wood-900">{d.subtotal?.toLocaleString()} đ</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-wood-50 font-bold border-t border-wood-200">
+                    <tr>
+                      <td colSpan="3" className="p-2.5 text-right text-wood-700">Tổng cộng:</td>
+                      <td className="p-2.5 text-right text-wood-900">{selectedNote.total_amount?.toLocaleString()} đ</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
         )}

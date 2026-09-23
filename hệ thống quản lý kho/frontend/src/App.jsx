@@ -19,9 +19,9 @@ function AppContent() {
   // Khi đang kiểm tra trạng thái token lưu trữ
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-        <p className="text-sm font-medium text-slate-300">Đang khởi tạo SmartKho AI...</p>
+      <div className="min-h-screen bg-wood-950 flex flex-col items-center justify-center text-white">
+        <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
+        <p className="text-sm font-medium font-serif text-wood-200">Đang khởi tạo SmartKho AI...</p>
       </div>
     );
   }
