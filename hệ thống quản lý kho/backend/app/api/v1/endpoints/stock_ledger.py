@@ -18,6 +18,7 @@ from app.services.inventory_service import adjust_stock
 router = APIRouter(prefix="/stock-ledger", tags=["Thẻ kho & Điều chỉnh (Stock Ledger)"])
 
 
+@router.get("", response_model=List[StockLedgerResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[StockLedgerResponse],

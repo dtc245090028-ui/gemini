@@ -13,6 +13,7 @@ from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 router = APIRouter(prefix="/products", tags=["Hàng hóa & Tồn kho (Products)"])
 
 
+@router.get("", response_model=List[ProductResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[ProductResponse],
@@ -76,6 +77,7 @@ def get_product_by_id(
     return product
 
 
+@router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post(
     "/",
     response_model=ProductResponse,

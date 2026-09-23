@@ -70,9 +70,10 @@ docs/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
-- [ ] Chạy lệnh `pytest tests/ -v` đạt **100% Passed**.
-- [ ] Chạy lệnh `python seed_data.py` nạp dữ liệu thành công trong $< 3$ giây, không phát sinh lỗi duplicate key.
-- [ ] Báo cáo kết quả kiểm thử được lưu chính xác tại `docs/SDLC/KT3/02_Test_Plan_and_Results.md`.
+- [x] Chạy lệnh `pytest tests/ -v` đạt **100% Passed** (30/30 tests PASS).
+- [x] Chạy lệnh `python seed_data.py` nạp dữ liệu thành công trong $< 3$ giây, không phát sinh lỗi duplicate key.
+- [x] Báo cáo kết quả kiểm thử được lưu chính xác tại `docs/SDLC/KT3/02_Test_Plan_and_Results.md`.
+
 
 ---
 

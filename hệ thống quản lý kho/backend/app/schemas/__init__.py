@@ -1,5 +1,14 @@
 """Schemas package tập trung các Pydantic models."""
 
+from app.schemas.ai import (
+    AnomalyDetectionResponse,
+    AnomalyItem,
+    MonthlyReportMetrics,
+    MonthlyReportResponse,
+    RestockSuggestionItem,
+    RestockSuggestionsResponse,
+    TopExportedProductItem,
+)
 from app.schemas.category import (
     CategoryBase,
     CategoryCreate,
@@ -90,4 +99,12 @@ __all__ = [
     "StockAdjustmentResponse",
     "InventorySummaryItem",
     "InventorySummaryReport",
+    "TopExportedProductItem",
+    "MonthlyReportMetrics",
+    "MonthlyReportResponse",
+    "RestockSuggestionItem",
+    "RestockSuggestionsResponse",
+    "AnomalyItem",
+    "AnomalyDetectionResponse",
 ]
+

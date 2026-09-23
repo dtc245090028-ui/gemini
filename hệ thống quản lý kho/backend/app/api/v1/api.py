@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    ai,
     auth,
     categories,
     export_notes,
@@ -23,3 +24,5 @@ api_router.include_router(import_notes.router)
 api_router.include_router(export_notes.router)
 api_router.include_router(stock_ledger.router)
 api_router.include_router(reports.router)
+api_router.include_router(ai.router)
+
