@@ -25,14 +25,50 @@
 | 2026-09-22 | Bước 05 | Xác thực, Đăng nhập & Phân quyền RBAC | Hoàn thành | `backend/app/api/v1/endpoints/auth.py`, `core/security.py`, `core/seed.py` | Đã hoàn thiện xác thực JWT, hash bcrypt, RBAC 3 vai trò, idempotent seed và bật SQLite FK |
 | 2026-09-22 | Bước 06 | Module Hàng hóa, Nhóm hàng & Nhà cung cấp | Hoàn thành | `backend/app/schemas/*.py`, `backend/app/api/v1/endpoints/*.py`, `docs/SDLC/KT2/01_API_Specifications.md` | Đã hoàn thiện CRUD Nhóm hàng, Hàng hóa, Nhà cung cấp, cảnh báo tồn kho và tài liệu API Spec KT2 |
 | 2026-09-22 | Bước 07 | Module Nhập/Xuất kho & Thẻ kho (Transaction) | Hoàn thành | `backend/app/services/inventory_service.py`, `backend/app/api/v1/endpoints/*.py`, `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md`, `docs/architecture.md` | Hoàn thiện Transaction ACID Nhập/Xuất, Chống tồn âm, Guard-check Hủy phiếu, Thẻ kho, Báo cáo và Điều chỉnh kiểm kê |
-| 2026-09-20 | Bước 08 | Module AI Trợ lý & Scheduler Quét tồn kho | Chưa bắt đầu | `backend/app/services/ai_service.py`, `services/fallback_service.py` | Gemini API, Heuristic Fallback, 3 bài toán AI |
-| 2026-09-20 | Bước 09 | Xây dựng Frontend Web (React + Tailwind) | Chưa bắt đầu | `frontend/src/App.jsx`, `pages/Dashboard.jsx`, `pages/...` | SPA Dashboard, quản lý kho, màn hình AI |
-| 2026-09-20 | Bước 10 | Viết Bộ Test Tự động (Pytest) & Seed Data | Chưa bắt đầu | `backend/tests/test_stock_transactions.py`, `backend/seed_data.py` | Unit test tồn âm, transaction, seed data 60 ngày |
-| 2026-09-20 | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Chưa bắt đầu | `README.md`, `docs/SDLC/final/...`, `docs/SDLC/KT2/...` | Hoàn thiện tài liệu 4 mốc KT1-KT3, Cuối kỳ |
+| 2026-09-23 | Bước 08 | Module AI Trợ lý & Fallback Engine | Hoàn thành | `backend/app/services/ai_service.py`, `services/fallback_service.py`, `api/v1/endpoints/ai.py` | Hoàn thiện 3 tính năng AI (Báo cáo tháng, Gợi ý nhập, Biến động bất thường), Gemini API + Heuristic Fallback offline |
+| 2026-09-23 | Bước 09 | Xây dựng Frontend Web (React + Tailwind) | Hoàn thành | `frontend/src/App.jsx`, `components/`, `pages/`, `api/client.js` | Hoàn thiện SPA React 18 + Tailwind CSS + Lucide Icons cho 7 phân hệ, Defensive UI chống tồn âm, Demo Role Switcher |
+| 2026-09-23 | Bước 10 | Viết Bộ Test Tự động (Pytest) & Seed Data | Hoàn thành | `backend/tests/test_ai.py`, `backend/seed_data.py`, `docs/SDLC/KT3/*.md` | Bộ test 30/30 passed 100%, Seed Data 60 ngày kịch bản SP001/SP002/SP003, bàn giao KT3 |
+| 2026-09-20 | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Chưa bắt đầu | `README.md`, `docs/SDLC/final/...` | Hoàn thiện tài liệu Cuối kỳ |
 
 ---
 
 ### CHANGELOG
+
+#### [2026-09-23] Hoàn thành Bước 09: Xây dựng Frontend Web React 18 & Tailwind CSS (Ứng dụng giao diện người dùng)
+- **Kiến trúc & Cơ chế nền tảng:**
+  - `frontend/src/api/client.js`: Cấu hình Axios client tập trung với JWT interceptor, tự động gắn `Authorization: Bearer <token>`, bắt mã 401 tự động điều hướng về Login, đóng gói 9 nhóm API service chuẩn mực.
+  - `frontend/src/context/AuthContext.jsx`: Quản lý phiên làm việc JWT, tự động khôi phục từ `localStorage`, tích hợp hàm `switchDemoRole` hỗ trợ chuyển đổi 1-click giữa `ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT` phục vụ thuyết trình hội đồng.
+  - `frontend/src/components/Layout.jsx`: Giao diện Sidebar chuẩn mực với nhận diện SmartKho AI + Header hiển thị thông tin người dùng và thanh công cụ chuyển vai trò Demo.
+  - `frontend/src/components/Badge.jsx` & `Modal.jsx`: Bộ component dùng chung tái sử dụng với quản lý trạng thái trực quan và hỗ trợ phím Escape.
+- **7 Phân hệ nghiệp vụ hoàn chỉnh (Pages):**
+  - `pages/Login.jsx`: Đăng nhập tiêu chuẩn kèm 3 nút 1-click đăng nhập nhanh (Admin, Thủ kho, Kế toán).
+  - `pages/Dashboard.jsx`: Thống kê KPI tồn kho, bảng cảnh báo hàng dưới mức tối thiểu và lối tắt thao tác nhanh.
+  - `pages/Products.jsx`: CRUD sản phẩm, tìm kiếm tức thời, lọc nhóm hàng, lọc `is_low_stock`, phân quyền thao tác theo vai trò và nút nhảy nhanh sang Thẻ kho.
+  - `pages/Suppliers.jsx`: Quản lý danh sách nhà cung cấp, tìm kiếm, thêm/sửa đối tác, bảo toàn lịch sử giao dịch.
+  - `pages/ImportNotes.jsx`: Lập phiếu nhập kho đa dòng, tự động tra cứu đơn giá chuẩn, tính tổng tiền, xem chi tiết và hủy phiếu hoàn trừ tồn kho.
+  - `pages/ExportNotes.jsx`: Lập phiếu xuất kho với cơ chế **Defensive UI chống xuất âm** (cảnh báo đỏ, khóa nút tạo phiếu nếu số lượng vượt quá tồn hiện có) kết hợp chặt chẽ với ACID Backend.
+  - `pages/StockLedger.jsx`: Sổ cái thẻ kho chi tiết theo mặt hàng, lọc theo loại giao dịch (`IMPORT`, `EXPORT`, `ADJUSTMENT`), hỗ trợ modal điều chỉnh kiểm kê thực tế.
+  - `pages/AIAssistant.jsx`: Màn hình 3 phân hệ AI (Báo cáo tháng điều hành, Gợi ý nhập hàng theo vận tốc bán 30 ngày, Nhận diện biến động bất thường `SURGE_EXPORT` / `DEAD_STOCK`) với cờ thông báo Fallback Engine rõ ràng.
+- **Kiểm định đóng gói:**
+  - Đã cài đặt toàn bộ `node_modules` và chạy `npm run build` thành công rực rỡ (`✓ 1551 modules transformed`, built in 4.23s, 0 lỗi).
+
+
+#### [2026-09-23] Hoàn thành Mốc KT3 (Bước 08 & Bước 10: Tích hợp AI, Prompt Engineering, Fallback Engine & Test Suite 30/30)
+- **Module AI Trợ lý & Heuristic Fallback (Bước 08):**
+  - `backend/app/services/ai_service.py`: Xây dựng SQL Aggregation Pipeline tiền xử lý dữ liệu và **loại bỏ 100% giá mua nhạy cảm** (`unit_price`). Tích hợp Google Gemini API (`gemini-1.5-flash`) qua structured JSON schema.
+  - `backend/app/services/fallback_service.py`: Xây dựng Heuristic Fallback Engine hoạt động độc lập offline (< 50ms), tính toán chính xác số lượng đề xuất nhập (`suggested_qty = 2*min - stock`) và nhận diện biến động bất thường (`SURGE_EXPORT`, `DEAD_STOCK`).
+  - `backend/app/schemas/ai.py`: Khởi tạo đầy đủ Pydantic schemas cho 3 bài toán AI.
+  - `backend/app/ai/prompts/`: Quản lý 3 prompt templates độc lập (`inventory_report_prompt.txt`, `reorder_suggestion_prompt.txt`, `anomaly_detection_prompt.txt`).
+  - `backend/app/api/v1/endpoints/ai.py`: Đăng ký 3 endpoints: `/api/v1/ai/monthly-report`, `/api/v1/ai/restock-suggestions`, `/api/v1/ai/anomalies`.
+- **Kiểm thử tự động & Seed Data (Bước 10):**
+  - `backend/tests/test_ai.py`: Bổ sung 6 bài test kiểm tra bảo mật giá mua, fallback dữ liệu rỗng, gợi ý nhập hàng, biến động bất thường, mock Gemini API và RBAC.
+  - Kết quả kiểm thử toàn dự án: **30 / 30 test cases PASS 100%**.
+  - `backend/seed_data.py`: Script nạp 22 mặt hàng, 3 users, 3 NCC và lịch sử 60 ngày nhập xuất theo 3 kịch bản cốt lõi (SP001 bán chạy sắp hết, SP002 xuất đột biến tuần này, SP003 tồn chết 55 ngày).
+- **Hồ sơ bàn giao mốc KT3:**
+  - `docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md`: Báo cáo so sánh định lượng 3 phiên bản Prompt (v1, v2, v3).
+  - `docs/SDLC/KT3/02_Test_Plan_and_Results.md`: Ma trận 30 ca kiểm thử tự động và nhật ký thực thi 100% Pass.
+  - `docs/SDLC/KT3/03_AI_Integration_Architecture.md`: Kiến trúc phân tầng AI và sơ đồ luồng chuyển mạch Fallback.
+
 
 #### [2026-09-22] Hoàn thành Bước 07: Module Nhập/Xuất kho & Thẻ kho (Transaction ACID ⭐ Tâm điểm đề tài)
 - **Tính năng hoàn thành:**

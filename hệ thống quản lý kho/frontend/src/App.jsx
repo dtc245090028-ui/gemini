@@ -1,32 +1,74 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Products } from './pages/Products';
+import { Suppliers } from './pages/Suppliers';
+import { ImportNotes } from './pages/ImportNotes';
+import { ExportNotes } from './pages/ExportNotes';
+import { StockLedger } from './pages/StockLedger';
+import { AIAssistant } from './pages/AIAssistant';
+import { Loader2 } from 'lucide-react';
+
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [ledgerProductId, setLedgerProductId] = useState(null);
+
+  // Khi đang kiểm tra trạng thái token lưu trữ
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+        <p className="text-sm font-medium text-slate-300">Đang khởi tạo SmartKho AI...</p>
+      </div>
+    );
+  }
+
+  // Nếu chưa đăng nhập -> Hiển thị trang đăng nhập
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  // Điều hướng từ trang Sản phẩm sang Thẻ kho chi tiết
+  const handleSelectProductLedger = (productId) => {
+    setLedgerProductId(productId);
+    setActiveTab('stock_ledger');
+  };
+
+  // Xử lý chuyển tab thông thường
+  const handleTabChange = (tabId) => {
+    if (tabId !== 'stock_ledger') {
+      setLedgerProductId(null);
+    }
+    setActiveTab(tabId);
+  };
+
+  return (
+    <Layout activeTab={activeTab} onTabChange={handleTabChange}>
+      {activeTab === 'dashboard' && <Dashboard onNavigate={handleTabChange} />}
+      {activeTab === 'products' && (
+        <Products onSelectProductLedger={handleSelectProductLedger} />
+      )}
+      {activeTab === 'suppliers' && <Suppliers />}
+      {activeTab === 'imports' && <ImportNotes />}
+      {activeTab === 'exports' && <ExportNotes />}
+      {activeTab === 'stock_ledger' && (
+        <StockLedger
+          key={ledgerProductId || 'all'}
+          defaultProductId={ledgerProductId}
+        />
+      )}
+      {activeTab === 'ai_assistant' && <AIAssistant />}
+    </Layout>
+  );
+}
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 text-blue-400 text-3xl mb-4">
-          📦
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-          Hệ thống Quản lý Kho Thông minh AI
-        </h1>
-        <p className="text-slate-400 mb-6">
-          Đề tài 07 — Tích hợp Google Gemini & Động cơ Dự phòng Heuristic
-        </p>
-        <div className="grid grid-cols-2 gap-4 text-left text-sm bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 mb-6">
-          <div>
-            <span className="text-slate-500 block">Trạng thái Backend:</span>
-            <span className="text-emerald-400 font-semibold">● Sẵn sàng (FastAPI)</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block">Cơ sở dữ liệu:</span>
-            <span className="text-emerald-400 font-semibold">● 9 Bảng ACID (SQLite)</span>
-          </div>
-        </div>
-        <p className="text-xs text-slate-500">
-          Khung ứng dụng Giai đoạn 0 đã được thiết lập thành công.
-        </p>
-      </div>
-    </div>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

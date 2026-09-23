@@ -12,6 +12,7 @@ from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdat
 router = APIRouter(prefix="/categories", tags=["Nhóm hàng hóa (Categories)"])
 
 
+@router.get("", response_model=List[CategoryResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[CategoryResponse],
@@ -55,6 +56,7 @@ def get_category_by_id(
     return category
 
 
+@router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post(
     "/",
     response_model=CategoryResponse,

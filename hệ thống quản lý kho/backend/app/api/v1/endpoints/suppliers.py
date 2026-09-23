@@ -12,6 +12,7 @@ from app.schemas.supplier import SupplierCreate, SupplierResponse, SupplierUpdat
 router = APIRouter(prefix="/suppliers", tags=["Nhà cung cấp (Suppliers)"])
 
 
+@router.get("", response_model=List[SupplierResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[SupplierResponse],
@@ -64,6 +65,7 @@ def get_supplier_by_id(
     return supplier
 
 
+@router.post("", response_model=SupplierResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post(
     "/",
     response_model=SupplierResponse,

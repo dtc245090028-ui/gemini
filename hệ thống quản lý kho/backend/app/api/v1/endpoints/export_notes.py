@@ -48,6 +48,7 @@ def _serialize_export_note(note: ExportNote) -> ExportNoteResponse:
     )
 
 
+@router.get("", response_model=List[ExportNoteResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[ExportNoteResponse],
@@ -110,6 +111,7 @@ def get_export_note_by_id(
     return _serialize_export_note(note)
 
 
+@router.post("", response_model=ExportNoteResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post(
     "/",
     response_model=ExportNoteResponse,

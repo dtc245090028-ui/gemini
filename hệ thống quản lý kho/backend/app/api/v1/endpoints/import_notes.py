@@ -49,6 +49,7 @@ def _serialize_import_note(note: ImportNote) -> ImportNoteResponse:
     )
 
 
+@router.get("", response_model=List[ImportNoteResponse], include_in_schema=False)
 @router.get(
     "/",
     response_model=List[ImportNoteResponse],
@@ -113,6 +114,7 @@ def get_import_note_by_id(
     return _serialize_import_note(note)
 
 
+@router.post("", response_model=ImportNoteResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post(
     "/",
     response_model=ImportNoteResponse,

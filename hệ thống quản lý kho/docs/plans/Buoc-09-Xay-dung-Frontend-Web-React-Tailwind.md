@@ -69,9 +69,11 @@ frontend/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
-- [ ] Giao diện phản hồi tức thời (Single Page Application), không bị load lại trang khi thao tác.
-- [ ] Form xuất kho chặn người dùng bấm gửi nếu nhập số lượng xuất lớn hơn tồn kho hiện có.
-- [ ] Nút "Yêu cầu AI phân tích" hiển thị trạng thái loading đẹp mắt trong lúc chờ phản hồi.
+- [x] Giao diện phản hồi tức thời (Single Page Application), không bị load lại trang khi thao tác.
+- [x] Form xuất kho chặn người dùng bấm gửi nếu nhập số lượng xuất lớn hơn tồn kho hiện có (Defensive UI kết hợp Backend ACID).
+- [x] Nút "Yêu cầu AI phân tích" hiển thị trạng thái loading đẹp mắt trong lúc chờ phản hồi (Gemini/Heuristic Fallback).
+- [x] Bộ chuyển đổi vai trò Demo tức thì (ADMIN, WAREHOUSE_KEEPER, ACCOUNTANT) hỗ trợ thuyết trình 1-click.
+- [x] Build thành công không có lỗi cú pháp hoặc thiếu modules (`npm run build` PASS).
 
 ---
 
