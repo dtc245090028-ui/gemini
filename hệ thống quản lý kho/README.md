@@ -113,3 +113,21 @@ Hãy: (1) phân tích tác động sang các bước khác,
 Review file [tên file] theo tiêu chí trong CLAUDE.md §2, §3, §7, §8.
 Đặc biệt kiểm tra: transaction ACID, chống tồn kho âm, không hardcode giá mua vào AI.
 ```
+
+ ## Hướng dẫn khởi chạy ứng dụng để trải nghiệm trực quan                                              
+                                                                                                            
+  Bạn có thể chạy thử đồng thời cả 2 server:                                                                
+                                                                                                            
+  1. Khởi động Backend API (Terminal 1):                                                                    
+    cd "E:\gemini\hệ thống quản lý kho\backend"                                                             
+    uvicorn app.main:app --reload --port 8000                                                               
+                                                                                                            
+  2. Khởi động Frontend (Terminal 2):                                                                       
+    cd "E:\gemini\hệ thống quản lý kho\frontend"                                                            
+    npm run dev                                                                                             
+  Sau đó mở trình duyệt tại http://localhost:5173. Bạn có thể bấm ngay nút "Đăng nhập nhanh: Quản trị viên" 
+  để khám phá đầy đủ 7 phân hệ và trải nghiệm 3 bài toán AI!                                                
+                                                                                                            
+  Bước tiếp theo theo kế hoạch tổng thể là Giai đoạn 7 / Bước 11: Đóng gói sản phẩm, hoàn thiện tài liệu nộp
+  Cuối kỳ (Final Technical Report, User Guide & Demo Script, Slides). Bạn muốn tiến hành tiếp bước này hay  
+  có lưu ý thêm gì về phần Frontend không?                  
