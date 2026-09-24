@@ -108,6 +108,15 @@ export const apiClient = {
       api.get('/ai/restock-suggestions', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
     getAnomalies: (lookbackDays = 30, forceRefresh = false) =>
       api.get('/ai/anomalies', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
+    generateOrder: (forceRefresh = false) =>
+      api.post('/ai/generate-order', null, { params: { force_refresh: forceRefresh } }),
+    ask: (question, month, year, includeSmartKho = false) =>
+      api.post('/ai/ask', {
+        question,
+        month,
+        year,
+        include_smartkho: includeSmartKho,
+      }),
   },
 };
 

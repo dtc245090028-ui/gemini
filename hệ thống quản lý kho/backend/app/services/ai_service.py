@@ -11,11 +11,13 @@ from datetime import datetime, timedelta
 import json
 import logging
 from pathlib import Path
+import random
 from typing import Any, Dict, List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.category import Category
 from app.models.export_note import ExportNote, ExportNoteDetail
 from app.models.import_note import ImportNote, ImportNoteDetail
 from app.models.product import Product
@@ -23,6 +25,9 @@ from app.models.stock_ledger import StockLedger
 from app.schemas.ai import (
     AnomalyDetectionResponse,
     AnomalyItem,
+    AskAIRequest,
+    AskAIResponse,
+    GenerateOrderResponse,
     MonthlyReportMetrics,
     MonthlyReportResponse,
     RestockSuggestionItem,
@@ -33,6 +38,8 @@ from app.services.fallback_service import FallbackService
 from app.services.ai_cache import AICacheManager
 
 logger = logging.getLogger(__name__)
+
+SCENARIOS_FILE = Path(__file__).resolve().parent.parent / "ai" / "data" / "order_scenarios.json"
 
 # Cấu hình log lỗi ra file chuyên dụng logs/ai_service.log để phục vụ debug
 LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
@@ -635,3 +642,350 @@ class AIService:
                 executive_summary=fallback_summary,
                 is_cached=False,
             )
+
+    @classmethod
+    def generate_ai_order(
+        cls, db: Session, force_refresh: bool = False
+    ) -> GenerateOrderResponse:
+        """Sinh Đơn hàng AI đề xuất: Có Cache trong ngày, tự động đọc kịch bản và tồn kho thực tế."""
+        cache_key = "today"
+
+        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
+        if not force_refresh:
+            cached = AICacheManager.get("generated_order", cache_key)
+            if cached:
+                cached["is_cached"] = True
+                return GenerateOrderResponse(**cached)
+
+        # 1. Đọc kho kịch bản
+        scenarios = []
+        if SCENARIOS_FILE.exists():
+            try:
+                with open(SCENARIOS_FILE, "r", encoding="utf-8") as f:
+                    scenarios = json.load(f)
+            except Exception as e:
+                logger.warning(f"Không thể đọc file {SCENARIOS_FILE}: {e}")
+
+        if not scenarios:
+            scenarios = [
+                {
+                    "id": "SCENARIO_01",
+                    "persona_name": "Công ty TNHH Phần Mềm F-Tech",
+                    "role": "company",
+                    "desired_category": "Máy tính xách tay & Laptop",
+                    "context_reason": "Trang bị máy tính làm việc cho nhân sự phòng kỹ thuật đợt tuyển dụng mới.",
+                }
+            ]
+
+        # 2. Chọn ngẫu nhiên 2 - 4 kịch bản ứng viên
+        sample_count = min(3, len(scenarios))
+        candidate_scenarios = random.sample(scenarios, sample_count)
+
+        # 3. Lọc danh sách sản phẩm còn tồn kho phù hợp với điều kiện:
+        #    - role in ("company", "dealer") -> current_stock >= 10
+        #    - role == "individual" -> current_stock >= 1
+        candidate_products_map: Dict[int, dict] = {}
+        for sc in candidate_scenarios:
+            role = sc.get("role", "individual")
+            cat_kw = sc.get("desired_category", "")
+            min_stock = 10 if role in ("company", "dealer") else 1
+
+            prods = (
+                db.query(Product)
+                .join(Category, Product.category_id == Category.id)
+                .filter(Category.name.ilike(f"%{cat_kw}%"))
+                .filter(Product.current_stock >= min_stock)
+                .limit(5)
+                .all()
+            )
+            for p in prods:
+                candidate_products_map[p.id] = {
+                    "product_id": p.id,
+                    "product_code": p.code,
+                    "product_name": p.name,
+                    "category_name": p.category.name if p.category else "",
+                    "current_stock": p.current_stock,
+                    "standard_price": p.standard_price,
+                }
+
+        # Nếu không có sản phẩm nào thỏa mãn điều kiện min_stock, lấy bất kỳ sản phẩm nào còn tồn > 0
+        if not candidate_products_map:
+            prods = db.query(Product).filter(Product.current_stock > 0).limit(5).all()
+            for p in prods:
+                candidate_products_map[p.id] = {
+                    "product_id": p.id,
+                    "product_code": p.code,
+                    "product_name": p.name,
+                    "category_name": p.category.name if p.category else "",
+                    "current_stock": p.current_stock,
+                    "standard_price": p.standard_price,
+                }
+
+        candidate_products = list(candidate_products_map.values())
+        if not candidate_products:
+            raise RuntimeError("Kho hiện tại không còn sản phẩm nào có hàng tồn kho để tạo đơn.")
+
+        def _build_fallback_order() -> GenerateOrderResponse:
+            chosen_sc = candidate_scenarios[0]
+            chosen_prod_dict = candidate_products[0]
+            role = chosen_sc.get("role", "individual")
+            stock = chosen_prod_dict["current_stock"]
+
+            if role == "dealer":
+                qty = min(50, stock)
+                disc = 10.0
+            elif role == "company":
+                qty = min(15, stock)
+                disc = 5.0
+            else:
+                qty = min(2, stock)
+                disc = 0.0
+
+            std_price = chosen_prod_dict["standard_price"]
+            sug_price = round(std_price * (1 - disc / 100), 0)
+            reason = f"Đơn hàng đề xuất theo kịch bản {chosen_sc['persona_name']} ({chosen_sc['context_reason']})."
+            note = f"Đơn hàng AI: {chosen_sc['persona_name']} ({role}) - Đề xuất giảm giá {disc:.0f}%: {reason}"
+
+            return GenerateOrderResponse(
+                scenario_id=chosen_sc["id"],
+                recipient_name=chosen_sc["persona_name"],
+                role=role,
+                product_id=chosen_prod_dict["product_id"],
+                product_code=chosen_prod_dict["product_code"],
+                product_name=chosen_prod_dict["product_name"],
+                current_stock=stock,
+                quantity=qty,
+                unit_price=std_price,
+                discount_percent=disc,
+                suggested_unit_price=sug_price,
+                reason=reason,
+                note=note,
+                is_fallback=True,
+                provider="heuristic_fallback",
+                is_cached=False,
+            )
+
+        if not settings.GEMINI_API_KEY:
+            return _build_fallback_order()
+
+        # 4. Gọi Gemini AI
+        try:
+            template = cls._read_prompt_template("generate_order_prompt.txt")
+            user_prompt = (
+                f"Danh sách Kịch bản Khách hàng ứng viên:\n"
+                f"{json.dumps(candidate_scenarios, ensure_ascii=False, indent=2)}\n\n"
+                f"Danh sách Sản phẩm Tồn kho Khả dụng:\n"
+                f"{json.dumps(candidate_products, ensure_ascii=False, indent=2)}\n\n"
+                "Hãy chọn 1 kịch bản và 1 sản phẩm chính xác, trả về JSON."
+            )
+
+            prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
+            raw_text = cls._call_gemini_with_models(prompt_content)
+            parsed = json.loads(raw_text)
+
+            ai_sku = parsed.get("product_sku", "")
+            # Validate SKU tồn tại trong DB
+            matched_product = db.query(Product).filter(Product.code == ai_sku).first()
+            if not matched_product or matched_product.current_stock <= 0:
+                logger.warning(f"AI trả về SKU không hợp lệ hoặc hết tồn ({ai_sku}), chuyển sang Fallback.")
+                return _build_fallback_order()
+
+            # Validate số lượng xuất
+            ai_qty = int(parsed.get("quantity", 1))
+            if ai_qty <= 0 or ai_qty > matched_product.current_stock:
+                ai_qty = max(1, min(ai_qty, matched_product.current_stock))
+
+            disc = float(parsed.get("discount_percent", 0.0))
+            std_price = matched_product.standard_price
+            sug_price = round(std_price * (1 - disc / 100), 0)
+            reason = parsed.get("reason", "Đơn hàng tối ưu từ Gemini AI.")
+            sc_id = parsed.get("scenario_id", candidate_scenarios[0]["id"])
+            rec_name = parsed.get("recipient_name", candidate_scenarios[0]["persona_name"])
+            role = parsed.get("role", candidate_scenarios[0].get("role", "individual"))
+
+            note_str = f"Đơn hàng AI: {rec_name} ({role}) - Đề xuất giảm giá {disc:.0f}%: {reason}"
+
+            response_obj = GenerateOrderResponse(
+                scenario_id=sc_id,
+                recipient_name=rec_name,
+                role=role,
+                product_id=matched_product.id,
+                product_code=matched_product.code,
+                product_name=matched_product.name,
+                current_stock=matched_product.current_stock,
+                quantity=ai_qty,
+                unit_price=std_price,
+                discount_percent=disc,
+                suggested_unit_price=sug_price,
+                reason=reason,
+                note=note_str,
+                is_fallback=False,
+                provider="gemini",
+                is_cached=False,
+            )
+
+            # Lưu vào cache trong ngày để các lần bấm tiếp theo trong ngày không gọi lại API
+            AICacheManager.set("generated_order", cache_key, response_obj.model_dump())
+            return response_obj
+
+        except Exception as e:
+            logger.error(f"Lỗi khi gọi Gemini API cho generate_ai_order: {e}. Kích hoạt Fallback.", exc_info=True)
+            return _build_fallback_order()
+
+    @classmethod
+    def ask_ai(
+        cls,
+        db: Session,
+        question: str,
+        month: Optional[int] = None,
+        year: Optional[int] = None,
+        include_smartkho: bool = False,
+    ) -> AskAIResponse:
+        """Hỏi đáp tương tác với Trợ lý AI.
+
+        - include_smartkho=False: Gửi thuần câu hỏi, để AI hoàn toàn tự do trả lời, không chèn số liệu kho hay đề mục báo cáo.
+        - include_smartkho=True: Nạp ngữ cảnh số liệu #SmartKho và chèn cấu trúc phân tích điều hành kho bãi.
+        """
+        now = datetime.now()
+        timestamp_str = now.strftime("%H:%M:%S %d/%m/%Y")
+
+        # ==============================================================
+        # CHẾ ĐỘ 1: THUẦN CÂU HỎI (AI TỰ DO TRẢ LỜI, KHÔNG CHÈN DỮ LIỆU KHO)
+        # ==============================================================
+        if not include_smartkho:
+            def _build_pure_fallback() -> AskAIResponse:
+                return AskAIResponse(
+                    question=question,
+                    answer=f"Hệ thống đang ở chế độ ngoại tuyến. Để AI tự do giải đáp câu hỏi '{question}', vui lòng kết nối Gemini API.",
+                    provider="heuristic_fallback",
+                    is_fallback=True,
+                    timestamp=timestamp_str,
+                    include_smartkho=False,
+                )
+
+            if not settings.GEMINI_API_KEY:
+                return _build_pure_fallback()
+
+            try:
+                prompt_content = (
+                    "Hãy trả lời câu hỏi sau đây một cách tự nhiên, tự do, đầy đủ, súc tích và chính xác:\n\n"
+                    f'"{question}"\n\n'
+                    "Trả về duy nhất 1 JSON object theo định dạng:\n"
+                    '{"answer": "<nội dung câu trả lời>"}'
+                )
+
+                raw_text = cls._call_gemini_with_models(prompt_content)
+                parsed = json.loads(raw_text)
+                ai_ans = parsed.get("answer", "")
+                if not ai_ans:
+                    ai_ans = raw_text
+
+                return AskAIResponse(
+                    question=question,
+                    answer=ai_ans,
+                    provider="gemini",
+                    is_fallback=False,
+                    timestamp=timestamp_str,
+                    include_smartkho=False,
+                )
+            except Exception as e:
+                logger.error(f"Lỗi khi gọi Gemini API cho ask_ai (pure mode): {e}", exc_info=True)
+                return _build_pure_fallback()
+
+        # ==============================================================
+        # CHẾ ĐỘ 2: YÊU CẦU VỀ #SmartKho (CHÈN SỐ LIỆU & ĐỀ MỤC BÁO CÁO)
+        # ==============================================================
+        target_month = month or now.month
+        target_year = year or now.year
+
+        metrics = cls.get_monthly_aggregated_data(db, month=target_month, year=target_year)
+        top_str_list = [
+            f"{p.product_code} - {p.product_name} (xuất {p.quantity})"
+            for p in metrics.top_exported_products
+        ]
+        top_exports_text = ", ".join(top_str_list) if top_str_list else "Chưa có lượt xuất trong kỳ."
+
+        context_info = (
+            f"- Kỳ phân tích: Tháng {target_month}/{target_year}\n"
+            f"- Tổng số mặt hàng quản lý: {metrics.total_products} ({metrics.active_products} đang hoạt động)\n"
+            f"- Số mặt hàng dưới mức tồn kho an toàn (low stock): {metrics.low_stock_count}\n"
+            f"- Tổng số lượng nhập kho trong kỳ: {metrics.total_imports_qty}\n"
+            f"- Tổng số lượng xuất kho trong kỳ: {metrics.total_exports_qty}\n"
+            f"- Top mặt hàng xuất nhiều nhất: {top_exports_text}\n"
+        )
+
+        def _build_smartkho_fallback() -> AskAIResponse:
+            q_lower = question.lower()
+            if any(k in q_lower for k in ["tồn kho", "an toàn", "dưới mức", "hết hàng", "thiếu"]):
+                ans = (
+                    f"**[Báo Cáo #SmartKho - Tồn Kho An Toàn Kỳ {target_month}/{target_year}]**\n\n"
+                    f"• Ghi nhận **{metrics.low_stock_count} mặt hàng** đang dưới mức tồn kho an toàn (min_stock).\n"
+                    f"• Đề xuất hành động: Kiểm tra danh sách gợi ý nhập hàng để tạo phiếu bổ sung kịp thời, tránh đứt gãy nguồn cung."
+                )
+            elif any(k in q_lower for k in ["xuất", "bán", "tiêu thụ", "chạy"]):
+                ans = (
+                    f"**[Báo Cáo #SmartKho - Xuất Kho & Tiêu Thụ Kỳ {target_month}/{target_year}]**\n\n"
+                    f"• Tổng sản lượng xuất trong tháng: **{metrics.total_exports_qty} sản phẩm**.\n"
+                    f"• Top mặt hàng xuất nhiều nhất: {top_exports_text}."
+                )
+            elif any(k in q_lower for k in ["nhập", "mua", "nhà cung cấp"]):
+                ans = (
+                    f"**[Báo Cáo #SmartKho - Nhập Kho Kỳ {target_month}/{target_year}]**\n\n"
+                    f"• Tổng số lượng nhập kho: **{metrics.total_imports_qty} sản phẩm** "
+                    f"(so với lượng xuất {metrics.total_exports_qty} sản phẩm)."
+                )
+            else:
+                ans = (
+                    f"**[Báo Cáo #SmartKho Tổng Thể Kỳ {target_month}/{target_year}]**\n\n"
+                    f"• Quy mô quản lý: {metrics.total_products} mặt hàng (Nhập: +{metrics.total_imports_qty}, Xuất: -{metrics.total_exports_qty}).\n"
+                    f"• Tồn kho an toàn: Có {metrics.low_stock_count} mặt hàng dưới mức tối thiểu.\n"
+                    f"• Tư vấn cho câu hỏi '{question}': Cần bám sát kế hoạch cân đối tồn kho theo tốc độ tiêu thụ thực tế."
+                )
+
+            return AskAIResponse(
+                question=question,
+                answer=ans,
+                provider="heuristic_fallback",
+                is_fallback=True,
+                timestamp=timestamp_str,
+                include_smartkho=True,
+            )
+
+        if not settings.GEMINI_API_KEY:
+            return _build_smartkho_fallback()
+
+        try:
+            prompt_content = (
+                "Bạn là Trợ lý AI Chuyên gia Quản lý Kho Vận #SmartKho.\n"
+                "Người dùng đã kích hoạt tùy chọn: [Yêu cầu về #SmartKho].\n"
+                "Hãy kết hợp số liệu thực tế của hệ thống kho vận kỳ này để phân tích chuyên sâu, đưa ra các đề mục báo cáo và giải pháp điều hành cụ thể.\n\n"
+                f"SỐ LIỆU KHO THỰC TẾ KỲ {target_month}/{target_year}:\n"
+                f"{context_info}\n"
+                f"CÂU HỎI/YÊU CẦU CỦA NGƯỜI DÙNG:\n"
+                f'"{question}"\n\n'
+                "YÊU CẦU ĐỊNH DẠNG ĐÁP ÁN:\n"
+                "- Trình bày chuyên nghiệp theo các đề mục báo cáo kho rõ ràng kèm khuyến nghị hành động tương ứng.\n"
+                "- Trả về duy nhất 1 JSON object theo định dạng:\n"
+                '{"answer": "<Nội dung phân tích báo cáo kho #SmartKho chi tiết>"}\n'
+            )
+
+            raw_text = cls._call_gemini_with_models(prompt_content)
+            parsed = json.loads(raw_text)
+            ai_ans = parsed.get("answer", "")
+            if not ai_ans:
+                ai_ans = raw_text
+
+            return AskAIResponse(
+                question=question,
+                answer=ai_ans,
+                provider="gemini",
+                is_fallback=False,
+                timestamp=timestamp_str,
+                include_smartkho=True,
+            )
+        except Exception as e:
+            logger.error(f"Lỗi khi gọi Gemini API cho ask_ai (smartkho mode): {e}", exc_info=True)
+            return _build_smartkho_fallback()
+
+
+

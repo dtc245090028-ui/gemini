@@ -8,6 +8,8 @@ import {
   Ban,
   AlertTriangle,
   UserCheck,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +28,10 @@ export const ExportNotes = () => {
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
   const [formError, setFormError] = useState(null);
+
+  // AI Order Generation State
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
 
   // Detail Modal State
   const [selectedNote, setSelectedNote] = useState(null);
@@ -56,6 +62,7 @@ export const ExportNotes = () => {
   const handleOpenCreate = () => {
     setRecipientName('');
     setNoteText('');
+    setAiSuggestion(null);
     setItems([
       {
         product_id: products[0]?.id || '',
@@ -65,6 +72,32 @@ export const ExportNotes = () => {
     ]);
     setFormError(null);
     setIsCreateOpen(true);
+  };
+
+  const handleGenerateAIOrder = async () => {
+    setAiGenerating(true);
+    setFormError(null);
+    try {
+      const res = await apiClient.ai.generateOrder();
+      const order = res.data;
+      setAiSuggestion(order);
+      setRecipientName(order.recipient_name || '');
+      setNoteText(order.note || '');
+
+      setItems([
+        {
+          product_id: order.product_id,
+          quantity: order.quantity,
+          unit_price: order.unit_price,
+        },
+      ]);
+      setIsCreateOpen(true);
+    } catch (err) {
+      console.error('Lỗi khi gọi AI sinh đơn hàng:', err);
+      alert(err.response?.data?.detail || 'Không thể sinh đơn hàng AI vào lúc này.');
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   const handleAddItemRow = () => {
@@ -192,13 +225,29 @@ export const ExportNotes = () => {
         </div>
 
         {canCreate && (
-          <button
-            onClick={handleOpenCreate}
-            className="btn-primary"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Lập Phiếu Xuất Mới</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleGenerateAIOrder}
+              disabled={aiGenerating}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-btn text-xs font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+              title="AI tự động đọc kịch bản khách hàng, phân tích tồn kho và lập đơn hàng đề xuất (có cache trong ngày)"
+            >
+              {aiGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-200" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-amber-200" />
+              )}
+              <span>{aiGenerating ? 'AI đang tạo đơn...' : '✨ Tạo Đơn Hàng (AI)'}</span>
+            </button>
+
+            <button
+              onClick={handleOpenCreate}
+              className="btn-primary"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Lập Phiếu Xuất Mới</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -277,6 +326,45 @@ export const ExportNotes = () => {
 
       {/* Modal Lập Phiếu Xuất */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập Phiếu Xuất Kho Mới" maxWidth="max-w-3xl">
+        {/* Hộp thông tin gợi ý từ AI nếu đơn được sinh bởi AI */}
+        {aiSuggestion && (
+          <div className="mb-4 p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200">
+              <div className="flex items-center gap-2 font-bold text-amber-950">
+                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Đơn Hàng Đề Xuất Bởi AI ({aiSuggestion.provider === 'gemini' ? 'Google Gemini' : 'Heuristic Engine'})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {aiSuggestion.is_cached && (
+                  <span className="text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded-full font-medium">
+                    ⚡ Đã lưu cache trong ngày
+                  </span>
+                )}
+                <span className="text-[10px] bg-wood-200 text-wood-800 px-2 py-0.5 rounded-full uppercase font-bold">
+                  Khách: {aiSuggestion.role}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-amber-900 text-[11px] leading-relaxed">
+              <strong>Lý do AI chọn:</strong> {aiSuggestion.reason}
+            </p>
+
+            {aiSuggestion.discount_percent > 0 && (
+              <div className="p-2.5 bg-white/90 rounded-lg border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
+                <span className="text-amber-950 font-medium">
+                  💡 <strong>Gợi ý chiết khấu:</strong> Đề xuất giảm giá <strong>{aiSuggestion.discount_percent}%</strong> (Đơn giá tham khảo sau giảm: <strong>{Number(aiSuggestion.suggested_unit_price).toLocaleString()} đ</strong>)
+                </span>
+                <span className="text-wood-500 italic text-[10px]">
+                  (Chỉ gợi ý - Không tự động trừ, bạn có thể chỉnh đơn giá tùy ý)
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {formError && (
           <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-xl flex items-center gap-2 text-xs text-rust-700">
             <AlertCircle className="w-4 h-4 shrink-0 text-rust-500" />

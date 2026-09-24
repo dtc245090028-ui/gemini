@@ -8,6 +8,9 @@ from app.api.deps import get_db, require_roles
 from app.models.user import User
 from app.schemas.ai import (
     AnomalyDetectionResponse,
+    AskAIRequest,
+    AskAIResponse,
+    GenerateOrderResponse,
     MonthlyReportResponse,
     RestockSuggestionsResponse,
 )
@@ -80,3 +83,49 @@ def get_ai_anomalies(
     ),
 ):
     return AIService.generate_anomaly_detection(db, lookback_days=lookback_days, force_refresh=force_refresh)
+
+
+@router.post(
+    "/generate-order",
+    response_model=GenerateOrderResponse,
+    summary="AI tự động đề xuất đơn hàng xuất kho",
+    description=(
+        "Chọn ngẫu nhiên kịch bản khách hàng, phân tích tồn kho thực tế và sử dụng Gemini AI "
+        "để đề xuất sản phẩm, số lượng xuất và chiết khấu phù hợp. Có cache kết quả trong ngày."
+    ),
+)
+def generate_ai_order(
+    force_refresh: bool = Query(False, description="Bỏ qua cache trong ngày và sinh đơn mới"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles([UserRole.ADMIN, UserRole.WAREHOUSE_KEEPER])
+    ),
+):
+    return AIService.generate_ai_order(db, force_refresh=force_refresh)
+
+
+@router.post(
+    "/ask",
+    response_model=AskAIResponse,
+    summary="Hỏi đáp chuyên sâu với Trợ lý AI",
+    description=(
+        "Gửi câu hỏi điều hành kho vận cho Trợ lý AI. Hệ thống tự động nạp số liệu ngữ cảnh "
+        "thực tế (đã bảo mật giá mua) để AI phân tích và đưa ra giải pháp cụ thể."
+    ),
+)
+def ask_ai_question(
+    payload: AskAIRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles([UserRole.ADMIN, UserRole.WAREHOUSE_KEEPER, UserRole.ACCOUNTANT])
+    ),
+):
+    return AIService.ask_ai(
+        db,
+        question=payload.question,
+        month=payload.month,
+        year=payload.year,
+        include_smartkho=payload.include_smartkho,
+    )
+
+
