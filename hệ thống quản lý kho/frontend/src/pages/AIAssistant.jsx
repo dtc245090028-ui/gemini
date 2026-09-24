@@ -13,6 +13,8 @@ import {
   Clock,
   Flame,
   Archive,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import Badge from '../components/Badge';
@@ -35,11 +37,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   const [anomalyData, setAnomalyData] = useState(null);
 
   // Fetch Báo cáo tháng
-  const handleFetchMonthlyReport = async () => {
+  const handleFetchMonthlyReport = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getMonthlyReport(month, year);
+      const res = await apiClient.ai.getMonthlyReport(month, year, forceRefresh);
       setMonthlyData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể sinh báo cáo AI');
@@ -49,11 +51,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   };
 
   // Fetch Gợi ý nhập hàng
-  const handleFetchRestock = async () => {
+  const handleFetchRestock = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getRestockSuggestions(30);
+      const res = await apiClient.ai.getRestockSuggestions(30, forceRefresh);
       setRestockData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể lấy gợi ý nhập hàng');
@@ -63,11 +65,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   };
 
   // Fetch Bất thường
-  const handleFetchAnomalies = async () => {
+  const handleFetchAnomalies = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getAnomalies(30);
+      const res = await apiClient.ai.getAnomalies(30, forceRefresh);
       setAnomalyData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể quét bất thường');
@@ -76,11 +78,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     }
   };
 
-  // Tự động tải dữ liệu ban đầu cho tab đang chọn
+  // Tự động tải dữ liệu ban đầu cho tab đang chọn (dùng cache nếu có)
   useEffect(() => {
-    if (activeSubTab === 'monthly' && !monthlyData) handleFetchMonthlyReport();
-    if (activeSubTab === 'restock' && !restockData) handleFetchRestock();
-    if (activeSubTab === 'anomalies' && !anomalyData) handleFetchAnomalies();
+    if (activeSubTab === 'monthly' && !monthlyData) handleFetchMonthlyReport(false);
+    if (activeSubTab === 'restock' && !restockData) handleFetchRestock(false);
+    if (activeSubTab === 'anomalies' && !anomalyData) handleFetchAnomalies(false);
   }, [activeSubTab]);
 
   return (
@@ -177,9 +179,9 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </div>
 
             <button
-              onClick={handleFetchMonthlyReport}
+              onClick={() => handleFetchMonthlyReport(true)}
               disabled={loading}
-              className="btn-primary text-xs flex items-center gap-2 disabled:opacity-60"
+              className="btn-primary text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -190,17 +192,30 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </button>
           </div>
 
+          {loading && !monthlyData && (
+            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
+              <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-3" />
+              <p className="text-sm font-semibold text-wood-950 font-serif">AI đang phân tích và tổng hợp số liệu báo cáo...</p>
+              <p className="text-xs text-charcoal/60 mt-1 font-sans">Đang xử lý dữ liệu nhập - xuất - tồn kỳ này.</p>
+            </div>
+          )}
+
           {monthlyData && (
             <div className="space-y-6">
               {/* Provider Info Banner */}
-              <div className="p-3.5 bg-wood-100 rounded-btn border border-wood-200 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
+              <div className="p-3.5 bg-wood-100 rounded-btn border border-wood-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-charcoal">Động cơ tính toán:</span>
                   <Badge variant={monthlyData.is_fallback ? 'amber' : 'forest'}>
                     {monthlyData.is_fallback
                       ? '⚡ Heuristic Fallback Engine (Offline Safe < 50ms)'
-                      : '🤖 Google Gemini 1.5 Flash (Online LLM)'}
+                      : '🤖 Google Gemini 3.5 Flash-Lite (Online LLM)'}
                   </Badge>
+                  {monthlyData.is_cached && (
+                    <Badge variant="blue">
+                      📦 Đã lưu đệm trong ngày (0 Quota)
+                    </Badge>
+                  )}
                 </div>
                 <span className="text-charcoal/60">Kỳ: {monthlyData.period}</span>
               </div>
@@ -276,9 +291,9 @@ export const AIAssistant = ({ onNavigateToImport }) => {
               </span>
             </div>
             <button
-              onClick={handleFetchRestock}
+              onClick={() => handleFetchRestock(true)}
               disabled={loading}
-              className="btn-secondary text-xs flex items-center gap-2 disabled:opacity-60"
+              className="btn-secondary text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -289,8 +304,34 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </button>
           </div>
 
+          {loading && !restockData && (
+            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
+              <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-3" />
+              <p className="text-sm font-semibold text-wood-950 font-serif">Đang phân tích tồn kho và tính toán gợi ý nhập hàng...</p>
+              <p className="text-xs text-charcoal/60 mt-1 font-sans">Đang đánh giá tốc độ xuất và dự báo ngày hết hàng.</p>
+            </div>
+          )}
+
           {restockData && (
             <div className="space-y-6">
+              {/* Provider Info Banner */}
+              <div className="p-3.5 bg-wood-100 rounded-btn border border-wood-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-charcoal">Động cơ tính toán:</span>
+                  <Badge variant={restockData.is_fallback ? 'amber' : 'forest'}>
+                    {restockData.is_fallback
+                      ? '⚡ Heuristic Fallback Engine (Offline Safe < 50ms)'
+                      : '🤖 Google Gemini 3.5 Flash-Lite (Online LLM)'}
+                  </Badge>
+                  {restockData.is_cached && (
+                    <Badge variant="blue">
+                      📦 Đã lưu đệm trong ngày (0 Quota)
+                    </Badge>
+                  )}
+                </div>
+                <span className="text-charcoal/60">Phạm vi: {restockData.lookback_days || 30} ngày qua</span>
+              </div>
+
               {/* Executive Summary */}
               <div className="card-warm bg-amber-50/60 p-4 border border-amber-200 text-xs text-wood-950 leading-relaxed font-medium flex items-center gap-3">
                 <Info className="w-5 h-5 text-amber-700 shrink-0" />
@@ -372,9 +413,9 @@ export const AIAssistant = ({ onNavigateToImport }) => {
               </span>
             </div>
             <button
-              onClick={handleFetchAnomalies}
+              onClick={() => handleFetchAnomalies(true)}
               disabled={loading}
-              className="btn-danger text-xs flex items-center gap-2 disabled:opacity-60"
+              className="btn-danger text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -385,8 +426,34 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </button>
           </div>
 
+          {loading && !anomalyData && (
+            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
+              <Loader2 className="w-8 h-8 text-rust-600 animate-spin mb-3" />
+              <p className="text-sm font-semibold text-wood-950 font-serif">Đang quét phát hiện biến động bất thường và tồn đọng...</p>
+              <p className="text-xs text-charcoal/60 mt-1 font-sans">Đang phân tích rủi ro xuất tăng đột biến &gt;200% và hàng tồn &gt;30 ngày.</p>
+            </div>
+          )}
+
           {anomalyData && (
             <div className="space-y-6">
+              {/* Provider Info Banner */}
+              <div className="p-3.5 bg-wood-100 rounded-btn border border-wood-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-charcoal">Động cơ tính toán:</span>
+                  <Badge variant={anomalyData.is_fallback ? 'amber' : 'forest'}>
+                    {anomalyData.is_fallback
+                      ? '⚡ Heuristic Fallback Engine (Offline Safe < 50ms)'
+                      : '🤖 Google Gemini 3.5 Flash-Lite (Online LLM)'}
+                  </Badge>
+                  {anomalyData.is_cached && (
+                    <Badge variant="blue">
+                      📦 Đã lưu đệm trong ngày (0 Quota)
+                    </Badge>
+                  )}
+                </div>
+                <span className="text-charcoal/60">Phạm vi: {anomalyData.lookback_days || 30} ngày qua</span>
+              </div>
+
               <div className="card-warm bg-rust-50/50 p-4 border border-rust-200 text-xs text-rust-950 leading-relaxed font-medium flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 text-rust-600 shrink-0" />
                 <span>{anomalyData.executive_summary}</span>

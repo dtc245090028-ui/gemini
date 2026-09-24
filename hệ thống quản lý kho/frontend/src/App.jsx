@@ -9,6 +9,7 @@ import { ImportNotes } from './pages/ImportNotes';
 import { ExportNotes } from './pages/ExportNotes';
 import { StockLedger } from './pages/StockLedger';
 import { AIAssistant } from './pages/AIAssistant';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -47,20 +48,22 @@ function AppContent() {
 
   return (
     <Layout activeTab={activeTab} onTabChange={handleTabChange}>
-      {activeTab === 'dashboard' && <Dashboard onNavigate={handleTabChange} />}
-      {activeTab === 'products' && (
-        <Products onSelectProductLedger={handleSelectProductLedger} />
-      )}
-      {activeTab === 'suppliers' && <Suppliers />}
-      {activeTab === 'imports' && <ImportNotes />}
-      {activeTab === 'exports' && <ExportNotes />}
-      {activeTab === 'stock_ledger' && (
-        <StockLedger
-          key={ledgerProductId || 'all'}
-          defaultProductId={ledgerProductId}
-        />
-      )}
-      {activeTab === 'ai_assistant' && <AIAssistant />}
+      <ErrorBoundary key={activeTab}>
+        {activeTab === 'dashboard' && <Dashboard onNavigate={handleTabChange} />}
+        {activeTab === 'products' && (
+          <Products onSelectProductLedger={handleSelectProductLedger} />
+        )}
+        {activeTab === 'suppliers' && <Suppliers />}
+        {activeTab === 'imports' && <ImportNotes />}
+        {activeTab === 'exports' && <ExportNotes />}
+        {activeTab === 'stock_ledger' && (
+          <StockLedger
+            key={ledgerProductId || 'all'}
+            defaultProductId={ledgerProductId}
+          />
+        )}
+        {activeTab === 'ai_assistant' && <AIAssistant />}
+      </ErrorBoundary>
     </Layout>
   );
 }

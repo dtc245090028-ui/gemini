@@ -102,12 +102,12 @@ export const apiClient = {
 
   // 9. Trợ lý AI
   ai: {
-    getMonthlyReport: (month, year) =>
-      api.get('/ai/monthly-report', { params: { month, year } }),
-    getRestockSuggestions: (lookbackDays = 30) =>
-      api.get('/ai/restock-suggestions', { params: { lookback_days: lookbackDays } }),
-    getAnomalies: (lookbackDays = 30) =>
-      api.get('/ai/anomalies', { params: { lookback_days: lookbackDays } }),
+    getMonthlyReport: (month, year, forceRefresh = false) =>
+      api.get('/ai/monthly-report', { params: { month, year, force_refresh: forceRefresh } }),
+    getRestockSuggestions: (lookbackDays = 30, forceRefresh = false) =>
+      api.get('/ai/restock-suggestions', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
+    getAnomalies: (lookbackDays = 30, forceRefresh = false) =>
+      api.get('/ai/anomalies', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
   },
 };
 

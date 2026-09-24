@@ -45,6 +45,15 @@ def setup_database():
     yield
 
 
+@pytest.fixture(autouse=True)
+def clean_ai_cache():
+    """Đảm bảo dọn dẹp cache trước và sau mỗi test case."""
+    from app.services.ai_cache import AICacheManager
+    AICacheManager.clear()
+    yield
+    AICacheManager.clear()
+
+
 @pytest.fixture
 def client():
     return TestClient(app)
@@ -245,10 +254,11 @@ def test_ai_pipeline_excludes_unit_price(ai_test_data):
 def test_ai_monthly_report_endpoint(client, thukho_headers, ai_test_data):
     """Kiểm tra endpoint /monthly-report trả về đúng định dạng khi offline (fallback)."""
     now = datetime.now()
-    response = client.get(
-        f"/api/v1/ai/monthly-report?month={now.month}&year={now.year}",
-        headers=thukho_headers,
-    )
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        response = client.get(
+            f"/api/v1/ai/monthly-report?month={now.month}&year={now.year}",
+            headers=thukho_headers,
+        )
     assert response.status_code == 200
     data = response.json()
 
@@ -264,10 +274,11 @@ def test_ai_monthly_report_endpoint(client, thukho_headers, ai_test_data):
 
 def test_ai_restock_suggestions_endpoint(client, admin_headers, ai_test_data):
     """Kiểm tra gợi ý nhập hàng phát hiện đúng sản phẩm bán chạy sắp hết hàng (AI_SP01_FAST)."""
-    response = client.get(
-        "/api/v1/ai/restock-suggestions?lookback_days=30",
-        headers=admin_headers,
-    )
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        response = client.get(
+            "/api/v1/ai/restock-suggestions?lookback_days=30",
+            headers=admin_headers,
+        )
     assert response.status_code == 200
     data = response.json()
 
@@ -287,10 +298,11 @@ def test_ai_restock_suggestions_endpoint(client, admin_headers, ai_test_data):
 
 def test_ai_anomalies_endpoint(client, ketoan_headers, ai_test_data):
     """Kiểm tra phát hiện bất thường: xuất đột biến (AI_SP02_SURGE) và hàng tồn chết (AI_SP03_DEAD)."""
-    response = client.get(
-        "/api/v1/ai/anomalies?lookback_days=30",
-        headers=ketoan_headers,
-    )
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        response = client.get(
+            "/api/v1/ai/anomalies?lookback_days=30",
+            headers=ketoan_headers,
+        )
     assert response.status_code == 200
     data = response.json()
 
@@ -344,3 +356,36 @@ def test_ai_rbac_and_unauthorized(client):
 
     res3 = client.get("/api/v1/ai/anomalies")
     assert res3.status_code == 401
+
+
+def test_ai_in_day_cache(client, admin_headers, ai_test_data):
+    """Kiểm tra cơ chế Cache trong ngày: Lần gọi thứ 2 trả về is_cached=True, force_refresh=True thì gọi mới."""
+    mock_response = MagicMock()
+    mock_response.text = (
+        '{"executive_summary": "Tóm tắt kiểm tra Cache.", "recommendations": ["Khuyến nghị 1"]}'
+    )
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value = mock_response
+
+    with patch.object(settings, "GEMINI_API_KEY", "dummy_test_api_key"):
+        with patch("google.generativeai.GenerativeModel", return_value=mock_model):
+            # Lần gọi 1 -> Tạo mới vào cache
+            res1 = client.get("/api/v1/ai/monthly-report?month=1&year=2026", headers=admin_headers)
+            assert res1.status_code == 200
+            data1 = res1.json()
+            assert data1["is_fallback"] is False
+            assert data1["is_cached"] is False
+
+            # Lần gọi 2 -> Phải lấy từ Cache
+            res2 = client.get("/api/v1/ai/monthly-report?month=1&year=2026", headers=admin_headers)
+            assert res2.status_code == 200
+            data2 = res2.json()
+            assert data2["is_cached"] is True
+            assert data2["executive_summary"] == data1["executive_summary"]
+
+            # Lần gọi 3 -> force_refresh=true phải bỏ qua cache
+            res3 = client.get("/api/v1/ai/monthly-report?month=1&year=2026&force_refresh=true", headers=admin_headers)
+            assert res3.status_code == 200
+            data3 = res3.json()
+            assert data3["is_cached"] is False
+

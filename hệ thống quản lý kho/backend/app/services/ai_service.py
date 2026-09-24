@@ -30,6 +30,7 @@ from app.schemas.ai import (
     TopExportedProductItem,
 )
 from app.services.fallback_service import FallbackService
+from app.services.ai_cache import AICacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -311,19 +312,64 @@ class AIService:
                 logger.warning(f"Không thể đọc file prompt {filename}: {e}")
         return ""
 
+    @classmethod
+    def _call_gemini_with_models(cls, prompt_content: str, generation_config: Optional[dict] = None) -> str:
+        """Gọi Gemini API với cơ chế tự động thử qua chuỗi model (Model Fallback Chain) nếu gặp giới hạn hạn mức (429 Quota)."""
+        import google.generativeai as genai
+
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        config = generation_config or {"temperature": 0.2, "response_mime_type": "application/json"}
+
+        # Danh sách model ứng viên theo thứ tự ưu tiên (Flash-Lite có quota Free Tier dồi dào và ổn định nhất)
+        candidates = [
+            settings.AI_MODEL_NAME or "gemini-3.5-flash-lite",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-3.6-flash",
+        ]
+        seen = set()
+        model_names = [m for m in candidates if not (m in seen or seen.add(m))]
+
+        last_exception = None
+        for m_name in model_names:
+            try:
+                model = genai.GenerativeModel(m_name)
+                response = model.generate_content(prompt_content, generation_config=config)
+                raw_text = response.text.strip()
+                if "```json" in raw_text:
+                    raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in raw_text:
+                    raw_text = raw_text.split("```")[1].split("```")[0].strip()
+                return raw_text
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"Model {m_name} không khả dụng ({e}), đang thử model tiếp theo trong chuỗi...")
+
+        if last_exception:
+            raise last_exception
+        raise RuntimeError("Không có model nào khả dụng")
+
     # =========================================================================
     # 3. GỌI GEMINI API VỚI HEURISTIC FALLBACK DỰ PHÒNG
     # =========================================================================
 
     @classmethod
     def generate_monthly_report(
-        cls, db: Session, month: Optional[int] = None, year: Optional[int] = None
+        cls, db: Session, month: Optional[int] = None, year: Optional[int] = None, force_refresh: bool = False
     ) -> MonthlyReportResponse:
-        """Sinh Báo cáo Nhập-Xuất-Tồn tháng: Ưu tiên Gemini LLM, tự động fallback nếu offline."""
+        """Sinh Báo cáo Nhập-Xuất-Tồn tháng: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
         now = datetime.now()
         target_month = month or now.month
         target_year = year or now.year
         period_str = f"{target_month:02d}/{target_year}"
+        cache_key = f"{target_year}_{target_month:02d}"
+
+        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
+        if not force_refresh:
+            cached = AICacheManager.get("monthly_report", cache_key)
+            if cached:
+                cached["is_cached"] = True
+                return MonthlyReportResponse(**cached)
 
         # 1. SQL tiền xử lý số liệu
         metrics = cls.get_monthly_aggregated_data(db, target_month, target_year)
@@ -338,15 +384,11 @@ class AIService:
                 metrics=metrics,
                 executive_summary=summary,
                 recommendations=recs,
+                is_cached=False,
             )
 
         # 3. Cố gắng gọi Gemini API nếu đã có key
         try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel(settings.AI_MODEL_NAME or "gemini-1.5-flash")
-
             top_products_text = "\n".join(
                 [f"- {p.product_code}: {p.product_name} (xuất {p.quantity} đơn vị)" for p in metrics.top_exported_products]
             ) or "Không có mặt hàng xuất trong kỳ."
@@ -365,27 +407,20 @@ class AIService:
             )
 
             prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
-            response = model.generate_content(
-                prompt_content,
-                generation_config={"temperature": 0.2, "response_mime_type": "application/json"},
-            )
-
-            raw_text = response.text.strip()
-            # Bóc tách JSON nếu model bọc trong ```json ... ```
-            if "```json" in raw_text:
-                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_text:
-                raw_text = raw_text.split("```")[1].split("```")[0].strip()
-
+            raw_text = cls._call_gemini_with_models(prompt_content)
             parsed = json.loads(raw_text)
-            return MonthlyReportResponse(
+            response_obj = MonthlyReportResponse(
                 period=period_str,
                 is_fallback=False,
                 provider="gemini",
                 metrics=metrics,
                 executive_summary=parsed.get("executive_summary", ""),
                 recommendations=parsed.get("recommendations", []),
+                is_cached=False,
             )
+            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
+            AICacheManager.set("monthly_report", cache_key, response_obj.model_dump())
+            return response_obj
 
         except Exception as e:
             logger.error(
@@ -400,13 +435,23 @@ class AIService:
                 metrics=metrics,
                 executive_summary=summary,
                 recommendations=recs,
+                is_cached=False,
             )
 
     @classmethod
     def generate_restock_suggestions(
-        cls, db: Session, lookback_days: int = 30
+        cls, db: Session, lookback_days: int = 30, force_refresh: bool = False
     ) -> RestockSuggestionsResponse:
-        """Gợi ý nhập hàng: Ưu tiên Gemini LLM, tự động fallback nếu offline."""
+        """Gợi ý nhập hàng: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
+        cache_key = f"{lookback_days}"
+
+        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
+        if not force_refresh:
+            cached = AICacheManager.get("restock_suggestions", cache_key)
+            if cached:
+                cached["is_cached"] = True
+                return RestockSuggestionsResponse(**cached)
+
         candidates = cls.get_restock_candidates_data(db, lookback_days=lookback_days)
 
         # Mặc định tạo kết quả chuẩn qua Fallback Engine trước
@@ -420,15 +465,11 @@ class AIService:
                 total_suggested_items=len(fallback_items),
                 items=fallback_items,
                 executive_summary=fallback_summary,
+                is_cached=False,
             )
 
         # Cố gắng tối ưu nhận xét qua Gemini API
         try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel(settings.AI_MODEL_NAME or "gemini-1.5-flash")
-
             template = cls._read_prompt_template("reorder_suggestion_prompt.txt")
             user_prompt = (
                 f"Danh sách mặt hàng cần xem xét bổ sung (phân tích {lookback_days} ngày qua):\n"
@@ -438,16 +479,7 @@ class AIService:
             )
 
             prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
-            response = model.generate_content(
-                prompt_content,
-                generation_config={"temperature": 0.2, "response_mime_type": "application/json"},
-            )
-
-            raw_text = response.text.strip()
-            if "```json" in raw_text:
-                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_text:
-                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            raw_text = cls._call_gemini_with_models(prompt_content)
 
             parsed = json.loads(raw_text)
             ai_summary = parsed.get("executive_summary", fallback_summary)
@@ -480,14 +512,18 @@ class AIService:
                 else:
                     final_items.append(item)
 
-            return RestockSuggestionsResponse(
+            response_obj = RestockSuggestionsResponse(
                 lookback_days=lookback_days,
                 is_fallback=False,
                 provider="gemini",
                 total_suggested_items=len(final_items),
                 items=final_items,
                 executive_summary=ai_summary,
+                is_cached=False,
             )
+            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
+            AICacheManager.set("restock_suggestions", cache_key, response_obj.model_dump())
+            return response_obj
 
         except Exception as e:
             logger.error(
@@ -501,13 +537,23 @@ class AIService:
                 total_suggested_items=len(fallback_items),
                 items=fallback_items,
                 executive_summary=fallback_summary,
+                is_cached=False,
             )
 
     @classmethod
     def generate_anomaly_detection(
-        cls, db: Session, lookback_days: int = 30
+        cls, db: Session, lookback_days: int = 30, force_refresh: bool = False
     ) -> AnomalyDetectionResponse:
-        """Tóm tắt biến động bất thường: Ưu tiên Gemini LLM, tự động fallback nếu offline."""
+        """Tóm tắt biến động bất thường: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
+        cache_key = f"{lookback_days}"
+
+        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
+        if not force_refresh:
+            cached = AICacheManager.get("anomaly_detection", cache_key)
+            if cached:
+                cached["is_cached"] = True
+                return AnomalyDetectionResponse(**cached)
+
         candidates = cls.get_anomalies_candidates_data(db, lookback_days=lookback_days)
 
         fallback_anomalies, fallback_summary = FallbackService.generate_anomaly_detection_fallback(candidates)
@@ -520,14 +566,10 @@ class AIService:
                 total_anomalies=len(fallback_anomalies),
                 anomalies=fallback_anomalies,
                 executive_summary=fallback_summary,
+                is_cached=False,
             )
 
         try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel(settings.AI_MODEL_NAME or "gemini-1.5-flash")
-
             template = cls._read_prompt_template("anomaly_detection_prompt.txt")
             user_prompt = (
                 f"Danh sách bất thường phát hiện được ({lookback_days} ngày qua):\n"
@@ -537,16 +579,7 @@ class AIService:
             )
 
             prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
-            response = model.generate_content(
-                prompt_content,
-                generation_config={"temperature": 0.2, "response_mime_type": "application/json"},
-            )
-
-            raw_text = response.text.strip()
-            if "```json" in raw_text:
-                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_text:
-                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            raw_text = cls._call_gemini_with_models(prompt_content)
 
             parsed = json.loads(raw_text)
             ai_summary = parsed.get("executive_summary", fallback_summary)
@@ -575,14 +608,18 @@ class AIService:
                 else:
                     final_anomalies.append(item)
 
-            return AnomalyDetectionResponse(
+            response_obj = AnomalyDetectionResponse(
                 lookback_days=lookback_days,
                 is_fallback=False,
                 provider="gemini",
                 total_anomalies=len(final_anomalies),
                 anomalies=final_anomalies,
                 executive_summary=ai_summary,
+                is_cached=False,
             )
+            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
+            AICacheManager.set("anomaly_detection", cache_key, response_obj.model_dump())
+            return response_obj
 
         except Exception as e:
             logger.error(
@@ -596,4 +633,5 @@ class AIService:
                 total_anomalies=len(fallback_anomalies),
                 anomalies=fallback_anomalies,
                 executive_summary=fallback_summary,
+                is_cached=False,
             )
