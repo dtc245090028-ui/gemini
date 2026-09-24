@@ -12,6 +12,7 @@ class ProductBase(BaseModel):
     unit: str = Field(default="Cái", min_length=1, max_length=20, description="Đơn vị tính")
     min_stock: int = Field(default=10, ge=0, description="Định mức tồn tối thiểu để cảnh báo")
     standard_price: float = Field(default=0.0, ge=0.0, description="Đơn giá tiêu chuẩn (VNĐ)")
+    image_url: Optional[str] = Field(None, max_length=500, description="Đường dẫn hoặc URL ảnh sản phẩm")
     status: str = Field(default="ACTIVE", description="Trạng thái hàng: ACTIVE, DISCONTINUED")
 
 
@@ -25,6 +26,7 @@ class ProductUpdate(BaseModel):
     unit: Optional[str] = Field(None, min_length=1, max_length=20, description="Đơn vị tính")
     min_stock: Optional[int] = Field(None, ge=0, description="Định mức tồn tối thiểu")
     standard_price: Optional[float] = Field(None, ge=0.0, description="Đơn giá tiêu chuẩn")
+    image_url: Optional[str] = Field(None, max_length=500, description="Đường dẫn hoặc URL ảnh sản phẩm")
     status: Optional[str] = Field(None, description="Trạng thái hàng: ACTIVE, DISCONTINUED")
 
 

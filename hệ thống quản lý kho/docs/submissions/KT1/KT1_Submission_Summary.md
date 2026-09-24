@@ -1,5 +1,7 @@
 # HỒ SƠ TỔNG HỢP NỘP BÀI ĐÁNH GIÁ GIAI ĐOẠN 1 (KT1)
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
+
 **Sinh viên thực hiện:** Đồ án môn học Triển khai phần mềm & Ứng dụng AI  
 **Ngày bàn giao:** 2026-09-21  
 **Trạng thái nghiệm thu:** ĐẠT 100% CÁC TIÊU CHÍ  
@@ -9,6 +11,7 @@
 ## 1. Mục tiêu & Tiêu chuẩn nghiệm thu mốc KT1
 
 Theo yêu cầu chuẩn tại `docs/SDLC/KT1/README.md`, mốc KT1 yêu cầu hoàn thiện đầy đủ 4 hạng mục tài liệu đặc tả & thiết kế, kèm theo hiện thực hóa mô hình cơ sở dữ liệu trên mã nguồn thực tế:
+
 - [x] Phân tích quy trình nghiệp vụ kho (Nhập, Xuất, Kiểm soát tồn, Báo cáo).
 - [x] Xác định và phân tích 3 Actor: `Quản trị viên (Admin)`, `Thủ kho (Warehouse Keeper)`, `Kế toán (Accountant)`.
 - [x] Thiết kế sơ đồ Use Case và ma trận phân quyền RBAC.
@@ -32,13 +35,17 @@ Theo yêu cầu chuẩn tại `docs/SDLC/KT1/README.md`, mốc KT1 yêu cầu ho
 ## 3. Minh chứng Kiểm thử & Chạy thực tế trên Hệ thống
 
 ### 3.1. Cấu trúc 9 Bảng CSDL được sinh tự động
+
 Kiểm tra cấu trúc cơ sở dữ liệu SQLite (`warehouse.db`) qua SQLAlchemy Inspector:
+
 ```python
 ['categories', 'export_note_details', 'export_notes', 'import_note_details', 'import_notes', 'products', 'stock_ledger', 'suppliers', 'users']
 ```
+
 -> Kết quả: Đủ 9 bảng theo đúng thiết kế 100%.
 
 ### 3.2. Kết quả Chạy Bộ Kiểm thử Tự động (`pytest`)
+
 ```bash
 backend> pytest
 ============================= test session starts =============================
@@ -49,6 +56,7 @@ tests\test_foundation.py ...                                             [100%]
 
 ======================== 3 passed in 1.10s ========================
 ```
+
 - `test_health_check`: Endpoint `/health` trả về mã 200 `healthy`.
 - `test_database_all_nine_tables_created`: 9 bảng đã được sinh chuẩn xác.
 - `test_prevent_negative_current_stock`: Ràng buộc `CHECK (current_stock >= 0)` ngăn chặn thành công trường hợp tồn kho âm và ném `IntegrityError` để rollback.

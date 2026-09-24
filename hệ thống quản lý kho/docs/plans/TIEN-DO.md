@@ -1,9 +1,11 @@
 # NHẬT KÝ TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS TRACKER)
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
 
 ---
 
 ### QUY ĐỊNH VỀ RANH GIỚI TÀI LIỆU
+
 - **`docs/plans/` (Kế hoạch & Nhiệm vụ)**: Chứa 11 file kế hoạch độc lập (`Buoc-01-...md` đến `Buoc-11-...md`) và file nhật ký tiến độ này. Đây là tài liệu điều phối quá trình phát triển (Internal Execution Plans).
 - **`docs/SDLC/` (Sản phẩm bàn giao thật - Deliverables)**: Chứa toàn bộ hồ sơ kỹ thuật, báo cáo, thiết kế dùng để nộp bài và chấm thi theo 4 mốc của giảng viên (`KT1/`, `KT2/`, `KT3/`, `final/`).
 
@@ -12,6 +14,7 @@
 ### BẢNG THEO DÕI TIẾN ĐỘ CHUẨN (PROGRESS MATRIX)
 
 > **Hướng dẫn cập nhật:**
+>
 > - Định dạng ngày: `YYYY-MM-DD`
 > - Quy ước trạng thái: `Chưa bắt đầu` | `Đang thực hiện` | `Hoàn thành` | `Cần xem xét`
 > - Sau khi thực hiện xong bước nào, cập nhật đúng dòng tương ứng dưới đây, không tự ý thay đổi cấu trúc bảng.
@@ -35,6 +38,7 @@
 ### CHANGELOG
 
 #### [2026-09-23] Hoàn thành Bước 09: Xây dựng Frontend Web React 18 & Tailwind CSS (Ứng dụng giao diện người dùng)
+
 - **Kiến trúc & Cơ chế nền tảng:**
   - `frontend/src/api/client.js`: Cấu hình Axios client tập trung với JWT interceptor, tự động gắn `Authorization: Bearer <token>`, bắt mã 401 tự động điều hướng về Login, đóng gói 9 nhóm API service chuẩn mực.
   - `frontend/src/context/AuthContext.jsx`: Quản lý phiên làm việc JWT, tự động khôi phục từ `localStorage`, tích hợp hàm `switchDemoRole` hỗ trợ chuyển đổi 1-click giữa `ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT` phục vụ thuyết trình hội đồng.
@@ -52,8 +56,8 @@
 - **Kiểm định đóng gói:**
   - Đã cài đặt toàn bộ `node_modules` và chạy `npm run build` thành công rực rỡ (`✓ 1551 modules transformed`, built in 4.23s, 0 lỗi).
 
-
 #### [2026-09-23] Hoàn thành Mốc KT3 (Bước 08 & Bước 10: Tích hợp AI, Prompt Engineering, Fallback Engine & Test Suite 30/30)
+
 - **Module AI Trợ lý & Heuristic Fallback (Bước 08):**
   - `backend/app/services/ai_service.py`: Xây dựng SQL Aggregation Pipeline tiền xử lý dữ liệu và **loại bỏ 100% giá mua nhạy cảm** (`unit_price`). Tích hợp Google Gemini API (`gemini-1.5-flash`) qua structured JSON schema.
   - `backend/app/services/fallback_service.py`: Xây dựng Heuristic Fallback Engine hoạt động độc lập offline (< 50ms), tính toán chính xác số lượng đề xuất nhập (`suggested_qty = 2*min - stock`) và nhận diện biến động bất thường (`SURGE_EXPORT`, `DEAD_STOCK`).
@@ -69,8 +73,8 @@
   - `docs/SDLC/KT3/02_Test_Plan_and_Results.md`: Ma trận 30 ca kiểm thử tự động và nhật ký thực thi 100% Pass.
   - `docs/SDLC/KT3/03_AI_Integration_Architecture.md`: Kiến trúc phân tầng AI và sơ đồ luồng chuyển mạch Fallback.
 
-
 #### [2026-09-22] Hoàn thành Bước 07: Module Nhập/Xuất kho & Thẻ kho (Transaction ACID ⭐ Tâm điểm đề tài)
+
 - **Tính năng hoàn thành:**
   - `backend/app/services/inventory_service.py`: Transaction ACID cho Nhập/Xuất kho, kiểm tra chống tồn âm, sinh mã tự động với Retry Pattern, Guard-check hủy phiếu (Phương án B), điều chỉnh kiểm kê (Phương án A) và báo cáo Nhập-Xuất-Tồn chuẩn kế toán.
   - `backend/app/schemas/`: Đầy đủ schemas cho ImportNote, ExportNote, StockLedger, Report.
@@ -83,6 +87,7 @@
   - Kết quả toàn dự án: **24/24 test cases PASS 100%**.
 
 #### [2026-09-22] Hoàn thành Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp
+
 - **Tính năng hoàn thành:**
   - `backend/app/schemas/`: Đầy đủ Schemas Pydantic v2 cho Category, Product (`@computed_field is_low_stock`) và Supplier.
   - `backend/app/api/v1/endpoints/categories.py`: CRUD nhóm hàng, chặn xóa nhóm hàng đang có sản phẩm.
@@ -96,6 +101,7 @@
   - Kết quả toàn dự án: **18/18 test cases PASS 100%**.
 
 #### [2026-09-22] Hoàn thành Bước 05: Xác thực, Đăng nhập & Phân quyền RBAC
+
 - **Tính năng hoàn thành:**
   - `backend/app/core/security.py`: Sử dụng trực tiếp `bcrypt` (bỏ qua `passlib` để tương thích 100% Python 3.14) và `pyjwt` (HS256).
   - Cấu hình JWT: `ACCESS_TOKEN_EXPIRE_MINUTES = 60`, `SECRET_KEY` đọc qua `.env`.

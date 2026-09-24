@@ -1,4 +1,5 @@
 # MASTER ROADMAP
+
 ## Đề tài 07 — Hệ thống quản lý kho có tích hợp AI
 
 > **Vai trò của file này:** Bức tranh toàn cảnh — điều hướng sang từng kế hoạch chi tiết.
@@ -8,7 +9,7 @@
 
 ## Phân cấp nguồn sự thật
 
-```
+```text
 docs/plans/TIEN-DO.md          ← Trạng thái thực tế (tick ✅ ở đây là chính thức)
     ↑ đồng bộ
 MASTER-ROADMAP.md   ← Bức tranh toàn cảnh + điều hướng (file này)
@@ -23,7 +24,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 ## Trạng thái tổng quan
 
 | Giai đoạn | Mô tả | Mốc SDLC | Tiến độ |
-|:---:|---|:---:|:---:|
+| :---: | --- | :---: | :---: |
 | **0** | Nền tảng dự án | — | ✅ Hoàn thành |
 | **1** | Tài liệu KT1 + DB Models | KT1 | ✅ Hoàn thành |
 | **2** | Backend Auth + CRUD | KT2 | ✅ Hoàn thành |
@@ -32,7 +33,6 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | **5** | Kiểm thử tự động (Pytest) | KT3 | ✅ Hoàn thành |
 | **6** | Frontend React + Tailwind | Cuối kỳ | ⬜ Chưa bắt đầu |
 | **7** | Đóng gói + Tài liệu cuối | Cuối kỳ | ⬜ Chưa bắt đầu |
-
 
 > **Quy ước trạng thái ô:** ⬜ Chưa bắt đầu · 🔄 Đang thực hiện · ✅ Hoàn thành · ⚠️ Cần xem xét
 
@@ -48,7 +48,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Dependency:** Không có — thực hiện đầu tiên.
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 0.1 | Tạo cấu trúc thư mục đầy đủ theo `Prompt.md §6` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | Cây thư mục khớp đặc tả | ✅ |
 | 0.2 | `requirements.txt` + `.env.example` | 🔴 P0 | [Buoc-03](plans/Buoc-03-Cau-hinh-Moi-truong-Docker-va-CSDL.md) | `backend/requirements.txt`, `backend/.env.example` | ✅ |
 | 0.3 | FastAPI app khung: `main.py`, `core/config.py`, `core/database.py` | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | Backend khởi động được tại `uvicorn app.main:app` | ✅ |
@@ -65,7 +65,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** KT1
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 1.1 | Tài liệu SRS + Use Case (3 Actor, 8 luồng nghiệp vụ) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/01_SRS_and_UseCases.md` | ✅ |
 | 1.2 | Thiết kế ERD + Data Dictionary (9 bảng) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `docs/SDLC/KT1/02_Database_Design_ERD.md` | ✅ |
 | 1.3 | Kiến trúc AI + Prompt mẫu (anti-hallucination) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | ✅ |
@@ -83,7 +83,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Dependency:** Giai đoạn 1 (models đã có).
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 2.1 | Pydantic Schemas cho tất cả models | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | `backend/app/schemas/*.py` | ✅ |
 | 2.2 | Auth: bcrypt + JWT + endpoint `/auth/login` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | `backend/app/core/security.py`, `api/v1/endpoints/auth.py` | ✅ |
 | 2.3 | RBAC dependency `require_role(["ADMIN", ...])` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | Tích hợp vào tất cả protected endpoints | ✅ |
@@ -102,7 +102,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** KT2
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 3.1 | `InventoryService.create_import()` — Transaction ACID nhập hàng + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
 | 3.2 | `InventoryService.create_export()` — Atomic check tồn + Rollback nếu âm + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
 | 3.3 | API endpoints nhập/xuất kho (`/import-notes`, `/export-notes`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/import_notes.py`, `export_notes.py` | ✅ |
@@ -123,7 +123,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** KT3
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 4.1 | Data Aggregation Pipeline (SQL tổng hợp, loại bỏ giá mua) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/services/ai_service.py` — hàm `tong_hop_du_lieu()` | ✅ |
 | 4.2 | Kết nối Gemini API — Báo cáo tháng | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_monthly_report()` | ✅ |
 | 4.3 | Kết nối Gemini API — Gợi ý nhập hàng (kèm velocity 30 ngày) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_restock_suggestions()` | ✅ |
@@ -144,7 +144,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** KT3
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 5.1 | `conftest.py` — Pytest fixtures (SQLite in-memory, test client) | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | Tích hợp trong các test modules | ✅ |
 | 5.2 | `test_import_stock` — Nhập kho tăng đúng tồn + ghi đúng Stock Ledger | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
 | 5.3 | `test_prevent_negative_stock` — Xuất > tồn → HTTP 400, tồn không đổi | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
@@ -153,7 +153,6 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | 5.6 | `test_ai_fallback` — Khi API lỗi, fallback trả đúng cấu trúc | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_ai.py` | ✅ |
 | 5.7 | Seed Data thực tế: 20+ SP, 3 user, giao dịch 60 ngày | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/seed_data.py` | ✅ |
 | 5.8 | Báo cáo kết quả test KT3 | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `docs/SDLC/KT3/02_Test_Plan_and_Results.md` | ✅ |
-
 
 **Tiêu chí hoàn thành Giai đoạn 5:** `pytest` chạy không có test đỏ; các test không mock chính layer đang test (xem `CLAUDE.md §7`).
 
@@ -166,7 +165,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** Cuối kỳ
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 6.1 | Auth Context + Axios client + Trang Login | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/context/AuthContext.jsx`, `src/api/client.js`, `src/pages/Login.jsx` | ✅ |
 | 6.2 | Dashboard: KPIs tổng quan + badge cảnh báo tồn kho | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Dashboard.jsx` | ✅ |
 | 6.3 | Trang Hàng hóa + Nhóm hàng (CRUD + lọc tìm kiếm) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Products.jsx` | ✅ |
@@ -188,7 +187,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 > **Mốc nộp bài:** Cuối kỳ
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
-|---|---|:---:|---|---|:---:|
+| --- | --- | :---: | --- | --- | :---: |
 | 7.1 | `README.md` hướng dẫn cài đặt 1-click + kịch bản demo | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `README.md` ở gốc dự án | ⬜ |
 | 7.2 | Báo cáo kỹ thuật tổng kết đồ án | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/01_Final_Technical_Report.md` | ⬜ |
 | 7.3 | Hướng dẫn sử dụng + kịch bản demo chấm thi | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | ⬜ |
@@ -202,7 +201,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 ## Lịch sử cập nhật MASTER-ROADMAP
 
 | Ngày | Phiên | Nội dung thay đổi |
-|:---:|:---:|---|
+| :---: | :---: | --- |
 | 2026-09-20 | #1 | Tạo mới — thiết lập toàn bộ 8 giai đoạn |
 | 2026-09-21 | #2 | Hoàn thành Giai đoạn 0 (Scaffolding Backend/Frontend) và Giai đoạn 1 (Tài liệu KT1 + 9 DB Models) |
 | 2026-09-22 | #3 | Hoàn thành phần Auth & RBAC (Bước 05 / Nhiệm vụ 2.2, 2.3) thuộc Giai đoạn 2: Tích hợp bcrypt thuần, PyJWT HS256, idempotent seed 3 tài khoản, SQLite FK và 14/14 tests pass |
@@ -218,6 +217,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 ## CHANGELOG
 
 ### [2026-09-23] Hoàn thành Giai đoạn 6 (Bước 09: Frontend Web React 18 & Tailwind CSS)
+
 - **Kiến trúc Single Page Application:**
   - Hoàn thiện bộ khung React 18 + Vite + Tailwind CSS + Lucide Icons.
   - Tích hợp `AuthContext` quản lý phiên JWT, lưu `localStorage`, cung cấp hàm `switchDemoRole` chuyển vai trò tức thời (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`) phục vụ thuyết trình đồ án.
@@ -235,6 +235,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
   - Backend test suite tiếp tục duy trì 30/30 test cases PASS 100%.
 
 ### [2026-09-23] Hoàn thành Giai đoạn 4 & 5 (Mốc KT3: Tích hợp AI, Tối ưu Prompt & Kiểm thử tự động)
+
 - **Tích hợp AI & Heuristic Fallback Engine (Giai đoạn 4 - Bước 08):**
   - Xây dựng `backend/app/services/ai_service.py` với SQL Aggregation Pipeline tiền xử lý và **loại bỏ hoàn toàn thông tin giá mua nhạy cảm** (`unit_price`).
   - Tích hợp Google Gemini API (`gemini-1.5-flash`) qua Structured JSON Output.
@@ -247,8 +248,8 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 - **Hồ sơ bàn giao mốc KT3:**
   - Hoàn thiện đầy đủ 3 tài liệu tại `docs/SDLC/KT3/`: `01_Prompt_Engineering_and_Evaluation.md`, `02_Test_Plan_and_Results.md`, `03_AI_Integration_Architecture.md`.
 
-
 ### [2026-09-22] Hoàn thành Giai đoạn 3 (Bước 07: Module Nhập/Xuất kho & Thẻ kho Transaction ACID)
+
 - **Nghiệp vụ cốt lõi (Core Inventory Service):**
   - `backend/app/services/inventory_service.py`: Transaction ACID cho Nhập/Xuất kho, kiểm tra chống tồn âm, sinh mã tự động với Retry Pattern, Guard-check hủy phiếu (Phương án B), điều chỉnh kiểm kê (Phương án A) và báo cáo Nhập-Xuất-Tồn chuẩn kế toán.
   - `backend/app/schemas/`: Đầy đủ schemas cho ImportNote, ExportNote, StockLedger, Report.
@@ -262,6 +263,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
   - Kết quả toàn dự án: **24/24 test cases PASS 100%**.
 
 ### [2026-09-22] Hoàn thành Giai đoạn 2 (Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp)
+
 - **Hoàn thành các nhiệm vụ Giai đoạn 2:**
   - `backend/app/schemas/`: Toàn bộ Schemas cho Category, Product, Supplier và User.
   - `backend/app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa, chặn xóa khi có sản phẩm liên kết.
@@ -274,6 +276,7 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
   - `backend/tests/test_master_data.py`: Đạt 4/4 test suites lớn. Tổng cộng 18/18 tests toàn dự án PASS 100%.
 
 ### [2026-09-22] Cập nhật Giai đoạn 2 (Bước 05: Auth & RBAC)
+
 - **Hoàn thành các mục trong Bước 05:**
   - `backend/app/core/security.py`: Sử dụng `bcrypt` thuần (loại bỏ phụ thuộc `passlib` để tương thích hoàn toàn Python 3.14) và `pyjwt` (HS256).
   - Chuẩn hóa JWT tối thiểu: `ACCESS_TOKEN_EXPIRE_MINUTES = 60` (được đọc từ `.env`).

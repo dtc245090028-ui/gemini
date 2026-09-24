@@ -1,5 +1,7 @@
 # PHÁC THẢO BỐ CỤC GIAO DIỆN NGƯỜI DÙNG (WIREFRAMES)
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
+
 **Mốc đánh giá:** KT1 — Phân tích yêu cầu & Thiết kế hệ thống  
 **Học phần:** Triển khai phần mềm & Ứng dụng AI  
 **Ngày hoàn thành:** 2026-09-21  
@@ -9,6 +11,7 @@
 ## 1. Triết lý Thiết kế Giao diện
 
 Giao diện của hệ thống được thiết kế theo phong cách hiện đại, tối giản, trực quan trên nền tảng **React 18 + Tailwind CSS**:
+
 - **Trải nghiệm người dùng nhất quán:** Bố cục chia hai phần rõ rệt: Thanh điều hướng (Sidebar bên trái) và Vùng nội dung chính (Main Content bên phải).
 - **Phản hồi nghiệp vụ tức thời:** Khi lập phiếu xuất kho, hệ thống tự động kiểm tra số lượng tồn kho thời gian thực; đổi màu đỏ cảnh báo ngay tại ô nhập liệu nếu số lượng vượt quá số dư trong kho.
 - **Thân thiện cho buổi thuyết trình (Demo Friendly):** Tích hợp nút **Chuyển vai trò nhanh (Role Switcher)** trên thanh tiêu đề (Header) để sinh viên dễ dàng chuyển đổi qua lại giữa `Admin`, `Thủ kho` và `Kế toán` để chứng minh cơ chế phân quyền RBAC trước hội đồng chấm thi.
@@ -39,6 +42,7 @@ Giao diện của hệ thống được thiết kế theo phong cách hiện đ�
 ## 3. Chi tiết Wireframe các Màn hình Chính
 
 ### 3.1. Màn hình Dashboard & Cảnh báo Tồn kho (`pages/Dashboard.jsx`)
+
 Cung cấp các thẻ chỉ số KPI quan trọng và danh sách các mặt hàng đang chạm ngưỡng nguy hiểm cần nhập thêm.
 
 ```text
@@ -64,6 +68,7 @@ Cung cấp các thẻ chỉ số KPI quan trọng và danh sách các mặt hàn
 ---
 
 ### 3.2. Màn hình Lập Phiếu Xuất kho & Chống Tồn Âm (`pages/ExportNotes.jsx`)
+
 Kiểm tra số lượng tồn theo thời gian thực và ngăn chặn hoàn toàn lỗi xuất âm.
 
 ```text
@@ -92,6 +97,7 @@ Kiểm tra số lượng tồn theo thời gian thực và ngăn chặn hoàn to
 ---
 
 ### 3.3. Màn hình Thẻ kho / Tra cứu Biến động Tồn (`pages/StockLedger.jsx`)
+
 Truy vết toàn bộ lịch sử biến động số lượng của từng mặt hàng phục vụ kiểm toán.
 
 ```text
@@ -113,6 +119,7 @@ Truy vết toàn bộ lịch sử biến động số lượng của từng mặ
 ---
 
 ### 3.4. Màn hình Trợ lý AI Thông minh (`pages/AIAssistant.jsx`)
+
 Màn hình 1-Click gọi trợ lý Gemini để sinh báo cáo, gợi ý đặt hàng và cảnh báo bất thường.
 
 ```text
@@ -142,4 +149,5 @@ Màn hình 1-Click gọi trợ lý Gemini để sinh báo cáo, gợi ý đặt 
 ---
 
 ## 4. Kết luận
+
 Bộ Wireframe trên đảm bảo tính trực quan, công năng đầy đủ và bám sát toàn bộ yêu cầu nghiệp vụ của Đề tài 07. Đây là căn cứ chuẩn xác để xây dựng giao diện Frontend tại Giai đoạn 6.

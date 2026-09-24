@@ -1,4 +1,5 @@
 # ĐẶC TẢ CHI TIẾT RESTFUL APIS (BÀI KT2)
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
 
 ---
@@ -8,9 +9,11 @@
 - **Base URL**: `http://localhost:8000/api/v1`
 - **Format dữ liệu**: `JSON` (UTF-8)
 - **Cơ chế xác thực**: JSON Web Token (JWT) thông qua HTTP Header:
+
   ```http
   Authorization: Bearer <access_token>
   ```
+
 - **Thời hạn Token**: 60 phút (HS256).
 - **Phân quyền người dùng (RBAC)**:
   - `ADMIN`: Quản trị viên toàn quyền hệ thống.
@@ -22,7 +25,7 @@
 ## 2. MA TRẬN PHÂN QUYỀN (RBAC MATRIX)
 
 | Endpoint | Thao tác | ADMIN | WAREHOUSE_KEEPER | ACCOUNTANT |
-|---|---|:---:|:---:|:---:|
+| --- | --- | :---: | :---: | :---: |
 | `POST /auth/login` | Đăng nhập hệ thống | ✅ | ✅ | ✅ |
 | `GET /auth/me` | Xem thông tin tài khoản | ✅ | ✅ | ✅ |
 | `POST /auth/users` | Tạo người dùng mới | ✅ | ❌ (403) | ❌ (403) |
@@ -46,15 +49,19 @@
 ### 3.1. Module Xác thực & Tài khoản (`/auth`)
 
 #### `POST /auth/login`
+
 - **Mục đích:** Đăng nhập bằng tài khoản và nhận JWT access token (Dùng cho Frontend React).
 - **Request Body:**
+
   ```json
   {
     "username": "admin",
     "password": "admin123"
   }
   ```
+
 - **Response 200 OK:**
+
   ```json
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -69,16 +76,20 @@
     }
   }
   ```
+
 - **Lỗi:** 401 Unauthorized khi sai username/password; 403 khi tài khoản bị khóa.
 
 #### `GET /auth/me`
+
 - **Mục đích:** Trả về thông tin người dùng hiện tại dựa trên Bearer token.
 - **Headers:** `Authorization: Bearer <token>`
 - **Response 200 OK:** Trả về đối tượng `user`.
 
 #### `POST /auth/users`
+
 - **Mục đích:** Tạo người dùng mới trong hệ thống (Chỉ dành cho ADMIN).
 - **Request Body:**
+
   ```json
   {
     "username": "thukho_02",
@@ -87,6 +98,7 @@
     "role": "WAREHOUSE_KEEPER"
   }
   ```
+
 - **Response 201 Created:** Đối tượng người dùng vừa tạo (mật khẩu đã được hash qua bcrypt).
 
 ---
@@ -94,11 +106,13 @@
 ### 3.2. Module Nhóm hàng hóa (`/categories`)
 
 #### `GET /categories`
+
 - **Query Params:**
   - `search` (string, optional): Tìm kiếm theo tên hoặc mã nhóm hàng.
   - `skip` (int, default: 0): Phân trang bỏ qua.
   - `limit` (int, default: 100): Giới hạn số lượng lấy ra.
 - **Response 200 OK:** Danh sách mảng các đối tượng nhóm hàng:
+
   ```json
   [
     {
@@ -111,8 +125,10 @@
   ```
 
 #### `POST /categories`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Request Body:**
+
   ```json
   {
     "code": "GIA-DUNG",
@@ -120,14 +136,17 @@
     "description": "Các mặt hàng thiết yếu gia đình"
   }
   ```
+
 - **Response 201 Created:** Thông tin nhóm hàng đã tạo.
 - **Lỗi:** 400 Bad Request nếu trùng mã `code`.
 
 #### `PUT /categories/{category_id}`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Response 200 OK:** Thông tin nhóm hàng sau khi cập nhật.
 
 #### `DELETE /categories/{category_id}`
+
 - **Quyền:** `ADMIN`
 - **Quy tắc bảo vệ dữ liệu:** Nếu nhóm hàng đang có sản phẩm liên kết (`products`), hệ thống trả về **HTTP 400 Bad Request** kèm thông báo: *"Không thể xóa nhóm hàng vì đang có X sản phẩm liên kết"*.
 
@@ -136,6 +155,7 @@
 ### 3.3. Module Hàng hóa & Cảnh báo tồn kho (`/products`)
 
 #### `GET /products`
+
 - **Query Params:**
   - `search` (string, optional): Tìm theo tên sản phẩm hoặc mã SKU.
   - `category_id` (int, optional): Lọc theo ID nhóm hàng.
@@ -145,6 +165,7 @@
   - `status` (string, optional): `ACTIVE` hoặc `DISCONTINUED`.
   - `skip` (int, default: 0), `limit` (int, default: 50).
 - **Response 200 OK:**
+
   ```json
   [
     {
@@ -165,8 +186,10 @@
   ```
 
 #### `POST /products`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Request Body:**
+
   ```json
   {
     "code": "SKU-LOGI-G102",
@@ -179,6 +202,7 @@
     "status": "ACTIVE"
   }
   ```
+
 - **Ràng buộc toàn vẹn & Kiểm tra:**
   1. Kiểm tra `category_id` có tồn tại trong bảng `categories` không $\rightarrow$ Nếu không có: HTTP 400.
   2. Kiểm tra mã `code` (SKU) có bị trùng lặp không $\rightarrow$ Nếu trùng: HTTP 400.
@@ -186,11 +210,13 @@
 - **Response 201 Created:** Thông tin sản phẩm vừa tạo kèm thuộc tính tính toán `is_low_stock`.
 
 #### `PUT /products/{product_id}`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Mục đích:** Cập nhật thông tin hàng hóa (tên, nhóm hàng, đơn vị tính, định mức tồn tối thiểu, giá tiêu chuẩn, trạng thái).
 - **Lưu ý bảo vệ kho:** Không cho phép sửa trực tiếp trường `current_stock` qua endpoint này; mọi biến động số lượng tồn kho bắt buộc phải thông qua Phiếu Nhập / Phiếu Xuất (Giai đoạn 3).
 
 #### `DELETE /products/{product_id}`
+
 - **Quyền:** `ADMIN`
 - **Quy tắc bảo vệ lịch sử giao dịch:**
   - Nếu sản phẩm **đã có** lịch sử giao dịch (phiếu nhập, phiếu xuất, thẻ kho): Hệ thống tự động chuyển `status = "DISCONTINUED"` (Ngừng kinh doanh) để bảo toàn chứng từ kế toán.
@@ -201,12 +227,15 @@
 ### 3.4. Module Nhà cung cấp (`/suppliers`)
 
 #### `GET /suppliers`
+
 - **Query Params:** `search`, `is_active`, `skip`, `limit`.
 - **Response 200 OK:** Danh sách các nhà cung cấp.
 
 #### `POST /suppliers`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Request Body:**
+
   ```json
   {
     "code": "NCC-SAMSUNG",
@@ -217,14 +246,17 @@
     "is_active": true
   }
   ```
+
 - **Response 201 Created:** Thông tin nhà cung cấp đã tạo.
 - **Lỗi:** 400 Bad Request nếu trùng mã `code`.
 
 #### `PUT /suppliers/{supplier_id}`
+
 - **Quyền:** `ADMIN`, `WAREHOUSE_KEEPER`
 - **Response 200 OK:** Thông tin nhà cung cấp sau cập nhật.
 
 #### `DELETE /suppliers/{supplier_id}`
+
 - **Quyền:** `ADMIN`
 - **Quy tắc bảo toàn dữ liệu:**
   - Nếu nhà cung cấp đã có phiếu nhập liên kết: Tự động chuyển `is_active = false` (Ngừng hợp tác).

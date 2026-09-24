@@ -1,4 +1,5 @@
 # THIẾT KẾ GIAO DỊCH DATABASE (ACID TRANSACTION) VÀ CƠ CHẾ CHỐNG TỒN KHO ÂM (BÀI KT2)
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
 
 ---
@@ -22,7 +23,7 @@ Trong quản trị kho bãi doanh nghiệp, sai sót về số liệu tồn kho 
 
 Toàn bộ các thao tác Nhập, Xuất và Điều chỉnh kho đều được đóng gói trong một **Database Transaction** duy nhất nhằm bảo đảm 4 tính chất kinh điển:
 
-```
+```text
                   ┌────────────────────────────────────────┐
                   │          HTTP Request (API)            │
                   └──────────────────┬─────────────────────┘
@@ -55,6 +56,7 @@ Toàn bộ các thao tác Nhập, Xuất và Điều chỉnh kho đều được
 ## 3. CƠ CHẾ CHỐNG TỒN KHO ÂM (NEGATIVE STOCK PREVENTION)
 
 ### 3.1. Luồng xuất kho (Atomic Stock Check)
+
 Khi người dùng gửi yêu cầu xuất kho (`POST /api/v1/export-notes`):
 
 ```mermaid
@@ -92,15 +94,19 @@ sequenceDiagram
 ## 4. CƠ CHẾ HỦY PHIẾU AN TOÀN & GUARD-CHECK CHỐNG TỒN ÂM
 
 ### 4.1. Vấn đề thực tế khi hủy phiếu nhập cũ
+
 Một lỗ hổng nghiệp vụ nguy hiểm:
 > **Tình huống:**
+>
 > - Ngày 01: Nhập 100 sản phẩm A (Tồn kho = 100).
 > - Ngày 05: Xuất 90 sản phẩm A cho khách hàng (Tồn kho còn 10).
 > - Ngày 10: Người dùng bấm "Hủy phiếu nhập Ngày 01".
 > - Nếu hệ thống ngây thơ hoàn tác trừ đi 100 cái, tồn kho sẽ thành: $10 - 100 = -90$ $\rightarrow$ **Âm kho nghiêm trọng!**
 
 ### 4.2. Giải pháp Guard-check (Phương án B)
+
 Khi người dùng gọi `POST /api/v1/import-notes/{id}/cancel`:
+
 1. Hệ thống duyệt qua tất cả mặt hàng trong phiếu nhập.
 2. Kiểm tra điều kiện:
    $$\text{product.current\_stock} < \text{detail.quantity}$$
@@ -110,8 +116,10 @@ Khi người dùng gọi `POST /api/v1/import-notes/{id}/cancel`:
    - Toàn bộ trạng thái phiếu nhập và số tồn kho giữ nguyên 100%.
 
 ### 4.3. Lối thoát nghiệp vụ: Phiếu Điều chỉnh Tồn kho (`StockAdjustment`)
+
 Khi Guard-check từ chối hủy phiếu nhập vì lý do hàng đã xuất, kế toán hoặc thủ kho sẽ sử dụng endpoint:
 `POST /api/v1/stock-ledger/adjust`
+
 - Cung cấp số lượng tồn thực tế sau kiểm kê (`actual_stock`) và lý do (`reason`).
 - Hệ thống cập nhật `current_stock = actual_stock`, đồng thời ghi một dòng Thẻ kho `ADJUSTMENT` với số lượng chênh lệch $\pm\Delta$.
 - Đây là giải pháp **chuẩn mực theo thông tư kế toán và các hệ thống ERP quốc tế (SAP, Odoo, MISA)**, đảm bảo sổ sách kế toán không bao giờ bị can thiệp hồi tố mờ ám.

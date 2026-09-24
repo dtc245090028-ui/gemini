@@ -1,19 +1,20 @@
-﻿Hệ thống quản lý kho có tích hợp AI
-1. Mô tả bài toán
+# Hệ thống quản lý kho có tích hợp AI
+
+## 1. Mô tả bài toán
 
 Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, xuất kho, tồn kho và cảnh báo hàng sắp hết. Quản lý bằng bảng tính dễ sai lệch số lượng, khó truy vết giao dịch và chậm phát hiện bất thường. Đề tài yêu cầu xây dựng hệ thống quản lý kho có tích hợp AI sinh báo cáo nhập xuất tồn, tóm tắt biến động kho và gợi ý nhập hàng.
 
+1. Mục tiêu
 
-2. Mục tiêu
 - Xây dựng hệ thống quản lý hàng hóa, nhà cung cấp, phiếu nhập, phiếu xuất và tồn kho.
 - Tích hợp AI để sinh báo cáo nhập xuất tồn, phát hiện biến động đáng chú ý và gợi ý nhập hàng.
 - Sử dụng AI trong SDLC để thiết kế nghiệp vụ kho, sinh mã, kiểm thử và tài liệu.
 - Đảm bảo số liệu kho nhất quán và có thể truy vết.
 
-
-3. Yêu cầu chức năng
+1. Yêu cầu chức năng
 
 3.1. Chức năng quản lý
+
 1. Đăng nhập và phân quyền quản trị viên, thủ kho, kế toán.
 2. Quản lý hàng hóa, nhóm hàng, đơn vị tính, tồn tối thiểu.
 3. Quản lý nhà cung cấp.
@@ -24,10 +25,10 @@ Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, x
 8. Thống kê nhập xuất tồn và xuất báo cáo.
 
 3.2. Chức năng AI
+
 1. AI sinh báo cáo nhập xuất tồn theo tháng từ dữ liệu kho.
 2. AI gợi ý nhập hàng dựa trên tồn kho, mức tồn tối thiểu và tốc độ xuất.
 3. AI tóm tắt biến động bất thường, ví dụ xuất tăng đột biến hoặc hàng tồn lâu.
-
 
 4. Yêu cầu kỹ thuật
 
@@ -39,8 +40,7 @@ Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, x
 - Có prompt template cho báo cáo kho và gợi ý nhập hàng.
 - Có test cho nhập, xuất, tồn kho âm và báo cáo AI.
 
-
-5. Dữ liệu đầu vào, đầu ra và dữ liệu hệ thống
+1. Dữ liệu đầu vào, đầu ra và dữ liệu hệ thống
 
 - Dữ liệu chính: hàng hóa, nhóm hàng, nhà cung cấp, phiếu nhập, phiếu xuất, tồn kho.
 - Đầu vào quản lý: thông tin hàng hóa, số lượng nhập/xuất, ngày chứng từ.
@@ -86,6 +86,7 @@ Không gửi thông tin giá mua nhạy cảm nếu báo cáo AI không cần ph
 - Dùng AI review tính nhất quán dữ liệu và xử lý lỗi.
 - Dùng AI tạo báo cáo kỹ thuật và slide.
 - Dùng AI hỗ trợ đóng gói/triển khai ứng dụng.
-7. Mức độ khó
+
+## 5. Mức độ khó
 
 Trung bình: Nghiệp vụ kho yêu cầu tính nhất quán dữ liệu và báo cáo số liệu. Chức năng AI chủ yếu là sinh báo cáo và gợi ý dựa trên dữ liệu tổng hợp.

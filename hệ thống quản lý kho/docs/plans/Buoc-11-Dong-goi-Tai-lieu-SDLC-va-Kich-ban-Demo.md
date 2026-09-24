@@ -3,6 +3,7 @@
 > **TÍNH CHẤT TÀI LIỆU:** Đây là một **Prompt / Nhiệm vụ thực thi độc lập (Self-contained Spec)**. Bất kỳ AI hoặc lập trình viên nào khi đọc tài liệu này đều có đầy đủ 100% bối cảnh, yêu cầu và tiêu chuẩn nghiệm thu để thực hiện mà không cần tra cứu thêm.
 >
 > **RANH GIỚI TÀI LIỆU:**
+>
 > - `docs/plans/Buoc-11-...md`: Tài liệu KẾ HOẠCH & CHECKLIST thực thi (nơi bạn đang đọc).
 > - `docs/SDLC/final/`: Chứa toàn bộ BÁO CÁO KỸ THUẬT, HƯỚNG DẪN SỬ DỤNG, SLIDE THUYẾT TRÌNH dùng để nộp bài và chấm điểm cuối kỳ.
 > - `README.md`: Hướng dẫn khởi chạy dự án tại thư mục gốc.
@@ -10,6 +11,7 @@
 ---
 
 ## 1. Mục tiêu bước 11
+
 - Hoàn thiện toàn bộ hồ sơ minh chứng học phần theo 4 mốc đánh giá SDLC (KT1, KT2, KT3, Cuối kỳ) trong thư mục `docs/SDLC/`.
 - Viết tài liệu `README.md` tại thư mục gốc với hướng dẫn cài đặt và khởi chạy 1-Click.
 - Xây dựng Kịch bản Demo 5 phút để sinh viên tự tin thuyết trình và đạt điểm tối đa trước hội đồng chấm thi.
@@ -19,6 +21,7 @@
 ## 2. Nội dung công việc chi tiết
 
 ### 2.1. Hoàn thiện Tài liệu 4 Giai đoạn SDLC
+
 1. **Thư mục `docs/SDLC/KT1/`**:
    - `01_SRS_and_UseCases.md`: Phân tích quy trình, 3 Actor, Use Case.
    - `02_Database_Design_ERD.md`: Thiết kế 9 bảng, Data Dictionary, sơ đồ Mermaid ERD.
@@ -38,7 +41,9 @@
    - `03_Presentation_Slides.md`: Nội dung slide thuyết trình bảo vệ đồ án.
 
 ### 2.2. Tài liệu Hướng dẫn Khởi chạy 1-Click (`README.md`)
+
 - Hướng dẫn cài đặt nhanh:
+
   ```bash
   # 1. Chạy Backend
   cd backend
@@ -51,9 +56,11 @@
   npm install
   npm run dev
   ```
+
 - Danh sách tài khoản đăng nhập mẫu (`admin`, `thukho`, `ketoan`).
 
 ### 2.3. Kịch bản Demo 5 Phút Chuẩn Chấm Thi
+
 1. **Phút 1**: Giới thiệu bài toán doanh nghiệp nhỏ và cấu trúc phân quyền 3 vai trò.
 2. **Phút 2**: Đăng nhập vai trò Thủ kho $\rightarrow$ Thực hiện Lập phiếu xuất với số lượng vượt tồn kho $\rightarrow$ Cho giảng viên thấy hệ thống chặn đứng tồn kho âm và trả thông báo lỗi.
 3. **Phút 3**: Nhập số lượng hợp lệ $\rightarrow$ Xuất thành công $\rightarrow$ Mở Thẻ kho cho thấy số dư được trừ tức thì và lịch sử được ghi nhận chuẩn xác.
@@ -63,6 +70,7 @@
 ---
 
 ## 3. Cấu trúc file/thư mục cần sinh
+
 Khi thực hiện bước này, các file và thư mục sau phải được tạo ra:
 
 ```text
@@ -86,6 +94,7 @@ he-thong-quan-ly-kho/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
+
 - [ ] Tất cả các file tài liệu markdown không bị lỗi định dạng, sơ đồ Mermaid render rõ ràng.
 - [ ] Người chưa từng tiếp xúc dự án có thể đọc `README.md` và khởi chạy thành công hệ thống trong 5 phút.
 - [ ] Kịch bản demo mạch lạc, chứng minh đầy đủ 100% yêu cầu của `de_tai_07.md`.
@@ -93,6 +102,7 @@ he-thong-quan-ly-kho/
 ---
 
 ## 5. Cập nhật tiến độ
+
 Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 11** theo đúng mẫu sau:
 
 ```markdown

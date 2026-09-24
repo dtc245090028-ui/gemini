@@ -3,6 +3,7 @@
 > **TÍNH CHẤT TÀI LIỆU:** Đây là một **Prompt / Nhiệm vụ thực thi độc lập (Self-contained Spec)**. Bất kỳ AI hoặc lập trình viên nào khi đọc tài liệu này đều có đầy đủ 100% bối cảnh, yêu cầu và tiêu chuẩn nghiệm thu để thực hiện mà không cần tra cứu thêm.
 >
 > **RANH GIỚI TÀI LIỆU:**
+>
 > - `docs/plans/Buoc-07-...md`: Tài liệu KẾ HOẠCH & CHECKLIST thực thi (nơi bạn đang đọc).
 > - `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md`: SẢN PHẨM BÀN GIAO THẬT (Deliverable) giải trình giải pháp Transaction và chống tồn âm cho giảng viên chấm điểm KT2.
 > - Mã nguồn được sinh trực tiếp vào thư mục `backend/app/` (models, schemas, services, endpoints).
@@ -10,6 +11,7 @@
 ---
 
 ## 1. Mục tiêu bước 7
+
 - Xây dựng nghiệp vụ cốt lõi của kho bãi: Lập Phiếu nhập kho, Lập Phiếu xuất kho.
 - Đảm bảo tính nhất quán dữ liệu 100% bằng Database Transactions (ACID):
   - Nhập hàng: Tăng tồn kho và tự động ghi Thẻ kho.
@@ -22,12 +24,15 @@
 ## 2. Nội dung công việc chi tiết
 
 ### 2.1. Models CSDL
+
 - `app/models/import_note.py`: `ImportNote` và `ImportNoteDetail`.
 - `app/models/export_note.py`: `ExportNote` và `ExportNoteDetail`.
 - `app/models/stock_ledger.py`: `StockLedger` (Thẻ kho).
 
 ### 2.2. Nghiệp vụ Quản lý Kho bằng Transaction (`inventory_service.py`)
+
 1. **Lập Phiếu Nhập**:
+
    ```python
    # Thực thi trong 1 transaction duy nhất
    with db.begin():
@@ -36,7 +41,9 @@
        # 3. Cập nhật tăng current_stock của từng sản phẩm
        # 4. Ghi bản ghi vào StockLedger (type='IMPORT', qty_change=+X, balance_after=...)
    ```
+
 2. **Lập Phiếu Xuất (Chống tồn kho âm)**:
+
    ```python
    # Thực thi trong 1 transaction duy nhất
    with db.begin():
@@ -49,12 +56,14 @@
    ```
 
 ### 2.3. Tra cứu Thẻ kho & Báo cáo Nhập - Xuất - Tồn
+
 - `GET /api/v1/stock-ledger`: Tra cứu lịch sử thẻ kho theo mặt hàng, thời gian.
 - `GET /api/v1/reports/inventory-summary`: Báo cáo Nhập - Xuất - Tồn theo khoảng thời gian (`from_date`, `to_date`).
 
 ---
 
 ## 3. Cấu trúc file/thư mục cần sinh
+
 Khi thực hiện bước này, các file và thư mục sau phải được tạo ra:
 
 ```text
@@ -87,6 +96,7 @@ docs/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
+
 - [x] Nếu xuất hàng quá số lượng tồn hiện có, API bắt buộc trả về mã lỗi HTTP 400 kèm thông báo chi tiết số lượng thiếu; số tồn kho không bị thay đổi.
 - [x] Mọi giao dịch nhập/xuất đều tạo ra bản ghi tương ứng trong `stock_ledger` với `balance_after` hoàn toàn chính xác.
 - [x] Báo cáo Nhập - Xuất - Tồn khớp công thức: `Tồn đầu + Nhập - Xuất = Tồn cuối`.
@@ -94,11 +104,13 @@ docs/
 ---
 
 ## 4b. Deliverable bổ sung — `docs/architecture.md` (trước KT2)
+
 - [x] Hoàn thành `docs/architecture.md` với sơ đồ luồng nhập, xuất (chống tồn âm), AI và ranh giới 3 tầng `api/`, `services/`, `models/`.
 
 ---
 
 ## 5. Cập nhật tiến độ
+
 Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/gemini/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 07** theo đúng mẫu sau:
 
 ```markdown
@@ -110,6 +122,7 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 ## 6. CHANGELOG
 
 ### [2026-09-22] Hoàn thành Bước 07: Module Nhập/Xuất kho & Thẻ kho (Transaction ACID)
+
 - **Nghiệp vụ cốt lõi (Core Inventory Service):**
   - Triển khai `backend/app/services/inventory_service.py`:
     - `create_import_note`: Transaction ACID nhập kho, tăng `current_stock`, ghi nhận Thẻ kho `StockLedger` (type `IMPORT`).
@@ -133,4 +146,3 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 - **Kiểm thử tự động:**
   - Viết `backend/tests/test_stock_transactions.py` (6 bài test lớn bao quát trọn vẹn mọi luồng).
   - Kết quả: **24/24 test cases toàn dự án PASS 100%**.
-

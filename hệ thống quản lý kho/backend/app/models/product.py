@@ -17,6 +17,7 @@ class Product(Base):
     min_stock = Column(Integer, nullable=False, default=10)
     current_stock = Column(Integer, nullable=False, default=0)
     standard_price = Column(Float, nullable=False, default=0.0)
+    image_url = Column(String(500), nullable=True)  # Đường dẫn hoặc URL ảnh sản phẩm
     status = Column(String(20), nullable=False, default="ACTIVE")  # ACTIVE, DISCONTINUED
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 

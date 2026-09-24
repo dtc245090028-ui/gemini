@@ -1,4 +1,5 @@
 # KIẾN TRÚC HỆ THỐNG (SYSTEM ARCHITECTURE)
+
 ## Đề tài 07: Hệ thống Quản lý Kho Thông minh tích hợp AI
 
 > **Mục đích tài liệu:** Cung cấp bức tranh toàn cảnh về cấu trúc phân tầng, luồng dữ liệu và các cơ chế nghiệp vụ cốt lõi của hệ thống để giảng viên và hội đồng có thể nắm bắt toàn bộ kiến trúc mà không cần đọc trực tiếp mã nguồn.
@@ -9,7 +10,7 @@
 
 Hệ thống tuân thủ nghiêm ngặt nguyên lý phân tách trách nhiệm (Separation of Concerns) với 3 tầng độc lập:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                      TẦNG CLIENT / PRESENTATION                         │
 │             React 18 + Vite + Tailwind CSS (SPA Dashboard)              │
@@ -38,7 +39,8 @@ Hệ thống tuân thủ nghiêm ngặt nguyên lý phân tách trách nhiệm (
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Ranh giới trách nhiệm chi tiết:
+### Ranh giới trách nhiệm chi tiết
+
 1. **`app/api/` (HTTP Only):** Nhận request, xác thực JWT, kiểm tra phân quyền (RBAC qua `deps.py`), validate schema Pydantic và trả về HTTP Response tương ứng.
 2. **`app/services/` (Business Logic):** Nơi chứa toàn bộ tri thức nghiệp vụ: Transaction ACID, kiểm tra chống tồn âm, sinh mã tự động theo ngày, cơ chế kiểm kê bù trừ và gọi AI Engine.
 3. **`app/models/` & `app/core/` (ORM & Database):** Quản lý định nghĩa bảng, kết nối CSDL, Session, ràng buộc toàn vẹn dữ liệu (Unique, Foreign Key, CheckConstraint).
@@ -48,7 +50,8 @@ Hệ thống tuân thủ nghiêm ngặt nguyên lý phân tách trách nhiệm (
 ## 2. SƠ ĐỒ CÁC LUỒNG NGHIỆP VỤ CỐT LÕI
 
 ### 2.1. Luồng Nhập kho (Import Flow)
-```
+
+```text
 Request (POST /import-notes)
    │
    ▼
@@ -71,7 +74,8 @@ Response (HTTP 201 Created)
 ---
 
 ### 2.2. Luồng Xuất kho & Chống tồn kho âm (Export Flow)
-```
+
+```text
 Request (POST /export-notes)
    │
    ▼
@@ -102,7 +106,8 @@ Response (HTTP 201 Created)
 ---
 
 ### 2.3. Luồng Xử lý AI & Fallback Engine (AI Flow - Chuẩn bị cho Giai đoạn 4)
-```
+
+```text
 Yêu cầu phân tích / gợi ý từ người dùng
    │
    ▼
@@ -131,6 +136,7 @@ Người dùng luôn nhận được kết quả (Đảm bảo độ sẵn sàng
 ---
 
 ## 3. TỔNG KẾT CƠ CHẾ BẢO MẬT & ĐỘ BỀN VỮNG
+
 - **Bảo mật:** Mật khẩu hash bằng `bcrypt` thuần, xác thực bằng `PyJWT` (HS256, hạn 60 phút), phân quyền 3 tầng vai trò (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`).
 - **Toàn vẹn CSDL:** SQLite Foreign Keys được cưỡng chế qua `PRAGMA foreign_keys = ON;`, CheckConstraint `current_stock >= 0` ngăn chặn triệt để dữ liệu rác.
 - **Sổ cái kiểm toán:** Thẻ kho `StockLedger` lưu lại mọi biến động lịch sử, phục vụ đối soát kế toán và sinh báo cáo Nhập - Xuất - Tồn chính xác theo công thức bất biến.

@@ -12,7 +12,7 @@
 ### Gốc dự án
 
 | File | Vai trò |
-|---|---|
+| --- | --- |
 | `de_tai_07.md` | Đề bài gốc của giảng viên — **KHÔNG SỬA** |
 | `Prompt.md` | Đặc tả hợp nhất đầy đủ — nguồn sự thật về nghiệp vụ và kỹ thuật |
 | `CLAUDE.md` | Hướng dẫn hành vi agent, quy trình làm việc, quy ước toàn dự án |
@@ -22,7 +22,7 @@
 ### `docs/`
 
 | File | Vai trò |
-|---|---|
+| --- | --- |
 | `docs/codebase-map.md` | File này — bản đồ mã nguồn, cập nhật theo phiên |
 | `docs/MASTER-ROADMAP.md` | Bức tranh toàn cảnh 8 giai đoạn — điều hướng sang Buoc-NN.md |
 | `docs/architecture.md` | Sơ đồ kiến trúc 3 tầng và luồng dữ liệu nghiệp vụ kho + AI |
@@ -39,7 +39,7 @@
 ### Gốc dự án (Cấu hình)
 
 | File | Vai trò |
-|---|---|
+| --- | --- |
 | `.env.example` | Mẫu biến môi trường gốc |
 | `.gitignore` | Cấu hình loại trừ file rác, file `.db` SQLite |
 | `docker-compose.yml` | File điều phối Docker containers (Backend + Frontend) |
@@ -47,7 +47,7 @@
 ### `backend/`
 
 | File | Vai trò |
-|---|---|
+| --- | --- |
 | `backend/requirements.txt` | Python dependencies (FastAPI, SQLAlchemy, bcrypt, pyjwt, google-generativeai, pytest) |
 | `backend/.env.example` | Mẫu biến môi trường backend |
 | `backend/.env` | Cấu hình môi trường backend cục bộ (SQLite) |
@@ -85,7 +85,7 @@
 ### `frontend/`
 
 | File | Vai trò |
-|---|---|
+| --- | --- |
 | `frontend/index.html` | Entry HTML cho Vite |
 | `frontend/package.json` | Node dependencies: react 18, lucide-react, axios; devDeps: vite, tailwindcss |
 | `frontend/vite.config.js` | Vite config (React plugin, proxy `/api` → backend) |
@@ -115,7 +115,7 @@
 ## Chưa có — sẽ thêm ở Giai đoạn tiếp theo
 
 | File | Sẽ tạo ở Giai đoạn |
-|---|:---:|
+| --- | :---: |
 | `docs/SDLC/final/01_Final_Technical_Report.md` | 7 (Cuối kỳ) |
 | `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | 7 (Cuối kỳ) |
 | `docs/SDLC/final/03_Presentation_Slides.md` | 7 (Cuối kỳ) |

@@ -9,7 +9,7 @@ Bạn kiểm thử **từ góc nhìn người dùng cuối** — không quan tâ
 ## 1. Công cụ cần chuẩn bị (chọn theo tình huống)
 
 | Muốn test gì | Dùng gì | Lấy ở đâu |
-|---|---|---|
+| --- | --- | --- |
 | Giao diện web (trang, nút, form) | Trình duyệt (Chrome/Edge) + F12 (DevTools) để xem lỗi console | Có sẵn |
 | Gọi thử API mà không cần code | **Thunder Client** hoặc **REST Client** (extension VSCode) | Cài trong tab Extensions của VSCode |
 | Test API có giao diện riêng, lưu lịch sử gọi | **Postman** | postman.com, cài desktop app |
@@ -20,6 +20,7 @@ Bạn **không cần cài hết**. Nếu chỉ test giao diện web → chỉ c�
 ## 2. Trước khi bắt đầu test — hỏi agent 3 câu này
 
 Đừng tự đoán, hỏi thẳng agent (hoặc người viết code) để khỏi mất thời gian:
+
 1. "App đang chạy ở đâu?" (link web, hay lệnh nào để mở lên máy mình)
 2. "Có tài khoản demo/seed sẵn không? Mật khẩu gì, ứng với vai trò nào?"
 3. "Danh sách các luồng chính (use case) đã code xong là gì?" — để biết cái nào test được, cái nào chưa có nên chưa test.
@@ -36,7 +37,7 @@ Bạn **không cần cài hết**. Nếu chỉ test giao diện web → chỉ c�
 
 Mỗi khi thấy lỗi, ghi ngay theo mẫu ngắn (đừng để tới cuối buổi mới nhớ lại):
 
-```
+```markdown
 - [Mức độ: Nhẹ/Trung bình/Nghiêm trọng] <tên lỗi ngắn>
   Vai trò/màn hình: ...
   Bước làm: 1) ... 2) ... 3) ...

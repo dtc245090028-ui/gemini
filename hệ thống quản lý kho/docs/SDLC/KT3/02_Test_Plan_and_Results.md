@@ -1,4 +1,5 @@
 # KẾ HOẠCH VÀ KẾT QUẢ KIỂM THỬ TỰ ĐỘNG (BÀI KT3)
+
 ## Đề tài 07: Hệ thống Quản lý Kho Thông minh tích hợp AI
 
 > **Mục tiêu tài liệu:** Báo cáo chi tiết chiến lược kiểm thử, ma trận các ca kiểm thử tự động (Unit / Integration Tests) và bằng chứng nghiệm thu kỹ thuật thực tế phục vụ buổi đánh giá mốc KT3.
@@ -8,7 +9,8 @@
 ## 1. CHIẾN LƯỢC KIỂM THỬ TỰ ĐỘNG (TESTING STRATEGY)
 
 Dự án tuân thủ nghiêm ngặt **Luật kiểm thử** tại `GEMINI.md §7`:
-1. **Không Mock lớp đang kiểm thử (No Self-mocking):** 
+
+1. **Không Mock lớp đang kiểm thử (No Self-mocking):**
    - Không mock `InventoryService` hay `FallbackService`. Mọi logic nghiệp vụ kho và tính toán đều chạy trực tiếp trên cơ sở dữ liệu SQLite thật.
    - Mock duy nhất được áp dụng tại ranh giới ngoài: Google Gemini API (để giả lập các tình huống kết nối thành công hoặc lỗi mạng).
 2. **Kiểm thử bao phủ Biên & Chống tồn kho âm (Negative Boundary Testing):**
@@ -23,7 +25,7 @@ Dự án tuân thủ nghiêm ngặt **Luật kiểm thử** tại `GEMINI.md §7
 Toàn bộ 30 bài test được phân bổ trong thư mục `backend/tests/`:
 
 | STT | Tập tin kiểm thử | Ca kiểm thử (Test Function) | Mục đích kiểm tra | Kết quả |
-|:---:|---|---|---|:---:|
+| :---: | --- | --- | --- | :---: |
 | 1 | `test_foundation.py` | `test_health_check` | Kiểm tra endpoint /health trả về 200 OK | ✅ PASS |
 | 2 | `test_foundation.py` | `test_models_creation` | Đảm bảo 9 bảng CSDL được tạo đầy đủ | ✅ PASS |
 | 3 | `test_foundation.py` | `test_prevent_negative_current_stock` | Kiểm tra CheckConstraint CSDL chặn tồn âm | ✅ PASS |
@@ -60,11 +62,13 @@ Toàn bộ 30 bài test được phân bổ trong thư mục `backend/tests/`:
 ## 3. BẰNG CHỨNG THỰC THI KIỂM THỬ (EXECUTION LOGS)
 
 Lệnh thực thi tại thư mục `backend/`:
+
 ```bash
 python -m pytest
 ```
 
 Kết quả nghiệm thu:
+
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.14.6, pytest-8.2.2, pluggy-1.6.0
@@ -88,11 +92,13 @@ tests\test_stock_transactions.py ......                                  [100%]
 ## 4. KỊCH BẢN DỮ LIỆU MẪU CHUẨN DEMO (SEED DATA 60 NGÀY)
 
 Hệ thống cung cấp script nạp dữ liệu mẫu thực tế tại `backend/seed_data.py`. Chạy bằng lệnh:
+
 ```bash
 python seed_data.py
 ```
 
-### Kịch bản Storytelling phục vụ kiểm thử & bảo vệ đồ án:
+### Kịch bản Storytelling phục vụ kiểm thử & bảo vệ đồ án
+
 1. **SP001 (Bàn phím cơ Akko 3087):**
    - Tồn kho ban đầu nhập 50 cái, xuất 46 cái trong 30 ngày qua $\rightarrow$ Tồn hiện tại còn **4 chiếc** ($< \text{min\_stock } 15$).
    - Kết quả kiểm thử AI: Endpoint `/ai/restock-suggestions` nhận diện chính xác và đề xuất nhập **26 chiếc** với độ ưu tiên **HIGH**.
@@ -108,6 +114,7 @@ python seed_data.py
 ## 5. KẾT LUẬN
 
 Hệ thống đã hoàn thành trọn vẹn toàn bộ các mục tiêu kiểm thử tự động của bài KT3:
+
 - Không phát sinh lỗi logic, không có lỗi tồn kho âm.
 - Bảo mật thông tin tuyệt đối đối với các luồng tích hợp AI.
 - Sẵn sàng chuyển giao dữ liệu và tích hợp lên tầng giao diện người dùng.

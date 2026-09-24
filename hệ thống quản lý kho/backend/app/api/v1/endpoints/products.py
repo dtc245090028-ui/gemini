@@ -1,7 +1,8 @@
-"""API Endpoints cho quản lý Hàng hóa (Products) và Cảnh báo Tồn kho."""
-
+import os
+from pathlib import Path
+import shutil
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -116,6 +117,7 @@ def create_product(
         min_stock=product_in.min_stock,
         current_stock=product_in.current_stock,
         standard_price=product_in.standard_price,
+        image_url=product_in.image_url.strip() if product_in.image_url else None,
         status=product_in.status.upper(),
     )
     db.add(product)
@@ -161,9 +163,56 @@ def update_product(
         product.min_stock = product_in.min_stock
     if product_in.standard_price is not None:
         product.standard_price = product_in.standard_price
+    if product_in.image_url is not None:
+        product.image_url = product_in.image_url.strip() if product_in.image_url.strip() else None
     if product_in.status is not None:
         product.status = product_in.status.strip().upper()
 
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.post(
+    "/{product_id}/image",
+    response_model=ProductResponse,
+    summary="Tải lên hình ảnh sản phẩm (Chỉ dành cho ADMIN hoặc WAREHOUSE_KEEPER)",
+)
+def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
+):
+    """Tải lên tệp ảnh cho sản phẩm và lưu vào thư mục static."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy sản phẩm với ID: {product_id}.",
+        )
+
+    # Kiểm tra định dạng hợp lệ
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Định dạng ảnh '{file.content_type}' không được hỗ trợ. Vui lòng chọn ảnh JPEG, PNG, WEBP hoặc GIF.",
+        )
+
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]:
+        ext = ".jpg"
+
+    filename = f"{product.code}{ext}"
+    upload_dir = Path(__file__).resolve().parent.parent.parent.parent / "static" / "products"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / filename
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    product.image_url = f"/static/products/{filename}"
     db.commit()
     db.refresh(product)
     return product

@@ -34,6 +34,120 @@ from app.models.supplier import Supplier
 from app.models.user import User
 
 
+def seed_xlsx_transactions(db: Session, prod_map: dict, sup_map: dict, thukho_user: User, now: datetime):
+    """Nạp phiếu nhập khởi tạo và một số phiếu xuất mẫu cho 54 mặt hàng từ Excel nếu chưa có."""
+    existing_xlsx = db.query(ImportNote).filter(ImportNote.code == "PN-SEED-XLSX-01").first()
+    if existing_xlsx:
+        return
+
+    print("[INFO] Sinh giao dich nhap/xuat kho cho 54 mat hang moi tu bang gia Excel...")
+    xlsx_date = now - timedelta(days=25)
+
+    # 1. Phiếu nhập từ các chuỗi bán lẻ / nhà phân phối lớn
+    imp_fpt = ImportNote(
+        code="PN-SEED-XLSX-01",
+        supplier_id=sup_map["NCC_FPTSHOP"].id,
+        created_by=thukho_user.id,
+        note_date=xlsx_date,
+        total_amount=0.0,
+        status="COMPLETED",
+        note="Nhập kho chính hãng thiết bị Apple, Laptop Dell & phụ kiện từ FPT Shop",
+    )
+    db.add(imp_fpt)
+    db.flush()
+
+    total_imp_amount = 0.0
+    for i in range(23, 77):
+        code = f"SP{i:03d}"
+        if code in prod_map:
+            p = prod_map[code]
+            if p.standard_price >= 20000000:
+                qty = random.randint(6, 12)
+            elif p.standard_price >= 5000000:
+                qty = random.randint(10, 20)
+            elif p.standard_price >= 1000000:
+                qty = random.randint(15, 30)
+            else:
+                qty = random.randint(30, 60)
+
+            unit_price = round(p.standard_price * 0.78, -3)
+            subtotal = unit_price * qty
+            total_imp_amount += subtotal
+
+            db.add(
+                ImportNoteDetail(
+                    import_note_id=imp_fpt.id,
+                    product_id=p.id,
+                    quantity=qty,
+                    unit_price=unit_price,
+                    subtotal=subtotal,
+                )
+            )
+            p.current_stock += qty
+            db.add(
+                StockLedger(
+                    product_id=p.id,
+                    transaction_type="IMPORT",
+                    reference_code=imp_fpt.code,
+                    quantity_change=qty,
+                    balance_after=p.current_stock,
+                    created_by=thukho_user.id,
+                    transaction_date=xlsx_date,
+                    note="Nhập kho hàng công nghệ theo bảng giá tham khảo",
+                )
+            )
+
+    imp_fpt.total_amount = total_imp_amount
+
+    # 2. Phiếu xuất bán thương mại một số mặt hàng (Điện thoại, Laptop, Phụ kiện)
+    exp_retail = ExportNote(
+        code="PX-SEED-XLSX-01",
+        recipient_name="Khách hàng Bán lẻ & Đối tác Doanh nghiệp",
+        created_by=thukho_user.id,
+        note_date=now - timedelta(days=8),
+        total_amount=0.0,
+        status="COMPLETED",
+        note="Xuất kho cung ứng đơn hàng bán lẻ định kỳ",
+    )
+    db.add(exp_retail)
+    db.flush()
+
+    total_exp_amount = 0.0
+    for i in range(23, 77, 2):  # Xuất xen kẽ các mã
+        code = f"SP{i:03d}"
+        if code in prod_map:
+            p = prod_map[code]
+            qty_out = min(p.current_stock // 3, 2 if p.standard_price > 15000000 else 6)
+            if qty_out > 0:
+                subtotal = p.standard_price * qty_out
+                total_exp_amount += subtotal
+                db.add(
+                    ExportNoteDetail(
+                        export_note_id=exp_retail.id,
+                        product_id=p.id,
+                        quantity=qty_out,
+                        unit_price=p.standard_price,
+                        subtotal=subtotal,
+                    )
+                )
+                p.current_stock -= qty_out
+                db.add(
+                    StockLedger(
+                        product_id=p.id,
+                        transaction_type="EXPORT",
+                        reference_code=exp_retail.code,
+                        quantity_change=-qty_out,
+                        balance_after=p.current_stock,
+                        created_by=thukho_user.id,
+                        transaction_date=now - timedelta(days=8),
+                        note="Xuất hàng thương mại đơn lẻ",
+                    )
+                )
+    exp_retail.total_amount = total_exp_amount
+    db.commit()
+    print("[SUCCESS] Da nap thanh cong giao dich kho cho 54 mat hang moi!")
+
+
 def seed_database():
     print("[INFO] Bat dau qua trinh nap du lieu mau (Storytelling Seed Data)...")
     Base.metadata.create_all(bind=engine)
@@ -74,10 +188,13 @@ def seed_database():
         # =====================================================================
         print("[INFO] 2. Khoi tao nhom hang hoa...")
         categories_data = [
-            ("CAT_PK", "Phụ kiện máy tính", "Bàn phím, chuột, tai nghe, lót chuột"),
-            ("CAT_LK", "Linh kiện phần cứng", "Ổ cứng SSD, RAM, nguồn, tản nhiệt"),
-            ("CAT_TB", "Thiết bị ngoại vi", "Màn hình, webcam, máy in, loa"),
+            ("CAT_PK", "Phụ kiện máy tính & Di động", "Bàn phím, chuột, tai nghe, sạc cáp, túi chống sốc"),
+            ("CAT_LK", "Linh kiện phần cứng", "Ổ cứng SSD, RAM, nguồn, tản nhiệt, USB, thẻ nhớ"),
+            ("CAT_TB", "Thiết bị ngoại vi & Âm thanh", "Màn hình, webcam, máy in, loa"),
             ("CAT_NET", "Thiết bị mạng", "Router Wifi, switch chia mạng, cáp mạng"),
+            ("CAT_DT", "Điện thoại & Thiết bị di động", "Điện thoại thông minh iPhone, Samsung, Xiaomi, Oppo, Vivo"),
+            ("CAT_LT", "Máy tính xách tay & Laptop", "MacBook, Dell, Asus, HP, Lenovo, Acer"),
+            ("CAT_PC", "Máy tính để bàn & PC", "PC Gaming, PC văn phòng, Mini PC Intel NUC, iMac"),
         ]
         cat_map = {}
         for code, name, desc in categories_data:
@@ -97,6 +214,13 @@ def seed_database():
             ("NCC_VIENDONG", "Công ty TNHH Phân Phối Viễn Đông", "0243888999", "viendong@tech.vn", "Hà Nội"),
             ("NCC_SAIGON", "Tổng đại lý Tin học Sài Gòn", "0283999888", "saigon@distri.vn", "TP. Hồ Chí Minh"),
             ("NCC_ACHAU", "Công ty Cổ phần Công nghệ Á Châu", "0236777888", "achau@hardware.com", "Đà Nẵng"),
+            ("NCC_FPTSHOP", "Công ty Cổ phần Bán lẻ Kỹ thuật số FPT (FPT Shop)", "18006601", "fptshop@fpt.com.vn", "Hà Nội"),
+            ("NCC_TGDD", "Công ty Cổ phần Thế Giới Di Động", "18001060", "cskh@thegioididong.com", "TP. Hồ Chí Minh"),
+            ("NCC_CELLPHONES", "Hệ thống Bán lẻ Di động CellphoneS", "18002097", "cskh@cellphones.com.vn", "TP. Hồ Chí Minh"),
+            ("NCC_PHONGVU", "Công ty Cổ phần Thương mại Dịch vụ Phong Vũ", "18006867", "cskh@phongvu.vn", "TP. Hồ Chí Minh"),
+            ("NCC_GEARVN", "Công ty TNHH Thương mại Gearvn", "18006975", "cskh@gearvn.com", "TP. Hồ Chí Minh"),
+            ("NCC_ANPHAT", "Công ty Cổ phần Tin học An Phát", "19000323", "cskh@anphatpc.com.vn", "Hà Nội"),
+            ("NCC_HOANGHA", "Hệ thống Bán lẻ Di động Hoàng Hà Mobile", "19002091", "cskh@hoanghamobile.com", "Hà Nội"),
         ]
         sup_map = {}
         for code, name, phone, email, addr in suppliers_data:
@@ -139,6 +263,61 @@ def seed_database():
             ("SP020", "Bộ chia cổng USB 3.0 Orico 4 cổng", "CAT_PK", "Chiếc", 10, 160000.0),
             ("SP021", "Keo tản nhiệt Arctic MX-4 4g", "CAT_LK", "Tuýp", 15, 130000.0),
             ("SP022", "Màn hình LG 27 inch 4K IPS", "CAT_TB", "Chiếc", 3, 7900000.0),
+            # 54 mặt hàng công nghệ thực tế từ bảng giá đối tác (danh_sach_san_pham_gia.xlsx):
+            ("SP023", "iPhone 16 128GB", "CAT_DT", "Chiếc", 3, 20790000.0),
+            ("SP024", "iPhone 15 128GB", "CAT_DT", "Chiếc", 3, 16990000.0),
+            ("SP025", "iPhone 14 128GB", "CAT_DT", "Chiếc", 5, 13990000.0),
+            ("SP026", "Samsung Galaxy S24", "CAT_DT", "Chiếc", 3, 18990000.0),
+            ("SP027", "Samsung Galaxy A55 5G", "CAT_DT", "Chiếc", 5, 8990000.0),
+            ("SP028", "Samsung Galaxy Z Fold6", "CAT_DT", "Chiếc", 3, 40990000.0),
+            ("SP029", "Xiaomi 14", "CAT_DT", "Chiếc", 3, 15990000.0),
+            ("SP030", "Xiaomi Redmi Note 13", "CAT_DT", "Chiếc", 5, 5490000.0),
+            ("SP031", "Oppo Reno12", "CAT_DT", "Chiếc", 5, 9490000.0),
+            ("SP032", "Oppo A79", "CAT_DT", "Chiếc", 5, 5990000.0),
+            ("SP033", "Vivo V30", "CAT_DT", "Chiếc", 5, 10990000.0),
+            ("SP034", "MacBook Air M3 13 inch", "CAT_LT", "Chiếc", 3, 27990000.0),
+            ("SP035", "MacBook Pro M3 14 inch", "CAT_LT", "Chiếc", 3, 42990000.0),
+            ("SP036", "Dell Inspiron 15 3520 i5", "CAT_LT", "Chiếc", 5, 14990000.0),
+            ("SP037", "Dell XPS 13", "CAT_LT", "Chiếc", 3, 32990000.0),
+            ("SP038", "Asus Vivobook 15 R5", "CAT_LT", "Chiếc", 5, 13990000.0),
+            ("SP039", "Asus TUF Gaming F15", "CAT_LT", "Chiếc", 3, 19990000.0),
+            ("SP040", "HP Pavilion 14", "CAT_LT", "Chiếc", 3, 15990000.0),
+            ("SP041", "HP Envy x360", "CAT_LT", "Chiếc", 3, 22990000.0),
+            ("SP042", "Lenovo ThinkPad E14", "CAT_LT", "Chiếc", 3, 16990000.0),
+            ("SP043", "Lenovo Legion 5", "CAT_LT", "Chiếc", 3, 24990000.0),
+            ("SP044", "Acer Aspire 5", "CAT_LT", "Chiếc", 5, 12990000.0),
+            ("SP045", "Acer Nitro 5", "CAT_LT", "Chiếc", 3, 18990000.0),
+            ("SP046", "PC Gaming Gigabyte i5 RTX4060", "CAT_PC", "Bộ", 3, 22990000.0),
+            ("SP047", "PC Văn phòng Dell OptiPlex", "CAT_PC", "Bộ", 5, 10990000.0),
+            ("SP048", "Mini PC Intel NUC", "CAT_PC", "Bộ", 5, 8990000.0),
+            ("SP049", "iMac 24 inch M3", "CAT_PC", "Bộ", 3, 34990000.0),
+            ("SP050", "Logitech M185", "CAT_PK", "Chiếc", 15, 250000.0),
+            ("SP051", "Logitech G102", "CAT_PK", "Chiếc", 15, 350000.0),
+            ("SP052", "Razer DeathAdder V2", "CAT_PK", "Chiếc", 8, 1290000.0),
+            ("SP053", "Chuột không dây Rapoo M100", "CAT_PK", "Chiếc", 15, 180000.0),
+            ("SP054", "Dell S2421H 24 inch", "CAT_TB", "Chiếc", 8, 2790000.0),
+            ("SP055", "LG UltraGear 27GP850", "CAT_TB", "Chiếc", 5, 8990000.0),
+            ("SP056", "Samsung Odyssey G5", "CAT_TB", "Chiếc", 5, 5990000.0),
+            ("SP057", "ViewSonic VA2432", "CAT_TB", "Chiếc", 8, 2490000.0),
+            ("SP058", "RAM Kingston 8GB DDR4", "CAT_LK", "Thanh", 15, 550000.0),
+            ("SP059", "RAM Corsair Vengeance 16GB", "CAT_LK", "Thanh", 8, 1290000.0),
+            ("SP060", "SSD Samsung 970 Evo 500GB", "CAT_LK", "Chiếc", 8, 1290000.0),
+            ("SP061", "SSD WD Blue 1TB", "CAT_LK", "Chiếc", 8, 1490000.0),
+            ("SP062", "Bàn phím cơ Akko 3068", "CAT_PK", "Chiếc", 15, 990000.0),
+            ("SP063", "Bàn phím Newmen GM610", "CAT_PK", "Chiếc", 15, 450000.0),
+            ("SP064", "Tai nghe Sony WH-1000XM5", "CAT_PK", "Chiếc", 5, 8490000.0),
+            ("SP065", "Tai nghe JBL Tune 510BT", "CAT_PK", "Chiếc", 15, 990000.0),
+            ("SP066", "Sạc dự phòng Anker 10000mAh", "CAT_PK", "Củ", 15, 590000.0),
+            ("SP067", "Sạc dự phòng Xiaomi 20000mAh", "CAT_PK", "Củ", 15, 490000.0),
+            ("SP068", "Cáp sạc USB-C to USB-C", "CAT_PK", "Sợi", 15, 190000.0),
+            ("SP069", "Cáp sạc Lightning chính hãng Apple", "CAT_PK", "Sợi", 15, 490000.0),
+            ("SP070", "Sạc nhanh 20W Apple", "CAT_PK", "Củ", 15, 590000.0),
+            ("SP071", "Ốp lưng iPhone 16 silicon", "CAT_PK", "Cái", 15, 990000.0),
+            ("SP072", "Túi chống sốc laptop 15.6 inch", "CAT_PK", "Cái", 15, 250000.0),
+            ("SP073", "USB Kingston 64GB", "CAT_LK", "Chiếc", 15, 150000.0),
+            ("SP074", "Thẻ nhớ SanDisk 128GB", "CAT_LK", "Thẻ", 15, 350000.0),
+            ("SP075", "Webcam Logitech C270", "CAT_PK", "Chiếc", 15, 650000.0),
+            ("SP076", "Loa Bluetooth JBL Go 3", "CAT_TB", "Chiếc", 15, 690000.0),
         ]
 
         prod_map = {}
@@ -153,11 +332,20 @@ def seed_database():
                     min_stock=min_stock,
                     current_stock=0,  # Sẽ được tính chính xác qua các giao dịch
                     standard_price=price,
+                    image_url=f"/static/products/{code}.jpg",
                     status="ACTIVE",
                 )
                 db.add(p)
                 db.commit()
                 db.refresh(p)
+            else:
+                p.name = name
+                p.standard_price = price
+                p.unit = unit
+                p.min_stock = min_stock
+                if not p.image_url:
+                    p.image_url = f"/static/products/{code}.jpg"
+                db.commit()
             prod_map[code] = p
 
         # =====================================================================
@@ -166,12 +354,15 @@ def seed_database():
         print("[INFO] 5. Sinh chuoi giao dich nhap xuat 60 ngay theo kich ban logic...")
         now = datetime.now()
 
+        # Nạp giao dịch khởi tạo cho 54 mặt hàng mới từ Excel (nếu chưa có)
+        seed_xlsx_transactions(db, prod_map, sup_map, thukho_user, now)
+
         # Kiểm tra nếu đã có phiếu nhập của SP001 thì bỏ qua bước sinh giao dịch để tránh nhân đôi
         existing_import = (
             db.query(ImportNote).filter(ImportNote.code == "PN-SEED-INIT-01").first()
         )
         if existing_import:
-            print("[INFO] Du lieu giao dich 60 ngay da ton tai, hoan tat cap nhat!")
+            print("[INFO] Du lieu giao dich 60 ngay ban dau da ton tai, hoan tat cap nhat!")
             return
 
         # -------------------------------------------------------------

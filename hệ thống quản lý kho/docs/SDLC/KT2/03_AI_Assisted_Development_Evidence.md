@@ -1,4 +1,5 @@
 # MINH CHỨNG SỬ DỤNG AI TRONG QUÁ TRÌNH PHÁT TRIỂN SDLC (BÀI KT2)
+
 ## Đề tài 07: Hệ thống Quản lý Kho Thông minh tích hợp AI
 
 ---
@@ -14,6 +15,7 @@ Mục tiêu không phải là để AI viết thay toàn bộ mà là **sử d�
 ## 2. CÁC TÌNH HUỐNG KỸ THUẬT TIÊU BIỂU CÓ SỰ THAM GIA CỦA AI
 
 ### Tình huống 1: Phát hiện lỗ hổng tồn âm khi Hủy phiếu nhập cũ (Critical Edge Case)
+
 - **Vấn đề đặt ra:** Ban đầu kế hoạch cho phép hủy phiếu nhập kho bằng cách trừ ngược lại số lượng đã nhập.
 - **AI & Con người phối hợp phân tích:**
   - AI cùng sinh viên phát hiện ra kịch bản rủi ro: Nếu phiếu nhập 100 sản phẩm đã nhập từ 5 ngày trước, nhưng 80 sản phẩm đã bị xuất bán cho khách qua các phiếu xuất sau đó (tồn kho hiện chỉ còn 20). Nếu cho phép hủy phiếu nhập, kho sẽ bị trừ 100 cái $\rightarrow$ tồn thành $20 - 100 = -80$ (âm kho nghiêm trọng, vi phạm nguyên tắc bất biến).
@@ -24,6 +26,7 @@ Mục tiêu không phải là để AI viết thay toàn bộ mà là **sử d�
 ---
 
 ### Tình huống 2: Giải quyết xung đột Race Condition khi sinh mã phiếu tự động
+
 - **Vấn đề đặt ra:** Khi 2 thủ kho cùng lúc tạo phiếu ở cùng một mili-giây, cả 2 có thể cùng sinh ra mã `PN-20260922-0001`, dẫn đến xung đột khóa Unique trên CSDL.
 - **AI & Con người phối hợp phân tích:**
   - Thay vì dùng cơ chế Lock bảng gây nghẽn hiệu năng (Pessimistic Locking), AI đề xuất mô hình **Optimistic Concurrency Control kết hợp Retry Pattern**:
@@ -34,6 +37,7 @@ Mục tiêu không phải là để AI viết thay toàn bộ mà là **sử d�
 ---
 
 ### Tình huống 3: Chuẩn hóa công thức Báo cáo Nhập - Xuất - Tồn theo thời gian thực
+
 - **Vấn đề đặt ra:** Bảng `products` chỉ lưu số tồn tức thời ở thời điểm hiện tại, không thể biết chính xác tồn kho của ngày hôm qua hay tuần trước.
 - **AI & Con người phối hợp phân tích:**
   - Sử dụng bảng Thẻ kho `StockLedger` (Audit Trail) làm nguồn chân lý duy nhất.
@@ -47,7 +51,7 @@ Mục tiêu không phải là để AI viết thay toàn bộ mà là **sử d�
 ## 3. BẢNG SO SÁNH TRƯỚC VÀ SAU KHI ỨNG DỤNG AI
 
 | Hạng mục | Quy trình truyền thống (Không AI) | Quy trình có AI hỗ trợ (Pair Programming) |
-|---|---|---|
+| --- | --- | --- |
 | **Phát hiện lỗi logic** | Thường chỉ phát hiện khi chạy thử nghiệm hoặc bị chấm điểm trừ khi demo. | Phát hiện và chặn đứng ngay từ khâu thiết kế (như lỗi hủy phiếu gây âm kho). |
 | **Thiết kế Transaction ACID** | Dễ bỏ sót bước ghi Thẻ kho hoặc quên rollback khi xuất thiếu hàng. | Cấu trúc code chặt chẽ, bao bọc toàn bộ chu trình trong 1 transaction an toàn. |
 | **Độ phủ kiểm thử (Test Coverage)** | Viết ít test, chỉ test trường hợp chạy đúng (Happy path). | Xây dựng bộ test tự động toàn diện 24 bài test bao quát cả Happy path và Edge cases. |

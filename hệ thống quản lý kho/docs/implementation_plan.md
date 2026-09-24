@@ -1,4 +1,5 @@
 # PHÂN TÍCH YÊU CẦU & KẾ HOẠCH TRIỂN KHAI CHI TIẾT
+
 ## Đề tài 07: Hệ thống quản lý kho có tích hợp AI
 
 ---
@@ -8,6 +9,7 @@
 Dựa trên tài liệu đề bài `de_tai_07.md`, các yêu cầu được nêu rõ bao gồm:
 
 ### 1.1. Chức năng Quản lý kho (8 tính năng)
+
 1. **Đăng nhập & Phân quyền**: Hỗ trợ tối thiểu 3 nhóm người dùng: Quản trị viên (Admin), Thủ kho (Warehouse Keeper), Kế toán (Accountant).
 2. **Quản lý Hàng hóa & Danh mục**: Quản lý thông tin hàng hóa, nhóm hàng (categories), đơn vị tính (unit), ngưỡng tồn tối thiểu (min_stock).
 3. **Quản lý Nhà cung cấp**: Quản lý danh sách nhà cung cấp (thông tin liên hệ, mã NCC).
@@ -18,11 +20,13 @@ Dựa trên tài liệu đề bài `de_tai_07.md`, các yêu cầu được nêu
 8. **Thống kê Nhập - Xuất - Tồn & Xuất báo cáo**: Báo cáo tổng hợp số lượng tồn đầu, nhập trong kỳ, xuất trong kỳ, tồn cuối.
 
 ### 1.2. Chức năng AI (3 tính năng)
+
 1. **AI sinh báo cáo Nhập - Xuất - Tồn theo tháng**: Dựa trên dữ liệu tổng hợp kho thực tế để sinh nhận xét, phân tích xu hướng.
 2. **AI gợi ý nhập hàng**: Dựa trên tồn kho hiện tại, mức tồn tối thiểu và tốc độ xuất (velocity).
 3. **AI tóm tắt biến động bất thường**: Nhận diện xuất hàng tăng đột biến hoặc hàng tồn kho lâu ngày không phát sinh xuất kho.
 
 ### 1.3. Yêu cầu Kỹ thuật & Phi chức năng
+
 - **Công nghệ**:
   - Backend: FastAPI / Flask / Django (ưu tiên FastAPI).
   - Frontend: React / Vue / HTML template (ưu tiên React + Tailwind CSS).
@@ -35,6 +39,7 @@ Dựa trên tài liệu đề bài `de_tai_07.md`, các yêu cầu được nêu
   - Có **Kiểm thử (Test cases)** cho: Nhập hàng, Xuất hàng, Chặn tồn kho âm, và Báo cáo AI.
 
 ### 1.4. Ràng buộc theo giai đoạn SDLC (Tiêu chí chấm điểm)
+
 - **Giai đoạn 1 (Bài KT1)**: Phân tích quy trình, thiết kế ERD, ràng buộc tránh tồn kho âm, xác định Actor, đề xuất tính năng AI, wireframe màn hình.
 - **Giai đoạn 2 (Bài KT2)**: Sinh Model/API, logic transaction cập nhật tồn kho, xử lý lỗi tồn kho âm, lưu minh chứng dùng AI trong SDLC.
 - **Giai đoạn 3 (Bài KT3)**: Prompt engineering, pipeline tổng hợp dữ liệu trước khi gửi AI, test cases (dữ liệu rỗng, tồn kho âm, xuất tăng đột biến), so sánh hiệu quả prompt.
@@ -141,6 +146,7 @@ Bảng phân loại rõ ràng giữa **Yêu cầu bắt buộc từ đề bài**
 ## PHẦN 5: KẾ HOẠCH TRIỂN KHAI CHI TIẾT (PRIORITIZED IMPLEMENTATION PLAN)
 
 Kế hoạch được chia thành 4 giai đoạn tương ứng với quy trình SDLC của đề tài, mỗi tác vụ được gắn nhãn ưu tiên:
+
 - 🔴 **P0 (Phải làm - Must Have)**: Bắt buộc từ đề bài, điều kiện cần để vượt qua các bài kiểm tra.
 - 🟡 **P1 (Nên làm - Should Have)**: Đề xuất thêm để hệ thống đạt chất lượng cao, chạy ổn định, điểm tối đa.
 - 🟢 **P2 (Có thể làm sau - Nice to Have)**: Nâng cao trải nghiệm nếu còn thời gian.
