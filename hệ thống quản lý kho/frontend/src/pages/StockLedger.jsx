@@ -14,6 +14,7 @@ import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import ProductSelect from '../components/ProductSelect';
 
 export const StockLedger = ({ defaultProductId }) => {
   const { user } = useAuth();
@@ -134,7 +135,7 @@ export const StockLedger = ({ defaultProductId }) => {
             <option value="">Tất cả mặt hàng</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.code} - {p.name} (Tồn: {p.current_stock} {p.unit})
+                {p.name} (Tồn: {p.current_stock} {p.unit})
               </option>
             ))}
           </select>
@@ -167,7 +168,6 @@ export const StockLedger = ({ defaultProductId }) => {
             <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
               <tr>
                 <th className="py-3 px-4">Thời gian</th>
-                <th className="py-3 px-4">Mã SKU</th>
                 <th className="py-3 px-4">Tên hàng hóa</th>
                 <th className="py-3 px-4 text-center">Loại nghiệp vụ</th>
                 <th className="py-3 px-4">Mã chứng từ</th>
@@ -180,13 +180,13 @@ export const StockLedger = ({ defaultProductId }) => {
             <tbody className="divide-y divide-wood-100 font-sans">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-charcoal/40">
+                  <td colSpan="8" className="text-center py-10 text-charcoal/40">
                     Đang tải lịch sử thẻ kho...
                   </td>
                 </tr>
               ) : ledgerEntries.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-charcoal/40">
+                  <td colSpan="8" className="text-center py-10 text-charcoal/40">
                     Chưa ghi nhận biến động nào trong thẻ kho.
                   </td>
                 </tr>
@@ -198,8 +198,9 @@ export const StockLedger = ({ defaultProductId }) => {
                       <td className="py-3.5 px-4 text-charcoal/70 font-mono">
                         {new Date(l.transaction_date).toLocaleString('vi-VN')}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-semibold text-wood-700">{l.product?.code}</td>
-                      <td className="py-3.5 px-4 font-medium text-wood-950">{l.product?.name}</td>
+                      <td className="py-3.5 px-4 font-medium text-wood-950">
+                        {l.product_name || l.product?.name || 'Mặt hàng'}
+                      </td>
                       <td className="py-3.5 px-4 text-center">
                         <Badge
                           variant={
@@ -234,7 +235,9 @@ export const StockLedger = ({ defaultProductId }) => {
                           {l.balance_after}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-charcoal/80">{l.creator?.full_name || 'Hệ thống'}</td>
+                      <td className="py-3.5 px-4 text-charcoal/80">
+                        {l.creator_name || l.creator?.full_name || 'Hệ thống'}
+                      </td>
                       <td className="py-3.5 px-4 text-charcoal/60 max-w-xs truncate">{l.note || '-'}</td>
                     </tr>
                   );
@@ -257,18 +260,12 @@ export const StockLedger = ({ defaultProductId }) => {
         <form onSubmit={handleAdjustSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-charcoal mb-1">Mặt hàng kiểm kê</label>
-            <select
+            <ProductSelect
+              products={products}
               value={adjustProductId}
-              onChange={(e) => handleProductSelectForAdjust(e.target.value)}
-              className="w-full input-wood text-xs"
-              required
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code} - {p.name} (Tồn trên sổ sách: {p.current_stock})
-                </option>
-              ))}
-            </select>
+              onChange={(newId) => handleProductSelectForAdjust(newId)}
+              placeholder="Gõ tên hoặc chữ cái đầu để tìm..."
+            />
           </div>
 
           <div className="p-3 bg-wood-50 border border-wood-200 rounded-btn text-xs space-y-1">

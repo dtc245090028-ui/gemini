@@ -181,7 +181,16 @@ def test_create_export_note_success(client, thukho_headers, sample_master_data):
     assert res.status_code == 201
     export_note = res.json()
     assert export_note["code"].startswith("PX-")
-    assert export_note["status"] == "COMPLETED"
+    assert export_note["status"] == "CONFIRMED"
+
+    # Tại bước CONFIRMED: Chưa trừ tồn kho (tồn vẫn là 50)
+    prod_mid = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()
+    assert prod_mid["current_stock"] == 50
+
+    # Chuyển sang SHIPPING (Giao hàng) -> Trừ kho từ 50 xuống 30
+    ship_res = client.post(f"/api/v1/export-notes/{export_note['id']}/ship", headers=thukho_headers)
+    assert ship_res.status_code == 200
+    assert ship_res.json()["status"] == "SHIPPING"
 
     # Tồn kho giảm từ 50 xuống 30
     prod_after = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()
@@ -193,6 +202,11 @@ def test_create_export_note_success(client, thukho_headers, sample_master_data):
     assert entries[0]["transaction_type"] == "EXPORT"
     assert entries[0]["quantity_change"] == -20
     assert entries[0]["balance_after"] == 30
+
+    # Hoàn thành phiếu xuất
+    comp_res = client.post(f"/api/v1/export-notes/{export_note['id']}/complete", headers=thukho_headers)
+    assert comp_res.status_code == 200
+    assert comp_res.json()["status"] == "COMPLETED"
 
 
 def test_cancel_import_note_guard_check_rejection(client, thukho_headers, sample_master_data):
@@ -212,8 +226,8 @@ def test_cancel_import_note_guard_check_rejection(client, thukho_headers, sample
     import_note_id = import_res.json()["id"]
     # Hiện tại tồn kho = 30 + 100 = 130
 
-    # Xuất đi 110 sản phẩm -> Tồn kho còn 20
-    client.post(
+    # Xuất đi 110 sản phẩm -> Lập phiếu & Giao hàng -> Tồn kho còn 20
+    exp_res = client.post(
         "/api/v1/export-notes/",
         json={
             "recipient_name": "Đại lý X",
@@ -221,6 +235,9 @@ def test_cancel_import_note_guard_check_rejection(client, thukho_headers, sample
         },
         headers=thukho_headers,
     )
+    assert exp_res.status_code == 201
+    exp_id = exp_res.json()["id"]
+    client.post(f"/api/v1/export-notes/{exp_id}/ship", headers=thukho_headers)
     # Tồn kho hiện tại = 20
 
     # Thử hủy phiếu nhập 100 ban đầu -> Cần trừ 100 nhưng kho chỉ còn 20 -> Guard-check chặn 400!
@@ -276,3 +293,75 @@ def test_inventory_summary_report_accounting_formula(client, thukho_headers):
             f"Lỗi công thức tại sản phẩm {item['product_code']}: "
             f"{item['opening_stock']} + {item['total_import']} - {item['total_export']} != {item['closing_stock']}"
         )
+
+
+def test_cancel_confirmed_export_note_hard_deletes(client, thukho_headers, sample_master_data):
+    """Kiểm tra: Hủy phiếu xuất ở bước Xác nhận (CONFIRMED) -> Xóa hẳn khỏi CSDL, không để lại phiếu rác."""
+    prod_id = sample_master_data["prod_id"]
+
+    # 1. Tạo phiếu xuất ở bước Xác nhận
+    create_res = client.post(
+        "/api/v1/export-notes/",
+        json={
+            "recipient_name": "Khách hàng hủy sớm",
+            "details": [{"product_id": prod_id, "quantity": 5, "unit_price": 1500000.0}],
+        },
+        headers=thukho_headers,
+    )
+    assert create_res.status_code == 201
+    note_id = create_res.json()["id"]
+
+    # 2. Hủy phiếu khi đang CONFIRMED
+    cancel_res = client.post(f"/api/v1/export-notes/{note_id}/cancel", headers=thukho_headers)
+    assert cancel_res.status_code == 200
+
+    # 3. Kiểm tra phiếu đã bị xóa hoàn toàn khỏi DB (GET trả về 404)
+    get_res = client.get(f"/api/v1/export-notes/{note_id}", headers=thukho_headers)
+    assert get_res.status_code == 404
+
+
+def test_cancel_shipping_export_note_restores_stock_and_keeps_record(client, thukho_headers, sample_master_data):
+    """Kiểm tra: Hủy phiếu xuất ở bước Đang giao (SHIPPING) -> Trừ kho trước đó, khi hủy hoàn trả tồn kho và lưu vết CANCELLED."""
+    prod_id = sample_master_data["prod_id"]
+
+    # Lấy tồn kho ban đầu
+    stock_before = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+
+    # 1. Tạo phiếu xuất
+    create_res = client.post(
+        "/api/v1/export-notes/",
+        json={
+            "recipient_name": "Khách hàng boom hàng khi đang giao",
+            "details": [{"product_id": prod_id, "quantity": 5, "unit_price": 1500000.0}],
+        },
+        headers=thukho_headers,
+    )
+    assert create_res.status_code == 201
+    note_id = create_res.json()["id"]
+
+    # 2. Bắt đầu giao hàng -> Tồn kho giảm 5
+    ship_res = client.post(f"/api/v1/export-notes/{note_id}/ship", headers=thukho_headers)
+    assert ship_res.status_code == 200
+    assert ship_res.json()["status"] == "SHIPPING"
+    stock_shipping = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+    assert stock_shipping == stock_before - 5
+
+    # 3. Hủy đơn khi đang giao
+    cancel_res = client.post(f"/api/v1/export-notes/{note_id}/cancel", headers=thukho_headers)
+    assert cancel_res.status_code == 200
+    assert cancel_res.json()["status"] == "CANCELLED"
+
+    # 4. Tồn kho được hoàn trả lại như ban đầu
+    stock_after = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+    assert stock_after == stock_before
+
+    # 5. Phiếu VẪN TỒN TẠI trong CSDL với trạng thái CANCELLED
+    get_res = client.get(f"/api/v1/export-notes/{note_id}", headers=thukho_headers)
+    assert get_res.status_code == 200
+    assert get_res.json()["status"] == "CANCELLED"
+
+    # 6. Thẻ kho ghi nhận dòng ADJUSTMENT (+5)
+    ledger_res = client.get(f"/api/v1/stock-ledger/?product_id={prod_id}", headers=thukho_headers)
+    last_entry = ledger_res.json()[0]
+    assert last_entry["transaction_type"] == "ADJUSTMENT"
+    assert last_entry["quantity_change"] == 5

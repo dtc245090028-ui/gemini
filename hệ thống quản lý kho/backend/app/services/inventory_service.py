@@ -213,7 +213,7 @@ def create_export_note(
                 note_date=now,
                 total_amount=total_amount,
                 note=note_in.note.strip() if note_in.note else None,
-                status="COMPLETED",
+                status="CONFIRMED",
             )
             db.add(export_note)
             db.flush()
@@ -229,23 +229,8 @@ def create_export_note(
                 )
                 db.add(detail)
 
-                # Trừ tồn kho
-                product = product_map[item.product_id]
-                product.current_stock -= item.quantity
-
-                # Ghi Thẻ kho (StockLedger)
-                ledger_entry = StockLedger(
-                    product_id=product.id,
-                    transaction_type="EXPORT",
-                    reference_code=export_note.code,
-                    quantity_change=-item.quantity,
-                    balance_after=product.current_stock,
-                    created_by=current_user_id,
-                    transaction_date=now,
-                    note=f"Xuất kho cho {export_note.recipient_name} theo phiếu {export_note.code}",
-                )
-                db.add(ledger_entry)
-
+            # Ở trạng thái CONFIRMED: Chưa trừ tồn kho thực tế và chưa ghi nhận Thẻ kho.
+            # Tồn kho và Thẻ kho sẽ chỉ được xử lý khi chuyển sang bước SHIPPING (Giao hàng).
             db.commit()
             db.refresh(export_note)
             return export_note
@@ -327,12 +312,122 @@ def cancel_import_note(
     return import_note
 
 
-def cancel_export_note(
+def ship_export_note(
     db: Session,
     export_note_id: int,
     current_user_id: int,
 ) -> ExportNote:
-    """Hủy phiếu xuất kho an toàn: Hoàn trả số lượng vào kho và ghi nhận Thẻ kho ADJUSTMENT."""
+    """Chuyển trạng thái phiếu xuất sang Đang Giao Hàng (SHIPPING).
+
+    - Kiểm tra nghiêm ngặt chống tồn âm (Guard-check tại thời điểm xuất kho thực tế).
+    - Giảm current_stock của từng mặt hàng.
+    - Ghi nhận bản ghi Thẻ kho (StockLedger) loại EXPORT.
+    """
+    export_note = (
+        db.query(ExportNote)
+        .options(joinedload(ExportNote.details).joinedload(ExportNoteDetail.product))
+        .filter(ExportNote.id == export_note_id)
+        .first()
+    )
+    if not export_note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+        )
+
+    if export_note.status != "CONFIRMED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phiếu xuất '{export_note.code}' đang ở trạng thái '{export_note.status}'. Chỉ có thể chuyển sang giao hàng từ trạng thái 'CONFIRMED' (Đã xác nhận).",
+        )
+
+    # 1. Kiểm tra tồn kho tức thời cho toàn bộ sản phẩm TRƯỚC KHI trừ
+    for detail in export_note.details:
+        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Mặt hàng với ID {detail.product_id} không tồn tại.",
+            )
+        if product.current_stock < detail.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Không đủ hàng tồn kho cho sản phẩm '{product.name}' (Mã SKU: {product.code}) để giao hàng. "
+                    f"Số lượng tồn hiện có: {product.current_stock}, Yêu cầu xuất: {detail.quantity}. "
+                    f"Thiếu hụt: {detail.quantity - product.current_stock}. Không thể xuất kho."
+                ),
+            )
+
+    # 2. Trừ tồn kho và ghi Thẻ kho
+    now = datetime.now(timezone.utc)
+    export_note.status = "SHIPPING"
+
+    for detail in export_note.details:
+        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product.current_stock -= detail.quantity
+
+        ledger_entry = StockLedger(
+            product_id=product.id,
+            transaction_type="EXPORT",
+            reference_code=export_note.code,
+            quantity_change=-detail.quantity,
+            balance_after=product.current_stock,
+            created_by=current_user_id,
+            transaction_date=now,
+            note=f"Xuất kho giao cho {export_note.recipient_name} theo phiếu {export_note.code}",
+        )
+        db.add(ledger_entry)
+
+    db.commit()
+    db.refresh(export_note)
+    return export_note
+
+
+def complete_export_note(
+    db: Session,
+    export_note_id: int,
+    current_user_id: int,
+) -> ExportNote:
+    """Xác nhận hoàn thành giao hàng (COMPLETED).
+
+    - Chuyển trạng thái từ SHIPPING -> COMPLETED.
+    - Hàng đã được trừ tồn kho từ bước SHIPPING.
+    """
+    export_note = (
+        db.query(ExportNote)
+        .options(joinedload(ExportNote.details))
+        .filter(ExportNote.id == export_note_id)
+        .first()
+    )
+    if not export_note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+        )
+
+    if export_note.status != "SHIPPING":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phiếu xuất '{export_note.code}' đang ở trạng thái '{export_note.status}'. Chỉ có thể hoàn thành từ trạng thái 'SHIPPING' (Đang giao).",
+        )
+
+    export_note.status = "COMPLETED"
+    db.commit()
+    db.refresh(export_note)
+    return export_note
+
+
+def cancel_export_note(
+    db: Session,
+    export_note_id: int,
+    current_user_id: int,
+) -> tuple[Optional[ExportNote], bool]:
+    """Hủy phiếu xuất kho an toàn theo nghiệp vụ:
+    - Nếu trạng thái là CONFIRMED (Chưa trừ kho): Xóa hoàn toàn bản ghi khỏi CSDL (không lưu vết phiếu rác).
+    - Nếu trạng thái là SHIPPING hoặc COMPLETED: Đổi sang CANCELLED, hoàn trả số lượng vào kho và ghi Thẻ kho ADJUSTMENT.
+    Trả về: (export_note, was_deleted)
+    """
     export_note = (
         db.query(ExportNote)
         .options(joinedload(ExportNote.details))
@@ -351,6 +446,13 @@ def cancel_export_note(
             detail=f"Phiếu xuất '{export_note.code}' đã bị hủy trước đó.",
         )
 
+    if export_note.status == "CONFIRMED":
+        # Hàng chưa xuất, chưa trừ tồn kho, chưa có thẻ kho -> Xóa hẳn khỏi CSDL
+        db.delete(export_note)
+        db.commit()
+        return None, True
+
+    # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
     now = datetime.now(timezone.utc)
     export_note.status = "CANCELLED"
 
@@ -372,7 +474,30 @@ def cancel_export_note(
 
     db.commit()
     db.refresh(export_note)
-    return export_note
+    return export_note, False
+
+
+def delete_export_note(
+    db: Session,
+    export_note_id: int,
+    current_user_id: int,
+) -> None:
+    """Xóa vĩnh viễn phiếu xuất kho (Chỉ cho phép khi ở trạng thái CONFIRMED)."""
+    export_note = db.query(ExportNote).filter(ExportNote.id == export_note_id).first()
+    if not export_note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+        )
+
+    if export_note.status != "CONFIRMED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chỉ có thể xóa trực tiếp phiếu xuất ở trạng thái 'CONFIRMED' (Chưa xuất kho). Phiếu '{export_note.code}' đang ở trạng thái '{export_note.status}', vui lòng sử dụng chức năng Hủy đơn.",
+        )
+
+    db.delete(export_note)
+    db.commit()
 
 
 def adjust_stock(

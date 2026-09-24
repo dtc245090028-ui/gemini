@@ -13,7 +13,13 @@ from app.schemas.export_note import (
     ExportNoteDetailResponse,
     ExportNoteResponse,
 )
-from app.services.inventory_service import cancel_export_note, create_export_note
+from app.services.inventory_service import (
+    cancel_export_note,
+    complete_export_note,
+    create_export_note,
+    delete_export_note,
+    ship_export_note,
+)
 
 router = APIRouter(prefix="/export-notes", tags=["Phiếu xuất kho (Export Notes)"])
 
@@ -56,7 +62,7 @@ def _serialize_export_note(note: ExportNote) -> ExportNoteResponse:
 )
 def get_export_notes(
     search: Optional[str] = Query(None, description="Tìm theo mã phiếu xuất hoặc tên người nhận"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái (COMPLETED, CANCELLED)"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái (CONFIRMED, SHIPPING, COMPLETED, CANCELLED)"),
     skip: int = Query(0, ge=0, description="Số lượng bỏ qua"),
     limit: int = Query(50, ge=1, le=200, description="Số lượng lấy tối đa"),
     db: Session = Depends(get_db),
@@ -116,28 +122,96 @@ def get_export_note_by_id(
     "/",
     response_model=ExportNoteResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Lập phiếu xuất kho (ACID Transaction Chống tồn âm)",
+    summary="Lập phiếu xuất kho mới (Trạng thái CONFIRMED - Chưa trừ tồn kho)",
 )
 def create_new_export_note(
     note_in: ExportNoteCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
-    """Lập phiếu xuất kho: Kiểm tra số tồn tức thời, chặn đứng tồn âm, giảm tồn và ghi Thẻ kho."""
+    """Lập phiếu xuất kho: Tạo chứng từ ở trạng thái CONFIRMED (chưa trừ tồn kho và chưa ghi Thẻ kho)."""
     note = create_export_note(db=db, note_in=note_in, current_user_id=current_user.id)
+    return _serialize_export_note(note)
+
+
+@router.post(
+    "/{export_note_id}/ship",
+    response_model=ExportNoteResponse,
+    summary="Chuyển phiếu xuất kho sang Đang giao (Trừ tồn kho và ghi Thẻ kho)",
+)
+def ship_existing_export_note(
+    export_note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
+):
+    """Bắt đầu giao hàng: Kiểm tra chống tồn âm, trừ tồn kho và ghi Thẻ kho EXPORT."""
+    note = ship_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+    return _serialize_export_note(note)
+
+
+@router.post(
+    "/{export_note_id}/complete",
+    response_model=ExportNoteResponse,
+    summary="Xác nhận hoàn thành giao hàng cho phiếu xuất kho",
+)
+def complete_existing_export_note(
+    export_note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
+):
+    """Khách đã nhận hàng thành công: Chuyển trạng thái sang COMPLETED."""
+    note = complete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
     return _serialize_export_note(note)
 
 
 @router.post(
     "/{export_note_id}/cancel",
     response_model=ExportNoteResponse,
-    summary="Hủy phiếu xuất kho",
+    summary="Hủy phiếu xuất kho (Xóa vĩnh viễn nếu chưa giao, Hoàn kho nếu đang giao)",
 )
 def cancel_existing_export_note(
     export_note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
-    """Hủy phiếu xuất kho: Hoàn trả số lượng vào kho và ghi bản ghi Thẻ kho ADJUSTMENT."""
-    note = cancel_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+    """Hủy phiếu xuất kho:
+    - Nếu đang ở bước Xác nhận (CONFIRMED): Xóa hoàn toàn khỏi CSDL, không để lại phiếu.
+    - Nếu đang ở bước Đang giao (SHIPPING): Giữ lại phiếu trạng thái CANCELLED, hoàn trả tồn kho và ghi Thẻ kho.
+    """
+    existing_note = (
+        db.query(ExportNote)
+        .options(
+            joinedload(ExportNote.creator),
+            joinedload(ExportNote.details),
+        )
+        .filter(ExportNote.id == export_note_id)
+        .first()
+    )
+    if not existing_note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+        )
+
+    # Chụp lại dữ liệu serialized trước khi thao tác CSDL
+    serialized = _serialize_export_note(existing_note)
+
+    note, was_deleted = cancel_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+    if was_deleted:
+        serialized.status = "CANCELLED"
+        return serialized
     return _serialize_export_note(note)
+
+
+@router.delete(
+    "/{export_note_id}",
+    summary="Xóa vĩnh viễn phiếu xuất kho (Chỉ áp dụng khi ở trạng thái CONFIRMED)",
+)
+def delete_existing_export_note(
+    export_note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
+):
+    """Xóa vĩnh viễn phiếu xuất kho khi chưa xuất hàng ra khỏi kho."""
+    delete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+    return {"success": True, "message": f"Đã xóa vĩnh viễn phiếu xuất ID {export_note_id}."}

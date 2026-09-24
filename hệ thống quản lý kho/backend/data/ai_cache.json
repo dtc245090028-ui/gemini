@@ -1,16 +1,16 @@
 {
   "monthly_report:2026_09": {
     "date": "2026-09-25",
-    "cached_at": "2026-09-25 01:54:12",
+    "cached_at": "2026-09-25 05:43:52",
     "data": {
       "period": "09/2026",
       "is_fallback": false,
       "provider": "gemini",
       "metrics": {
         "total_products": 89,
-        "active_products": 43,
+        "active_products": 44,
         "total_imports_qty": 600,
-        "total_exports_qty": 911,
+        "total_exports_qty": 915,
         "low_stock_count": 9,
         "top_exported_products": [
           {
@@ -45,11 +45,11 @@
           }
         ]
       },
-      "executive_summary": "Trong kỳ báo cáo 09/2026, doanh nghiệp quản lý tổng cộng 89 mặt hàng với 43 sản phẩm có phát sinh giao dịch. Tổng lượng hàng xuất kho (911 đơn vị) vượt đáng kể so với tổng lượng nhập kho (600 đơn vị), cho thấy nhu cầu tiêu thụ cao và có nguy cơ thâm hụt kho nếu không bổ sung kịp thời. Hiện có 9 mặt hàng đang duy trì dưới mức tồn kho tối thiểu. Các sản phẩm dẫn đầu về lượng xuất kho thuộc về nhóm phụ kiện công nghệ và thiết bị lưu trữ như Ổ cứng SSD NVMe 1TB, Miếng dán camera và Bao da Smart Folio.",
+      "executive_summary": "Trong kỳ 09/2026, kho hàng quản lý tổng cộng 89 mặt hàng nhưng chỉ có 44 mặt hàng có phát sinh giao dịch. Tổng lượng xuất kho (915 đơn vị) vượt đáng kể so với tổng lượng nhập kho (600 đơn vị), cho thấy nhu cầu tiêu thụ cao hơn nguồn bổ sung trong kỳ. Đáng chú ý, hiện có 9 mặt hàng đã giảm xuống dưới mức tồn kho tối thiểu, tiềm ẩn rủi ro thiếu hụt hàng hóa. Các sản phẩm chủ lực dẫn đầu lượng xuất kho bao gồm ổ cứng SSD NVMe 1TB, miếng dán camera iPhone và bao da Smart Folio.",
       "recommendations": [
-        "Khẩn trương lập kế hoạch nhập hàng bổ sung cho 9 mặt hàng đang có số lượng dưới mức tồn kho tối thiểu nhằm tránh tình trạng đứt gãy chuỗi cung ứng.",
-        "Theo dõi sát sao tốc độ tiêu thụ của top các mặt hàng xuất kho nhiều nhất, đặc biệt là Ổ cứng SSD NVMe 1TB (130 đơn vị) và Miếng dán camera iPhone 18 Pro (125 đơn vị) để điều chỉnh định mức tồn kho an toàn phù hợp.",
-        "Đánh giá lại hiệu quả của 46 mặt hàng không phát sinh giao dịch trong kỳ để có chiến lược kích cầu hoặc tối ưu hóa không gian lưu trữ kho."
+        "Khẩn trương lập kế hoạch nhập hàng bổ sung cho 9 mặt hàng đang ở mức dưới tồn kho tối thiểu nhằm tránh tình trạng đứt gãy chuỗi cung ứng.",
+        "Theo dõi sát sao lượng tồn kho của nhóm sản phẩm có tốc độ xuất kho cao như ổ cứng SSD NVMe 1TB, phụ kiện iPhone và iPad để điều chỉnh hạn mức tồn kho phù hợp.",
+        "Đánh giá lại hiệu quả của 45 mặt hàng không có giao dịch trong kỳ để tối ưu hóa không gian lưu trữ và chi phí vốn đọng."
       ],
       "is_cached": false
     }

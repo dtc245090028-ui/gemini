@@ -16,7 +16,7 @@ class ExportNote(Base):
     note_date = Column(DateTime, nullable=False, default=datetime.utcnow)
     total_amount = Column(Float, nullable=False, default=0.0)
     note = Column(Text, nullable=True)
-    status = Column(String(20), nullable=False, default="COMPLETED")  # DRAFT, COMPLETED, CANCELLED
+    status = Column(String(20), nullable=False, default="CONFIRMED")  # CONFIRMED, SHIPPING, COMPLETED, CANCELLED
 
     # Relationships
     creator = relationship("User", back_populates="export_notes")
