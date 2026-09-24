@@ -18,6 +18,10 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     current_stock: int = Field(default=0, ge=0, description="Số lượng tồn ban đầu (>= 0)")
+    initial_supplier_id: Optional[int] = Field(None, ge=1, description="ID nhà cung cấp để tự động lập phiếu nhập đầu kỳ")
+    initial_quantity: Optional[int] = Field(None, ge=1, description="Số lượng nhập kho ban đầu")
+    initial_unit_price: Optional[float] = Field(None, ge=0.0, description="Đơn giá nhập ban đầu (VNĐ)")
+    initial_note: Optional[str] = Field(None, max_length=500, description="Ghi chú phiếu nhập ban đầu")
 
 
 class ProductUpdate(BaseModel):
@@ -35,6 +39,7 @@ class ProductResponse(ProductBase):
     current_stock: int
     created_at: datetime
     category_name: Optional[str] = None
+    initial_import_note_code: Optional[str] = Field(None, description="Mã phiếu nhập kho khởi tạo (nếu có)")
 
     @computed_field
     def is_low_stock(self) -> bool:
