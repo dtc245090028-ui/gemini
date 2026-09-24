@@ -3,6 +3,7 @@
 > **TÍNH CHẤT TÀI LIỆU:** Đây là một **Prompt / Nhiệm vụ thực thi độc lập (Self-contained Spec)**. Bất kỳ AI hoặc lập trình viên nào khi đọc tài liệu này đều có đầy đủ 100% bối cảnh, yêu cầu và tiêu chuẩn nghiệm thu để thực hiện mà không cần tra cứu thêm.
 >
 > **RANH GIỚI TÀI LIỆU:**
+>
 > - `docs/plans/Buoc-08-...md`: Tài liệu KẾ HOẠCH & CHECKLIST thực thi (nơi bạn đang đọc).
 > - `docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md`: SẢN PHẨM BÀN GIAO THẬT (Deliverable) đánh giá Prompt cho bài KT3.
 > - `docs/SDLC/KT3/03_AI_Fallback_Architecture.md`: SẢN PHẨM BÀN GIAO THẬT (Deliverable) kiến trúc Fallback cho bài KT3.
@@ -11,6 +12,7 @@
 ---
 
 ## 1. Mục tiêu bước 8
+
 - Tích hợp Trợ lý AI (Google Gemini API) để giải quyết 3 bài toán thông minh của Đề tài 07:
   1. AI sinh báo cáo Nhập - Xuất - Tồn theo tháng kèm nhận xét xu hướng.
   2. AI gợi ý nhập hàng tối ưu (dựa trên tồn kho, tồn tối thiểu và tốc độ xuất).
@@ -24,6 +26,7 @@
 ## 2. Nội dung công việc chi tiết
 
 ### 2.1. Pipeline Tổng hợp Dữ liệu cho AI
+
 - Hàm `get_aggregated_inventory_data(db, month, year)`:
   - Tính tốc độ xuất bình quân ngày (30 ngày qua).
   - Lọc danh sách hàng `current_stock <= min_stock`.
@@ -32,11 +35,13 @@
   - **Bảo mật**: Loại bỏ hoàn toàn trường giá nhập `unit_price`.
 
 ### 2.2. Prompt Engineering & Gemini API Client
+
 - Tách biệt Prompt Template tại `app/ai/prompts/` hoặc trong `ai_service.py`:
   - **System Prompt**: *"Bạn là trợ lý quản lý kho chuyên nghiệp. Chỉ phân tích trên dữ liệu được cung cấp. Tuyệt đối không bịa số liệu."*
   - **User Prompt**: Truyền bảng tổng hợp dữ liệu kho dưới dạng Markdown/JSON.
 
 ### 2.3. Heuristic Fallback Engine
+
 - Nếu `GEMINI_API_KEY` trống hoặc gọi API bị lỗi/timeout:
   - Kích hoạt hàm `fallback_analysis(data)`:
     - Tính toán số lượng nhập đề xuất: `suggested_qty = (min_stock * 2) - current_stock`.
@@ -46,6 +51,7 @@
 ---
 
 ## 3. Cấu trúc file/thư mục cần sinh
+
 Khi thực hiện bước này, các file và thư mục sau phải được tạo ra:
 
 ```text
@@ -76,17 +82,19 @@ docs/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
+
 - [x] Không gửi giá mua nhạy cảm vào prompt AI (được assert tự động trong `tests/test_ai.py`).
 - [x] Khi ngắt mạng hoặc xóa API key, hệ thống vẫn trả về báo cáo phân tích thông minh qua bộ Fallback Engine trong $< 500$ms (< 50ms thực tế).
 - [x] Prompt AI trả về đúng schema định dạng cấu trúc rõ ràng (Pydantic models).
 
-> 📝 **Cập nhật thực tế [2026-09-23]:** 
+> 📝 **Cập nhật thực tế [2026-09-23]:**
+>
 > - Chức năng quét hàng tồn tối thiểu đã được giải quyết trọn vẹn từ Bước 06 qua `@computed_field is_low_stock` và bộ lọc `is_low_stock` trên endpoint `/products`. Do đó không tạo background job Scheduler thừa thãi để tránh feature creep, giữ hệ thống tinh gọn theo đúng nguyên tắc Simplicity First (GEMINI.md §2).
-
 
 ---
 
 ## 5. Cập nhật tiến độ
+
 Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 08** theo đúng mẫu sau:
 
 ```markdown

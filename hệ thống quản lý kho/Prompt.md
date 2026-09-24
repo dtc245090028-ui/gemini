@@ -2,7 +2,7 @@
 
 ## 1. Vai trò & bối cảnh cho AI thực thi
 
-```
+```text
 Bạn là kỹ sư phần mềm full-stack senior, đóng vai trò dẫn dắt một sinh viên
 CNTT (năm cuối, đang học song song môn Triển khai phần mềm & Ứng dụng AI)
 xây dựng đồ án môn học "Hệ thống quản lý kho có tích hợp AI" (Đề tài 07).
@@ -23,14 +23,16 @@ Ràng buộc làm việc:
 
 ## 2. Tổng quan bài toán
 
-Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, xuất kho, tồn kho và cảnh báo hàng sắp hết. Quản lý bằng bảng tính dễ sai lệch số lượng, khó truy vết giao dịch và chậm phát hiện bất thường. 
+Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, xuất kho, tồn kho và cảnh báo hàng sắp hết. Quản lý bằng bảng tính dễ sai lệch số lượng, khó truy vết giao dịch và chậm phát hiện bất thường.
 
 Đề tài yêu cầu xây dựng hệ thống quản lý kho hoàn chỉnh có tích hợp AI để:
+
 1. Sinh báo cáo nhập-xuất-tồn định kỳ theo tháng.
 2. Gợi ý nhập hàng tối ưu dựa trên tồn kho, tồn tối thiểu và tốc độ xuất.
 3. Tóm tắt các biến động bất thường (xuất tăng đột biến hoặc hàng tồn kho lâu ngày).
 
 **Nguyên tắc thiết kế cốt lõi**:
+
 - AI là lớp hỗ trợ ra quyết định thông minh, không can thiệp trực tiếp làm thay đổi số liệu kho.
 - Nếu AI service mất kết nối/hết quota, hệ thống quản lý kho vẫn hoạt động bình thường nhờ cơ chế Fallback Heuristic.
 - Đảm bảo an toàn dữ liệu: không gửi giá mua/giá nhập nhạy cảm vào prompt AI.
@@ -44,7 +46,7 @@ Doanh nghiệp nhỏ cần quản lý hàng hóa, nhà cung cấp, nhập kho, x
 Hệ thống phân quyền chuẩn xác theo đúng yêu cầu `de_tai_07.md` gồm 3 vai trò:
 
 | Actor | Quyền hạn chính |
-|---|---|
+| --- | --- |
 | **Quản trị viên (Admin)** | Toàn quyền quản trị: Quản lý tài khoản người dùng, phân quyền, cấu hình hệ thống, cấu hình ngưỡng cảnh báo tồn kho, xem toàn bộ báo cáo tổng hợp và cấu hình AI API key. |
 | **Thủ kho (Warehouse Keeper)** | Nghiệp vụ kho thực tế: Lập và quản lý phiếu nhập kho, phiếu xuất kho, theo dõi tồn kho tức thời, xem cảnh báo hàng dưới tồn tối thiểu, tra cứu thẻ kho, xem gợi ý nhập hàng và tóm tắt bất thường từ AI. |
 | **Kế toán (Accountant)** | Nghiệp vụ đối soát & báo cáo: Xem và đối soát lịch sử nhập xuất theo chứng từ/nhà cung cấp, xem báo cáo tổng hợp Nhập - Xuất - Tồn theo kỳ, theo dõi giá trị tồn kho/doanh số xuất, xuất báo cáo đối chiếu. (Không trực tiếp thao tác xuất nhập kho vật lý). |
@@ -123,7 +125,7 @@ Hãy sinh báo cáo ngắn gọn gồm:
 ## 4. Yêu cầu kỹ thuật & Phi chức năng
 
 | Tiêu chí | Đặc tả kỹ thuật |
-|---|---|
+| --- | --- |
 | **Backend** | **Python 3.14 + FastAPI**: Tốc độ xử lý cao, async, tự động sinh Swagger UI (`/docs`), Pydantic v2 validation. |
 | **Frontend** | **React 18 + Vite + Tailwind CSS + Lucide Icons**: Giao diện Dashboard SPA hiện đại, mượt mà, phản hồi tức thời. |
 | **CSDL** | **SQLite** (phát triển & demo nhanh không cần cài server) + **SQLAlchemy 2.0 ORM** (sẵn sàng chuyển PostgreSQL). |
@@ -305,7 +307,9 @@ E:\hệ thống quản lý kho\
 ## 7. Kịch bản AI chi tiết & Prompt Optimization
 
 ### 7.1. Pipeline tổng hợp dữ liệu (Data Pre-processing)
+
 Trước khi gọi AI, Backend truy vấn SQL tổng hợp các chỉ số sau (tránh gửi dữ liệu thô vượt token):
+
 - Tồn đầu, tổng nhập, tổng xuất, tồn cuối của từng mặt hàng trong kỳ.
 - Vận tốc xuất (số lượng xuất bình quân ngày trong 30 ngày qua).
 - Danh sách mặt hàng `current_stock <= min_stock`.
@@ -314,7 +318,9 @@ Trước khi gọi AI, Backend truy vấn SQL tổng hợp các chỉ số sau (
 - **Loại bỏ hoàn toàn thông tin giá mua nhập hàng**.
 
 ### 7.2. Fallback Heuristic Engine (Offline Safe)
+
 Nếu `GEMINI_API_KEY` trống hoặc kết nối API AI bị timeout/lỗi:
+
 - Hệ thống tự động kích hoạt thuật toán Heuristic:
   - Tự động lọc ra top sản phẩm dưới `min_stock` và tính số lượng nhập khuyến nghị: `suggested_qty = (min_stock * 2) - current_stock`.
   - Tự động gắn nhãn mặt hàng xuất tăng vọt hoặc hàng ứ đọng.
@@ -325,7 +331,7 @@ Nếu `GEMINI_API_KEY` trống hoặc kết nối API AI bị timeout/lỗi:
 ## 8. Lộ trình triển khai theo SDLC (Khớp 4 mốc chấm điểm)
 
 | Giai đoạn | Nhiệm vụ chính | Sản phẩm nộp |
-|---|---|---|
+| --- | --- | --- |
 | **KT1** | Phân tích bài toán, Actor, Use Case, thiết kế ERD, ràng buộc chống tồn âm, kiến trúc AI và wireframe giao diện. | Bộ tài liệu trong `docs/SDLC/KT1/`, sơ đồ ERD trực quan. |
 | **KT2** | Dựng Backend FastAPI, Auth & RBAC (3 vai trò), CRUD Danh mục/Hàng hóa/NCC, Transaction Nhập/Xuất kho, Thẻ kho, kiểm tra tồn âm, Seed Data 60 ngày. | Source code backend chạy ổn định, Swagger docs, tài liệu `docs/SDLC/KT2/`. |
 | **KT3** | Tích hợp AI Gemini API + Fallback Engine, tối ưu Prompt chống ảo giác, viết bộ kiểm thử Pytest (nhập, xuất, tồn âm, AI), ghi nhật ký sử dụng AI. | Module AI hoàn chỉnh, test suite pass 100%, tài liệu `docs/SDLC/KT3/`. |

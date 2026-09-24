@@ -9,6 +9,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 
 Before implementing:
+
 - State your assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -31,12 +32,14 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
+
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it - don't delete it.
 
 When your changes create orphans:
+
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
@@ -47,12 +50,14 @@ The test: Every changed line should trace directly to the user's request.
 **Define success criteria. Loop until verified.**
 
 Transform tasks into verifiable goals:
+
 - "Add validation" -> "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" -> "Write a test that reproduces it, then make it pass"
 - "Refactor X" -> "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
-```
+
+```text
 1. [Step] -> verify: [check]
 2. [Step] -> verify: [check]
 3. [Step] -> verify: [check]
@@ -66,7 +71,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-# 5. Ngữ cảnh dự án
+## 5. Ngữ cảnh dự án
 
 **Hệ thống quản lý kho có tích hợp AI — Đề tài 07.** Doanh nghiệp nhỏ quản lý hàng hóa,
 nhà cung cấp, phiếu nhập, phiếu xuất, tồn kho và cảnh báo hàng sắp hết. AI hỗ trợ sinh
@@ -77,22 +82,22 @@ báo cáo nhập-xuất-tồn, gợi ý nhập hàng và tóm tắt biến độ
 Dự án là đồ án môn học — code cần có comment rõ ràng để sinh viên **giải thích được** trước
 hội đồng. Ưu tiên MVP chạy đúng nghiệp vụ kho trước, tối ưu sau.
 
-## Stack
+### Stack
 
 | Hạng mục | Lựa chọn |
-|---|---|
+| --- | --- |
 | Backend | FastAPI + SQLAlchemy 2.0 |
 | CSDL | SQLite + giao dịch ACID |
 | Frontend | React 18 + Vite + Tailwind CSS |
 | AI Engine | Google Gemini API + Heuristic Fallback (chạy được khi mất mạng/hết quota) |
 | Kiểm thử | pytest tại `backend/tests/` |
 
-## Cấu trúc thư mục thực tế
+### Cấu trúc thư mục thực tế
 
 > Xem `docs/codebase-map.md` để biết chính xác file nào đang tồn tại và vai trò của nó.
 > Cây dưới đây là bức tranh **mục tiêu cuối dự án** — các mục đánh dấu `[scaffold]` đã có, còn lại sẽ tạo theo từng giai đoạn.
 
-```
+```text
 E:\hệ thống quản lý kho\          <- thư mục gốc
 ├── backend/
 │   ├── app/
@@ -152,16 +157,16 @@ E:\hệ thống quản lý kho\          <- thư mục gốc
 
 ---
 
-# 6. Quy trình mỗi phiên làm việc
+## 6. Quy trình mỗi phiên làm việc
 
-## Mở phiên — làm đủ 3 việc này trước khi làm bất cứ gì khác
+### Mở phiên — làm đủ 3 việc này trước khi làm bất cứ gì khác
 
 1. **Làm việc tại `E:\hệ thống quản lý kho`.** Mọi đường dẫn trong tài liệu đều tương đối
    so với thư mục này.
 2. Đọc [`docs/codebase-map.md`](docs/codebase-map.md) để biết hiện có những file nào, làm gì.
 3. Đọc [`docs/plans/TIEN-DO.md`](docs/plans/TIEN-DO.md) để biết đang ở bước nào và còn việc gì chưa xong.
 
-## Đóng phiên — bắt buộc nếu phiên có thay đổi code
+### Đóng phiên — bắt buộc nếu phiên có thay đổi code
 
 1. Chạy test tại `backend/tests/`, ghi lại kết quả thật.
 2. Cập nhật `docs/codebase-map.md` nếu có thêm/xóa/đổi vai trò file.
@@ -169,22 +174,23 @@ E:\hệ thống quản lý kho\          <- thư mục gốc
 
 Không được để việc cập nhật tài liệu trôi sang phiên sau.
 
-## Luật kế hoạch
+### Luật kế hoạch
 
 Mỗi khi một kế hoạch được người dùng duyệt, **lưu ngay vào `docs/plans/Buoc-NN-<slug>.md`**
 với checklist `[ ]` cho từng bước, tick `[x]` trong lúc thực hiện.
 
 ---
 
-# 7. Luật kiểm thử
+## 7. Luật kiểm thử
 
 Bộ test nằm tại `backend/tests/`. Chạy bằng:
+
 ```bash
 cd backend
 pytest
 ```
 
-## Ba luật chống test giả
+### Ba luật chống test giả
 
 Rủi ro lớn nhất khi sinh test bằng AI là test luôn xanh nhưng không chứng minh điều gì.
 
@@ -192,7 +198,7 @@ Rủi ro lớn nhất khi sinh test bằng AI là test luôn xanh nhưng không 
 2. **Mỗi bug fix phải có test tái hiện được bug** — chạy đỏ trước khi sửa, xanh sau khi sửa.
 3. **Test AI phải assert nội dung thật**, không chỉ assert "không ném exception".
 
-## Hai luật bao phủ
+### Hai luật bao phủ
 
 - Mỗi hàm public trong `backend/app/services/` có tối thiểu **1 test happy path + 1 test biên**.
 - Mọi thay đổi liên quan tồn kho phải kèm test chặn tồn âm (tồn kho không được âm).
@@ -202,14 +208,14 @@ kiểm tra gì.
 
 ---
 
-# 8. Ranh giới kiến trúc
+## 8. Ranh giới kiến trúc
 
 - `backend/app/api/v1/` chỉ làm HTTP: parse request, kiểm tra quyền, trả response. **Không chứa logic nghiệp vụ.**
 - `backend/app/services/` chứa toàn bộ logic nghiệp vụ, test được mà không cần khởi động app.
 - Mọi thao tác thay đổi tồn kho **phải đi qua database transaction ACID** — không cập nhật
   `current_stock` lẻ tẻ ngoài transaction.
 
-## Quy tắc an toàn AI
+### Quy tắc an toàn AI
 
 Hai điều tuyệt đối:
 
@@ -219,7 +225,7 @@ Hai điều tuyệt đối:
 
 ---
 
-# 9. Bài học — luật phân loại
+## 9. Bài học — luật phân loại
 
 **Khi phát hiện một lỗi do chính mình gây ra lần thứ hai, phải phân loại trước khi đóng phiên:**
 
@@ -228,18 +234,18 @@ Hai điều tuyệt đối:
 - Danh sách này có **trần cứng 5 dòng**. Muốn thêm dòng thứ 6 thì phải xóa một dòng hoặc tự động hóa
   một dòng cũ.
 
-## Danh sách (0/5 dòng)
+### Danh sách (0/5 dòng)
 
-*(Trống — chưa có bài học nào được ghi nhận)*
+> (Trống — chưa có bài học nào được ghi nhận)
 
 ---
 
-# 10. Tài liệu bổ sung theo giai đoạn
+## 10. Tài liệu bổ sung theo giai đoạn
 
 Các hướng dẫn chi tiết đã được chuyển vào file kế hoạch phù hợp:
 
 | Tài liệu cần tạo | Giai đoạn | Spec chi tiết tại |
-|---|:---:|---|
+| --- | :---: | --- |
 | `docs/sessions/` — log phiên làm việc | — | Tự động tạo bởi `.claude/hooks/session-start.ps1` |
 | `docs/architecture.md` — sơ đồ kiến trúc 3 luồng | 3 (trước KT2) | [`docs/plans/Buoc-07-*.md §4b`](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) |
 | `docs/testing/` — chiến lược test & ma trận test-cases | 5 (trước KT3) | [`docs/plans/Buoc-10-*.md §4b`](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) |
@@ -248,11 +254,11 @@ Các hướng dẫn chi tiết đã được chuyển vào file kế hoạch ph�
 
 ---
 
-# 11. Nguồn sự thật & Quy ước cập nhật tài liệu
+## 11. Nguồn sự thật & Quy ước cập nhật tài liệu
 
-## Phân cấp nguồn sự thật (khi hai file mâu thuẫn)
+### Phân cấp nguồn sự thật (khi hai file mâu thuẫn)
 
-```
+```text
 TIEN-DO.md          → THẮNG về trạng thái (bước nào xong, bước nào chưa)
 Buoc-NN.md          → THẮNG về cách làm (spec kỹ thuật, checklist, file cần tạo)
 MASTER-ROADMAP.md   → Bức tranh toàn cảnh; chỉ cập nhật khi TIEN-DO.md đã cập nhật xong
@@ -282,7 +288,7 @@ Ví dụ: phát hiện cần thêm index vào bảng khi đang làm Bước 07 �
 Mỗi trigger dưới đây là **bắt buộc**, không tùy chọn:
 
 | Khi nào | Cập nhật gì | Thứ tự |
-|---|---|:---:|
+| --- | --- | :---: |
 | Hoàn thành 1 nhiệm vụ trong Buoc-NN.md | Tick `[x]` vào checkbox tương ứng trong Buoc-NN.md | 1 |
 | Hoàn thành toàn bộ 1 Bước (Buoc-NN) | Cập nhật dòng tương ứng trong `TIEN-DO.md` thành `Hoàn thành` | 2 |
 | Cập nhật TIEN-DO.md xong | Cập nhật ô trạng thái tương ứng trong `MASTER-ROADMAP.md` | 3 |
@@ -302,4 +308,3 @@ Mỗi trigger dưới đây là **bắt buộc**, không tùy chọn:
 - Khi thêm nhiệm vụ mới vào MASTER-ROADMAP, phải đồng thời thêm vào Buoc-NN.md tương ứng
   hoặc tạo Buoc-NN.md mới — không để nhiệm vụ chỉ tồn tại ở MASTER-ROADMAP mà không có
   spec chi tiết.
-

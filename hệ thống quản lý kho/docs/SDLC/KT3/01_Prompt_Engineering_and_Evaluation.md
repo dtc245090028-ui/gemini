@@ -1,4 +1,5 @@
 # BÁO CÁO THIẾT KẾ VÀ ĐÁNH GIÁ CÁC PHIÊN BẢN PROMPT (BÀI KT3)
+
 ## Đề tài 07: Hệ thống Quản lý Kho Thông minh tích hợp AI
 
 > **Mục tiêu tài liệu:** Ghi nhận quá trình thử nghiệm, tinh chỉnh (Prompt Engineering) và đánh giá định lượng giữa các phiên bản Prompt khác nhau để chống hiện tượng ảo giác (Anti-hallucination), bảo vệ bí mật kinh doanh (không rò rỉ giá mua) và đảm bảo cấu trúc JSON chuẩn xác phục vụ hiển thị trên giao diện người dùng.
@@ -28,24 +29,27 @@ Hệ thống đã trải qua quá trình thử nghiệm qua 3 thế hệ Prompt 
 
 ### 2.1. Thử nghiệm trên Bài toán 1: Báo cáo Nhập - Xuất - Tồn theo tháng
 
-#### Phiên bản v1 (Naive Unstructured Prompt):
+#### Phiên bản v1 (Naive Unstructured Prompt)
+
 * **Prompt:** *"Hãy viết báo cáo nhập xuất tồn kho tháng này cho tôi dựa vào dữ liệu sau: {{data}}"*
 * **Hạn chế phát hiện:**
-  - AI trả về văn bản dài dòng, có xu hướng tự "chúc mừng" hoặc viết lời mở đầu không cần thiết.
-  - Khi dữ liệu ít, AI tự bịa ra một số mặt hàng bán chạy như "Áo sơ mi", "Bút bi" mặc dù kho chỉ quản lý linh kiện công nghệ.
-  - Frontend không thể trích xuất số liệu để hiển thị thẻ KPI.
+  * AI trả về văn bản dài dòng, có xu hướng tự "chúc mừng" hoặc viết lời mở đầu không cần thiết.
+  * Khi dữ liệu ít, AI tự bịa ra một số mặt hàng bán chạy như "Áo sơ mi", "Bút bi" mặc dù kho chỉ quản lý linh kiện công nghệ.
+  * Frontend không thể trích xuất số liệu để hiển thị thẻ KPI.
 
-#### Phiên bản v2 (Markdown Table Constrained):
+#### Phiên bản v2 (Markdown Table Constrained)
+
 * **Prompt:** *"Đóng vai trò thủ kho, hãy đọc dữ liệu sau và kẻ bảng markdown tổng hợp tình hình kho, sau đó gạch đầu dòng 3 khuyến nghị."*
 * **Hạn chế phát hiện:**
-  - Định dạng bảng Markdown hiển thị tốt trên chat nhưng Frontend khó bóc tách các trường riêng biệt.
-  - Đôi khi model tự tính nhẩm sai tỷ lệ phần trăm (do hạn chế tính toán số học của LLM).
+  * Định dạng bảng Markdown hiển thị tốt trên chat nhưng Frontend khó bóc tách các trường riêng biệt.
+  * Đôi khi model tự tính nhẩm sai tỷ lệ phần trăm (do hạn chế tính toán số học của LLM).
 
-#### Phiên bản v3 (Production - Grounded Structured JSON — Hiện tại):
+#### Phiên bản v3 (Production - Grounded Structured JSON — Hiện tại)
+
 * **Thiết kế:**
-  - Tách SQL tiền xử lý toàn bộ phép tính số học (tổng nhập, tổng xuất, top mặt hàng).
-  - Ép System Prompt: *"Chỉ phân tích trên số liệu được cung cấp. Tuyệt đối không tạo số liệu mới. Trả về đúng JSON theo schema."*
-  - Schema: `{"executive_summary": "...", "recommendations": ["..."]}`.
+  * Tách SQL tiền xử lý toàn bộ phép tính số học (tổng nhập, tổng xuất, top mặt hàng).
+  * Ép System Prompt: *"Chỉ phân tích trên số liệu được cung cấp. Tuyệt đối không tạo số liệu mới. Trả về đúng JSON theo schema."*
+  * Schema: `{"executive_summary": "...", "recommendations": ["..."]}`.
 * **Kết quả:** 100% phản hồi bóc tách JSON thành công, độ trễ giảm 65%, loại bỏ hoàn toàn hiện tượng ảo giác.
 
 ---
@@ -55,7 +59,7 @@ Hệ thống đã trải qua quá trình thử nghiệm qua 3 thế hệ Prompt 
 Thử nghiệm được thực hiện trên 20 kịch bản kiểm thử (gồm: dữ liệu rỗng, dữ liệu chuẩn 60 ngày, dữ liệu xuất đột biến):
 
 | Chỉ số đánh giá | Phiên bản v1 (Naive) | Phiên bản v2 (Markdown) | Phiên bản v3 (Structured JSON - Hiện tại) |
-|---|:---:|:---:|:---:|
+| --- | :---: | :---: | :---: |
 | **Tỷ lệ ảo giác (Hallucination Rate)** | 25.0% | 8.5% | **0.0%** (Tuyệt đối không bịa số liệu) |
 | **Độ trễ trung bình (Latency)** | 3.8s | 2.9s | **1.2s** (Do context đã nén gọn) |
 | **Tỷ lệ parse thành công trên Frontend** | 40.0% | 75.0% | **100.0%** (JSON Schema khớp Pydantic) |
@@ -69,6 +73,7 @@ Thử nghiệm được thực hiện trên 20 kịch bản kiểm thử (gồm:
 Toàn bộ các Prompt chính thức được tổ chức độc lập tại thư mục `backend/app/ai/prompts/`:
 
 ### 3.1. Template Báo cáo tháng (`inventory_report_prompt.txt`)
+
 ```text
 System:
 Bạn là trợ lý quản lý kho thông minh chuyên nghiệp cho doanh nghiệp vừa và nhỏ.
@@ -84,6 +89,7 @@ Nguyên tắc bất biến:
 ```
 
 ### 3.2. Template Gợi ý nhập hàng (`reorder_suggestion_prompt.txt`)
+
 ```text
 System:
 Bạn là trợ lý quản lý kho thông minh chuyên nghiệp cho doanh nghiệp vừa và nhỏ.
@@ -101,6 +107,7 @@ Nguyên tắc bất biến:
 ```
 
 ### 3.3. Template Biến động bất thường (`anomaly_detection_prompt.txt`)
+
 ```text
 System:
 Bạn là chuyên gia kiểm soát rủi ro kho vận thông minh.

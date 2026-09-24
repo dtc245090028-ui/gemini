@@ -9,7 +9,7 @@
 
 ### Bước 1 — Nhắc AI đọc ngữ cảnh (copy paste vào chat)
 
-```
+```text
 Đọc các file sau trước khi làm bất cứ gì:
 1. CLAUDE.md — quy tắc làm việc, kiến trúc, trigger cập nhật tài liệu
 2. docs/codebase-map.md — file nào đang có, vai trò gì
@@ -35,7 +35,7 @@
 
 Trước khi bảo AI viết code cho bước tiếp theo, hỏi AI những thứ này:
 
-```
+```text
 Trước khi bắt đầu [Bước XX], hãy trả lời:
 1. Bước này phụ thuộc vào gì? Đã đủ chưa?
 2. File nào sẽ được tạo mới / sửa đổi?
@@ -61,7 +61,7 @@ Trước khi bắt đầu [Bước XX], hãy trả lời:
 ## 🗺️ LINK NHANH
 
 | Tài liệu | Mục đích | Khi nào dùng |
-|---|---|---|
+| --- | --- | --- |
 | [CLAUDE.md](CLAUDE.md) | Quy tắc toàn dự án | Nhắc AI đọc đầu phiên |
 | [docs/MASTER-ROADMAP.md](docs/MASTER-ROADMAP.md) | Bức tranh 8 giai đoạn | Xem tổng thể, điều hướng |
 | [docs/plans/TIEN-DO.md](docs/plans/TIEN-DO.md) | Trạng thái thực tế | Biết đang ở đâu |
@@ -73,7 +73,7 @@ Trước khi bắt đầu [Bước XX], hãy trả lời:
 
 ## 📊 TRẠNG THÁI DỰ ÁN (cập nhật thủ công)
 
-```
+```text
 Giai đoạn hiện tại : ⬜ 0 — Nền tảng dự án
 Bước đang làm      : Chưa bắt đầu
 Mốc SDLC gần nhất  : KT1
@@ -86,48 +86,52 @@ Ngày cập nhật dòng này: 2026-09-20
 
 ## 💬 CÂU HỎI THƯỜNG HỎI AI
 
-**"Tôi nên làm bước tiếp theo là gì?"**
-```
+### "Tôi nên làm bước tiếp theo là gì?"
+
+```text
 Đọc TIEN-DO.md và MASTER-ROADMAP.md, sau đó đề xuất bước tiếp theo
 theo đúng thứ tự dependency. Nêu lý do tại sao bước đó nên làm trước.
 ```
 
-**"Kế hoạch bước này có vấn đề gì không?"**
-```
+### "Kế hoạch bước này có vấn đề gì không?"
+
+```text
 Đọc docs/plans/Buoc-NN-<tên>.md và phân tích:
 - Có thiếu dependency nào không?
 - Có rủi ro kỹ thuật nào chưa được xử lý?
 - Definition of Done có đủ kiểm tra được không?
 ```
 
-**"Tôi muốn điều chỉnh kế hoạch bước XX"**
-```
+### "Tôi muốn điều chỉnh kế hoạch bước XX"
+
+```text
 Tôi muốn thay đổi [mô tả thay đổi] trong Bước XX.
 Hãy: (1) phân tích tác động sang các bước khác,
 (2) đề xuất nội dung ghi chú 📝 vào Buoc-XX.md,
 (3) xem có cần cập nhật MASTER-ROADMAP.md không.
 ```
 
-**"Review code tôi vừa viết"**
-```
+### "Review code tôi vừa viết"
+
+```text
 Review file [tên file] theo tiêu chí trong CLAUDE.md §2, §3, §7, §8.
 Đặc biệt kiểm tra: transaction ACID, chống tồn kho âm, không hardcode giá mua vào AI.
 ```
 
- ## Hướng dẫn khởi chạy ứng dụng để trải nghiệm trực quan                                              
-                                                                                                            
-  Bạn có thể chạy thử đồng thời cả 2 server:                                                                
-                                                                                                            
-  1. Khởi động Backend API (Terminal 1):                                                                    
-    cd "E:\gemini\hệ thống quản lý kho\backend"                                                             
-    uvicorn app.main:app --reload --port 8000                                                               
-                                                                                                            
-  2. Khởi động Frontend (Terminal 2):                                                                       
-    cd "E:\gemini\hệ thống quản lý kho\frontend"                                                            
-    npm run dev                                                                                             
-  Sau đó mở trình duyệt tại http://localhost:5173. Bạn có thể bấm ngay nút "Đăng nhập nhanh: Quản trị viên" 
-  để khám phá đầy đủ 7 phân hệ và trải nghiệm 3 bài toán AI!                                                
-                                                                                                            
+## Hướng dẫn khởi chạy ứng dụng để trải nghiệm trực quan
+
+  Bạn có thể chạy thử đồng thời cả 2 server:
+
+  1. Khởi động Backend API (Terminal 1):
+    cd "E:\gemini\hệ thống quản lý kho\backend"
+    uvicorn app.main:app --reload --port 8000
+
+  2. Khởi động Frontend (Terminal 2):
+    cd "E:\gemini\hệ thống quản lý kho\frontend"
+    npm run dev
+  Sau đó mở trình duyệt tại <http://localhost:5173>. Bạn có thể bấm ngay nút "Đăng nhập nhanh: Quản trị viên"
+  để khám phá đầy đủ 7 phân hệ và trải nghiệm 3 bài toán AI!
+
   Bước tiếp theo theo kế hoạch tổng thể là Giai đoạn 7 / Bước 11: Đóng gói sản phẩm, hoàn thiện tài liệu nộp
   Cuối kỳ (Final Technical Report, User Guide & Demo Script, Slides). Bạn muốn tiến hành tiếp bước này hay  
-  có lưu ý thêm gì về phần Frontend không?                  
+  có lưu ý thêm gì về phần Frontend không?

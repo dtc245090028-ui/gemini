@@ -3,12 +3,14 @@
 > **TÍNH CHẤT TÀI LIỆU:** Đây là một **Prompt / Nhiệm vụ thực thi độc lập (Self-contained Spec)**. Bất kỳ AI hoặc lập trình viên nào khi đọc tài liệu này đều có đầy đủ 100% bối cảnh, yêu cầu và tiêu chuẩn nghiệm thu để thực hiện mà không cần tra cứu thêm.
 >
 > **RANH GIỚI TÀI LIỆU:**
+>
 > - `docs/plans/Buoc-06-...md`: Tài liệu KẾ HOẠCH & CHECKLIST thực thi (nơi bạn đang đọc).
 > - Mã nguồn được sinh trực tiếp vào thư mục `backend/app/` (models, schemas, endpoints).
 
 ---
 
 ## 1. Mục tiêu bước 6
+
 - Xây dựng các chức năng CRUD cho dữ liệu nền tảng của kho: Nhóm hàng (Categories), Hàng hóa (Products), Nhà cung cấp (Suppliers).
 - Tích hợp logic tìm kiếm, lọc theo danh mục và tự động tính cờ cảnh báo hàng dưới mức tồn tối thiểu (`is_low_stock`).
 - Đảm bảo tính toàn vẹn dữ liệu: mã SKU duy nhất, đơn vị tính chuẩn, số lượng $\ge 0$.
@@ -18,6 +20,7 @@
 ## 2. Nội dung công việc chi tiết
 
 ### 2.1. Models CSDL
+
 - `app/models/category.py`: `id`, `code`, `name`, `description`.
 - `app/models/product.py`:
   - `id`, `code` (SKU duy nhất), `name`, `category_id` (FK), `unit`, `min_stock`, `current_stock`, `standard_price`, `status`, `created_at`.
@@ -25,11 +28,13 @@
 - `app/models/supplier.py`: `id`, `code`, `name`, `phone`, `email`, `address`, `is_active`.
 
 ### 2.2. Schemas Xác thực (Pydantic v2)
+
 - `app/schemas/category.py`: `CategoryCreate`, `CategoryUpdate`, `CategoryResponse`.
 - `app/schemas/product.py`: `ProductCreate`, `ProductUpdate`, `ProductResponse` (bổ sung thuộc tính tính toán `is_low_stock: bool`).
 - `app/schemas/supplier.py`: `SupplierCreate`, `SupplierUpdate`, `SupplierResponse`.
 
 ### 2.3. Endpoints RESTful API
+
 - `app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa.
 - `app/api/v1/endpoints/products.py`:
   - `GET /api/v1/products`: Hỗ trợ phân trang (`skip`, `limit`), tìm kiếm theo từ khóa tên/SKU, lọc theo `category_id`, lọc `is_low_stock=true`.
@@ -41,6 +46,7 @@
 ---
 
 ## 3. Cấu trúc file/thư mục cần sinh
+
 Khi thực hiện bước này, các file và thư mục sau phải được tạo ra:
 
 ```text
@@ -65,6 +71,7 @@ backend/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
+
 - [x] Không thể tạo sản phẩm với mã SKU trùng lặp (trả về lỗi 400 rõ ràng).
 - [x] Bộ lọc `is_low_stock=true` trả về chính xác danh sách các mặt hàng có `current_stock <= min_stock`.
 - [x] Pydantic chặn đứng mọi yêu cầu nhập số lượng hoặc giá trị âm.
@@ -72,6 +79,7 @@ backend/
 ---
 
 ## 5. Cập nhật tiến độ
+
 Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/gemini/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 06** theo đúng mẫu sau:
 
 ```markdown
@@ -83,6 +91,7 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 ## 6. CHANGELOG
 
 ### [2026-09-22] Hoàn thành Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp
+
 - **Pydantic Schemas:**
   - `backend/app/schemas/category.py`: `CategoryCreate`, `CategoryUpdate`, `CategoryResponse`.
   - `backend/app/schemas/product.py`: `ProductCreate`, `ProductUpdate`, `ProductResponse` với computed field `@computed_field is_low_stock` tự động tính `current_stock <= min_stock`.
@@ -98,4 +107,3 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 - **Kiểm thử tự động:**
   - Viết `backend/tests/test_master_data.py` (4 test functions lớn bao quát vòng đời Category, Product, Supplier và RBAC).
   - Tổng số test cases toàn dự án: **18/18 PASS 100%**.
-

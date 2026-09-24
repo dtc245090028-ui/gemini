@@ -3,12 +3,14 @@
 > **TÍNH CHẤT TÀI LIỆU:** Đây là một **Prompt / Nhiệm vụ thực thi độc lập (Self-contained Spec)**. Bất kỳ AI hoặc lập trình viên nào khi đọc tài liệu này đều có đầy đủ 100% bối cảnh, yêu cầu và tiêu chuẩn nghiệm thu để thực hiện mà không cần tra cứu thêm.
 >
 > **RANH GIỚI TÀI LIỆU:**
+>
 > - `docs/plans/Buoc-09-...md`: Tài liệu KẾ HOẠCH & CHECKLIST thực thi (nơi bạn đang đọc).
 > - Mã nguồn được sinh trực tiếp vào thư mục `frontend/src/` (components, pages, context, api client).
 
 ---
 
 ## 1. Mục tiêu bước 9
+
 - Xây dựng giao diện Web Dashboard hoàn chỉnh, hiện đại bằng React 18 + Vite + Tailwind CSS + Lucide Icons.
 - Kết nối toàn bộ RESTful APIs từ Backend: Đăng nhập, Hàng hóa, Nhà cung cấp, Phiếu nhập, Phiếu xuất, Thẻ kho, Báo cáo và Trợ lý AI.
 - Tích hợp bộ chuyển đổi vai trò (Role Switcher) nhanh trên thanh tiêu đề để thuận tiện demo cho giảng viên xem quyền hạn của Admin, Thủ kho, Kế toán.
@@ -18,11 +20,13 @@
 ## 2. Nội dung công việc chi tiết
 
 ### 2.1. Khung Giao diện & Điều hướng (Layout & Navigation)
+
 - `Sidebar`: Menu điều hướng (Tổng quan, Hàng hóa, Nhà cung cấp, Nhập kho, Xuất kho, Thẻ kho, Báo cáo & AI).
 - `Header`: Thông tin tài khoản, nút Chuyển đổi vai trò demo, nút Đăng xuất.
 - `AuthContext`: Quản lý JWT Token, lưu thông tin phiên đăng nhập vào `localStorage`.
 
 ### 2.2. Các Trang Chức năng Chính (Pages)
+
 1. **Trang Dashboard (`pages/Dashboard.jsx`)**:
    - Thẻ thống kê KPI: Tổng mặt hàng, Hàng sắp hết, Giá trị tồn kho, Phiếu trong tháng.
    - Bảng cảnh báo hàng dưới mức tồn tối thiểu (Badge đỏ/vàng).
@@ -42,6 +46,7 @@
 ---
 
 ## 3. Cấu trúc file/thư mục cần sinh
+
 Khi thực hiện bước này, các file và thư mục sau phải được tạo ra:
 
 ```text
@@ -69,6 +74,7 @@ frontend/
 ---
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
+
 - [x] Giao diện phản hồi tức thời (Single Page Application), không bị load lại trang khi thao tác.
 - [x] Form xuất kho chặn người dùng bấm gửi nếu nhập số lượng xuất lớn hơn tồn kho hiện có (Defensive UI kết hợp Backend ACID).
 - [x] Nút "Yêu cầu AI phân tích" hiển thị trạng thái loading đẹp mắt trong lúc chờ phản hồi (Gemini/Heuristic Fallback).
@@ -78,6 +84,7 @@ frontend/
 ---
 
 ## 5. Cập nhật tiến độ
+
 Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 09** theo đúng mẫu sau:
 
 ```markdown

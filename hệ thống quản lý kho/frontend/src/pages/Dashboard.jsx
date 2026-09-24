@@ -162,8 +162,7 @@ export const Dashboard = ({ onNavigate }) => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
                   <tr>
-                    <th className="py-3 px-4">Mã SKU</th>
-                    <th className="py-3 px-4">Tên hàng hóa</th>
+                    <th className="py-3 px-4">Hàng hóa</th>
                     <th className="py-3 px-4 text-center">Tồn hiện tại</th>
                     <th className="py-3 px-4 text-center">Tồn an toàn</th>
                     <th className="py-3 px-4 text-right">Trạng thái</th>
@@ -172,15 +171,35 @@ export const Dashboard = ({ onNavigate }) => {
                 <tbody className="divide-y divide-wood-100">
                   {lowStockProducts.map((p) => (
                     <tr key={p.id} className="hover:bg-wood-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono font-medium text-wood-700">{p.code}</td>
-                      <td className="py-3 px-4 font-medium text-wood-900">{p.name}</td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-wood-100 border border-wood-200 overflow-hidden flex items-center justify-center shrink-0">
+                            {p.image_url ? (
+                              <img
+                                src={p.image_url}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <Package className="w-4 h-4 text-wood-400" style={{ display: p.image_url ? 'none' : 'block' }} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-wood-900 leading-tight">{p.name}</p>
+                            <span className="font-mono text-[10px] text-wood-500">{p.code}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-4 text-center">
                         <span className="font-bold text-rust-600 px-2 py-0.5 rounded bg-rust-50 border border-rust-200">
                           {p.current_stock} {p.unit}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center text-wood-600">{p.min_stock} {p.unit}</td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-2.5 px-4 text-center text-wood-600">{p.min_stock} {p.unit}</td>
+                      <td className="py-2.5 px-4 text-right">
                         <Badge variant={p.current_stock === 0 ? 'red' : 'amber'}>
                           {p.current_stock === 0 ? 'Hết hàng' : 'Sắp hết hàng'}
                         </Badge>

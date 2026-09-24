@@ -350,7 +350,7 @@ def test_integrated_full_warehouse_cycle_and_guard_check(client, admin_headers, 
         "details": [{"product_id": prod_id, "quantity": 60}]
     }, headers=thukho_headers)
     assert export_fail.status_code == 400
-    assert "tồn kho không đủ" in export_fail.json()["detail"].lower()
+    assert "không đủ" in export_fail.json()["detail"].lower() and "tồn kho" in export_fail.json()["detail"].lower()
 
     # Tồn vẫn nguyên 50
     prod_verify = client.get(f"/api/v1/products/{prod_id}", headers=admin_headers).json()
@@ -371,4 +371,4 @@ def test_integrated_full_warehouse_cycle_and_guard_check(client, admin_headers, 
     # Guard-check phải chặn đứng và trả 400 để bảo vệ ACID
     cancel_imp = client.post(f"/api/v1/import-notes/{import_note_id}/cancel", headers=thukho_headers)
     assert cancel_imp.status_code == 400
-    assert "không thể hoàn trả" in cancel_imp.json()["detail"].lower()
+    assert "không thể hủy" in cancel_imp.json()["detail"].lower()

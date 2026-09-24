@@ -10,7 +10,7 @@
 ## 1. Thống Kê Định Lượng
 
 | Chỉ số kiểm thử | Giá trị | Tỷ lệ (%) | Đánh giá |
-|:---|:---:|:---:|:---|
+| :--- | :---: | :---: | :--- |
 | **Tổng số test cases thực thi** | **50** | 100.0% | Bao phủ toàn bộ các module & nghiệp vụ cốt lõi |
 | **Số test cases ĐẠT (PASS)** | **49** | **98.0%** | Các luồng Happy path, RBAC, Security, Boundary đều pass |
 | **Số test cases THẤT BẠI (FAIL)** | **1** | **2.0%** | Lệch chuỗi assertion trong file test mới viết (Chi tiết bên dưới) |
@@ -24,10 +24,12 @@
 Tuân thủ nghiêm ngặt **Quy tắc Bất Biến (Zero Modification khi gặp lỗi)**: Agent ghi nhận nguyên văn hiện trạng, phân tích nguyên nhân khách quan và **tuyệt đối không tự ý chỉnh sửa mã nguồn hay file test**.
 
 ### Test Case: `test_integrated_full_warehouse_cycle_and_guard_check`
+
 - **Vị trí file:** `backend/tests/test_agent_comprehensive_blackbox.py:353`
 - **Mục tiêu kiểm thử:** Kiểm thử liên hoàn chu trình tạo sản phẩm -> nhập kho 50 -> thử xuất 60 (chặn chống tồn âm) -> xuất 50 -> thử hủy phiếu nhập ban đầu (Guard-check chống tồn âm).
 
-#### Log lỗi / Traceback nguyên bản:
+#### Log lỗi / Traceback nguyên bản
+
 ```text
 FAILED tests/test_agent_comprehensive_blackbox.py::test_integrated_full_warehouse_cycle_and_guard_check - AssertionError: assert 'tồn kho không đủ' in "không đủ hàng tồn kho cho sản phẩm 'mặt hàng e2e 130519140787' (mã sku: sku_e2e_130519140787). số lượng tồn hiện có: 50, yêu cầu xuất: 60. thiếu hụt: 10. giao dịch xuất kho đã bị hủy bỏ."
  +  where "không đủ hàng tồn kho cho sản phẩm 'mặt hàng e2e 130519140787' (mã sku: sku_e2e_130519140787). số lượng tồn hiện có: 50, yêu cầu xuất: 60. thiếu hụt: 10. giao dịch xuất kho đã bị hủy bỏ." = <built-in method lower of str object at 0x00000258973CB630>()
@@ -36,7 +38,8 @@ FAILED tests/test_agent_comprehensive_blackbox.py::test_integrated_full_warehous
 tests\test_agent_comprehensive_blackbox.py:353: AssertionError
 ```
 
-#### Phân tích nguyên nhân nghi vấn:
+#### Phân tích nguyên nhân nghi vấn
+
 1. **Trạng thái thực tế của Source Code:**
    - Khi nhận yêu cầu xuất 60 cái trong khi tồn hiện tại là 50 cái, backend tại `backend/app/services/inventory_service.py` đã phát hiện và chặn đứng kịp thời:
      - Trả về mã lỗi: **`HTTP 400 BAD REQUEST`** (hoàn toàn đúng đặc tả).
@@ -102,7 +105,8 @@ app\services\inventory_service.py        187     53    72%   37-40, 59, 69, 74, 
 TOTAL                                   1375    224    84%
 ```
 
-### Đánh giá mức độ bao phủ theo từng tầng kiến trúc:
+### Đánh giá mức độ bao phủ theo từng tầng kiến trúc
+
 1. **Data Models Layer (`app/models/*`): 100% Coverage**  
    Toàn bộ 9 thực thể CSDL và các quan hệ Foreign Key / CheckConstraint đều được kích hoạt và kiểm thử đầy đủ.
 2. **Data Schemas Layer (`app/schemas/*`): 100% Coverage**  

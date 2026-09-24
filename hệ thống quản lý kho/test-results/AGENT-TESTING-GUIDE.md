@@ -25,17 +25,19 @@
 ## 1. Phương Pháp Kiểm Thử
 
 ### 1.1. Whitebox (Đọc mã nguồn & dựa vào logic bên trong)
-* **Unit & Integration Test**: Đọc từng nhánh `if/else`, edge case trong hàm, viết test theo đúng logic mã nguồn thực tế.
-* **Coverage**: Đo lường độ bao phủ test theo từng module riêng biệt (đặc biệt chú trọng các luồng nhạy cảm: xác thực tài khoản, phân quyền, giao dịch, phiên sạc).
-* **Static Analysis**: Chạy công cụ phân tích tĩnh (`ruff`, `oxlint`, `mypy`) để đọc lỗi tiềm ẩn và ghi nhận lại.
+
+- **Unit & Integration Test**: Đọc từng nhánh `if/else`, edge case trong hàm, viết test theo đúng logic mã nguồn thực tế.
+- **Coverage**: Đo lường độ bao phủ test theo từng module riêng biệt (đặc biệt chú trọng các luồng nhạy cảm: xác thực tài khoản, phân quyền, giao dịch, phiên sạc).
+- **Static Analysis**: Chạy công cụ phân tích tĩnh (`ruff`, `oxlint`, `mypy`) để đọc lỗi tiềm ẩn và ghi nhận lại.
 
 ### 1.2. Blackbox (Kiểm thử theo hợp đồng API & luồng người dùng)
-* **API Testing**: Với mỗi endpoint, kiểm tra:
+
+- **API Testing**: Với mỗi endpoint, kiểm tra:
   - 1 case dữ liệu hợp lệ (Happy path).
   - 1 case sai kiểu dữ liệu / schema.
   - 1 case giá trị biên (chuỗi rỗng, số âm, vượt ngưỡng).
   - 1 case phân quyền / xác thực (truy cập không có token, token hết hạn, sai role).
-* **Luồng tích hợp**: Kiểm tra luồng gọi API liên hoàn theo chu trình hoạt động của trạm sạc (khởi tạo trạm -> cắm sạc -> phiên sạc -> thanh toán).
+- **Luồng tích hợp**: Kiểm tra luồng gọi API liên hoàn theo chu trình hoạt động của trạm sạc (khởi tạo trạm -> cắm sạc -> phiên sạc -> thanh toán).
 
 ---
 
@@ -52,7 +54,8 @@
 ## 3. Quy Trình Báo Cáo (Reporting Process)
 
 Mỗi lần agent chạy test, **bắt buộc tạo một thư mục con** trong `test-results/reports/` theo mốc thời gian hoặc số thứ tự phiên test:
-```
+
+```text
 test-results/reports/YYYY-MM-DD_HH-mm-ss/
 ├── test-summary.md       (Bắt buộc)
 ├── module-inventory.md   (Bắt buộc)
@@ -60,25 +63,31 @@ test-results/reports/YYYY-MM-DD_HH-mm-ss/
 ```
 
 ### 3.1. `test-summary.md` (Tổng quan kết quả test)
+
 Bắt buộc có các mục sau:
+
 1. **Thống kê**: Số lượng test đã chạy, số test pass, số test fail.
 2. **Chi tiết các test fail**:
    - Tên test case và vị trí file test.
    - Log lỗi hoặc traceback nguyên bản.
    - Phân tích nguyên nhân nghi vấn:
-     * Nghi vấn do source code (mô tả cụ thể hàm/dòng nghi ngờ).
-     * Nghi vấn do logic test case chưa phù hợp.
-     * Hoặc ghi rõ: `"chưa xác định được nguyên nhân"`.
+     - Nghi vấn do source code (mô tả cụ thể hàm/dòng nghi ngờ).
+     - Nghi vấn do logic test case chưa phù hợp.
+     - Hoặc ghi rõ: `"chưa xác định được nguyên nhân"`.
 3. **Mức độ bao phủ (Coverage)** (nếu có công cụ đo).
 
 ### 3.2. `module-inventory.md` (Kiểm kê module & endpoint thực tế)
+
 Agent đọc source code ở lần chạy đó và liệt kê hiện trạng thực tế (chỉ liệt kê hiện trạng, không đánh giá đúng/sai):
+
 - Danh sách các routers / controllers / endpoints đang có trong code.
 - Phương thức HTTP, đường dẫn URL, quyền truy cập yêu cầu.
 - Các schemas / models liên quan được phát hiện.
 
 ### 3.3. `findings.md` (Ghi nhận sai lệch & phát hiện đặc biệt — nếu có)
+
 Chỉ mô tả hiện trạng khách quan, không đề xuất sửa code:
+
 - **Lệch endpoint / model**: Bất cập giữa định dạng request/response hoặc tên trường giữa các nhóm/tài liệu.
 - **Nghi vấn nghiệp vụ**: Trường hợp xử lý logic tiềm ẩn rủi ro hoặc chưa rõ ràng.
 - **Lỗ hổng từ test giả định**: Các vấn đề bảo mật phát hiện qua test giả định (như bypass auth, inject dữ liệu, race condition).

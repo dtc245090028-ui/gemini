@@ -1,7 +1,9 @@
 """Điểm khởi chạy ứng dụng FastAPI, đăng ký Middleware, Handlers và Router."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request, status
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -103,6 +105,12 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
 
 # Đăng ký API Router v1
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Cấu hình Static Files phục vụ ảnh sản phẩm và tài nguyên tĩnh
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+(STATIC_DIR / "products").mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", tags=["Hệ thống"])
