@@ -10,16 +10,20 @@ import {
   UserCheck,
   Sparkles,
   Loader2,
+  Truck,
+  CheckCircle2,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import ProductSelect from '../components/ProductSelect';
 
 export const ExportNotes = () => {
   const { user } = useAuth();
   const [exportNotes, setExportNotes] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Create Modal State
@@ -42,12 +46,14 @@ export const ExportNotes = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [expRes, prodRes] = await Promise.all([
+      const [expRes, prodRes, catRes] = await Promise.all([
         apiClient.exportNotes.getAll(),
-        apiClient.products.getAll({ limit: 100 }),
+        apiClient.products.getAll({ limit: 500 }),
+        apiClient.categories.getAll(),
       ]);
       setExportNotes(Array.isArray(expRes.data) ? expRes.data : (expRes.data.items || []));
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.items || []));
+      setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.items || []));
     } catch (err) {
       console.error('Lỗi tải phiếu xuất:', err);
     } finally {
@@ -63,11 +69,13 @@ export const ExportNotes = () => {
     setRecipientName('');
     setNoteText('');
     setAiSuggestion(null);
+    const defaultProd = products[0];
     setItems([
       {
-        product_id: products[0]?.id || '',
+        category_id: defaultProd?.category_id || '',
+        product_id: defaultProd?.id || '',
         quantity: 1,
-        unit_price: products[0]?.standard_price || 100000,
+        unit_price: defaultProd?.standard_price || 100000,
       },
     ]);
     setFormError(null);
@@ -84,8 +92,10 @@ export const ExportNotes = () => {
       setRecipientName(order.recipient_name || '');
       setNoteText(order.note || '');
 
+      const matchedProd = products.find((p) => p.id === order.product_id);
       setItems([
         {
+          category_id: matchedProd?.category_id || '',
           product_id: order.product_id,
           quantity: order.quantity,
           unit_price: order.unit_price,
@@ -106,6 +116,7 @@ export const ExportNotes = () => {
     setItems([
       ...items,
       {
+        category_id: defaultProd?.category_id || '',
         product_id: defaultProd.id,
         quantity: 1,
         unit_price: defaultProd.standard_price,
@@ -121,11 +132,27 @@ export const ExportNotes = () => {
   const handleItemChange = (idx, field, val) => {
     const updated = [...items];
     updated[idx][field] = val;
-    // Tự gợi ý giá chuẩn nếu đổi sản phẩm
+
+    // Xử lý khi thay đổi nhóm hàng: Tự động lọc và chọn mặt hàng phù hợp
+    if (field === 'category_id') {
+      const catId = val;
+      const available = catId
+        ? products.filter((p) => p.category_id === Number(catId))
+        : products;
+      if (available.length > 0 && !available.some((p) => p.id === Number(updated[idx].product_id))) {
+        updated[idx].product_id = available[0].id;
+        updated[idx].unit_price = available[0].standard_price;
+      }
+    }
+
+    // Tự gợi ý giá chuẩn và đồng bộ nhóm hàng nếu đổi sản phẩm
     if (field === 'product_id') {
       const p = products.find((prod) => prod.id === Number(val));
       if (p) {
         updated[idx].unit_price = p.standard_price;
+        if (p.category_id && updated[idx].category_id !== p.category_id) {
+          updated[idx].category_id = p.category_id;
+        }
       }
     }
     setItems(updated);
@@ -198,20 +225,98 @@ export const ExportNotes = () => {
     }
   };
 
-  const handleCancelNote = async (note) => {
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case 'CONFIRMED':
+        return <Badge variant="amber">Chờ xuất kho</Badge>;
+      case 'SHIPPING':
+        return <Badge variant="blue">Đang giao hàng</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="green">Hoàn thành</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="red">Đã hủy</Badge>;
+      default:
+        return <Badge variant="gray">{status}</Badge>;
+    }
+  };
+
+  const handleShipNote = async (note) => {
     if (
       !window.confirm(
-        `Xác nhận hủy phiếu xuất ${note.code}? Hệ thống sẽ hoàn trả lượng tồn vào kho.`
+        `Xác nhận bắt đầu giao hàng cho phiếu xuất ${note.code}? Hệ thống sẽ trừ tồn kho thực tế và ghi Thẻ kho.`
       )
     )
       return;
 
     try {
-      await apiClient.exportNotes.cancel(note.id);
-      alert('Đã hủy phiếu xuất và hoàn trả tồn kho thành công!');
+      await apiClient.exportNotes.ship(note.id);
+      alert(`Phiếu xuất ${note.code} đã bắt đầu giao hàng (đã trừ tồn kho)!`);
       fetchData();
+      if (selectedNote?.id === note.id) {
+        setIsDetailOpen(false);
+      }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể hủy phiếu xuất');
+      alert(err.response?.data?.detail || 'Không thể bắt đầu giao hàng');
+    }
+  };
+
+  const handleCompleteNote = async (note) => {
+    if (
+      !window.confirm(
+        `Xác nhận khách đã nhận đủ hàng và hoàn thành phiếu xuất ${note.code}?`
+      )
+    )
+      return;
+
+    try {
+      await apiClient.exportNotes.complete(note.id);
+      alert(`Phiếu xuất ${note.code} đã hoàn thành thành công!`);
+      fetchData();
+      if (selectedNote?.id === note.id) {
+        setIsDetailOpen(false);
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Không thể hoàn thành phiếu xuất');
+    }
+  };
+
+  const handleDeleteOrCancelNote = async (note) => {
+    if (note.status === 'CONFIRMED') {
+      if (
+        !window.confirm(
+          `Phiếu xuất ${note.code} chưa xuất kho. Bạn có chắc muốn hủy và xóa vĩnh viễn phiếu này không?`
+        )
+      )
+        return;
+
+      try {
+        await apiClient.exportNotes.delete(note.id);
+        alert(`Đã xóa vĩnh viễn phiếu xuất ${note.code}!`);
+        fetchData();
+        if (selectedNote?.id === note.id) {
+          setIsDetailOpen(false);
+        }
+      } catch (err) {
+        alert(err.response?.data?.detail || 'Không thể xóa phiếu xuất');
+      }
+    } else if (note.status === 'SHIPPING') {
+      if (
+        !window.confirm(
+          `Xác nhận hủy đơn hàng đang giao ${note.code}? Hệ thống sẽ hoàn trả số lượng vào tồn kho và lưu vết phiếu đã hủy.`
+        )
+      )
+        return;
+
+      try {
+        await apiClient.exportNotes.cancel(note.id);
+        alert(`Đã hủy phiếu xuất ${note.code} và hoàn trả tồn kho thành công!`);
+        fetchData();
+        if (selectedNote?.id === note.id) {
+          setIsDetailOpen(false);
+        }
+      } catch (err) {
+        alert(err.response?.data?.detail || 'Không thể hủy phiếu xuất');
+      }
     }
   };
 
@@ -292,9 +397,7 @@ export const ExportNotes = () => {
                       {n.total_amount?.toLocaleString()} đ
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <Badge variant={n.status === 'COMPLETED' ? 'green' : 'red'}>
-                        {n.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}
-                      </Badge>
+                      {renderStatusBadge(n.status)}
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -305,14 +408,45 @@ export const ExportNotes = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {canCreate && n.status === 'COMPLETED' && (
-                          <button
-                            onClick={() => handleCancelNote(n)}
-                            title="Hủy phiếu xuất (Hoàn trả kho)"
-                            className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
-                          >
-                            <Ban className="w-4 h-4" />
-                          </button>
+
+                        {canCreate && n.status === 'CONFIRMED' && (
+                          <>
+                            <button
+                              onClick={() => handleShipNote(n)}
+                              title="Bắt đầu giao hàng (Trừ tồn kho)"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-btn transition-colors cursor-pointer font-medium text-[11px]"
+                            >
+                              <Truck className="w-3.5 h-3.5" />
+                              <span>Giao hàng</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOrCancelNote(n)}
+                              title="Hủy & Xóa vĩnh viễn phiếu"
+                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+
+                        {canCreate && n.status === 'SHIPPING' && (
+                          <>
+                            <button
+                              onClick={() => handleCompleteNote(n)}
+                              title="Xác nhận hoàn thành giao hàng"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-forest-50 hover:bg-forest-100 text-forest-700 rounded-btn transition-colors cursor-pointer font-medium text-[11px]"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Hoàn thành</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOrCancelNote(n)}
+                              title="Hủy đơn giao (Hoàn trả tồn kho)"
+                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -426,8 +560,11 @@ export const ExportNotes = () => {
               </button>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2 pr-1">
               {items.map((row, idx) => {
+                const availableProducts = row.category_id
+                  ? products.filter((p) => p.category_id === Number(row.category_id))
+                  : products;
                 const currentProd = products.find((p) => p.id === Number(row.product_id));
                 const availableStock = currentProd ? currentProd.current_stock : 0;
                 const isOverStock = (Number(row.quantity) || 0) > availableStock;
@@ -435,24 +572,36 @@ export const ExportNotes = () => {
                 return (
                   <div
                     key={idx}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-colors ${
+                    style={{ zIndex: items.length - idx }}
+                    className={`flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-xl border transition-colors relative ${
                       isOverStock ? 'bg-rust-50/60 border-rust-300' : 'bg-white border-wood-200'
                     }`}
                   >
-                    <div className="flex-1">
+                    {/* Chọn nhóm hàng */}
+                    <div className="w-36 shrink-0">
                       <select
-                        value={row.product_id}
-                        onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                        value={row.category_id || ''}
+                        onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
                         className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 focus:outline-none"
-                        required
+                        title="Lọc danh sách theo nhóm hàng"
                       >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.code} - {p.name} (Tồn: {p.current_stock})
+                        <option value="">-- Tất cả nhóm --</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
                           </option>
                         ))}
                       </select>
                     </div>
+
+                    {/* Chọn tên hàng hóa hỗ trợ gõ tìm kiếm & gõ tắt chữ cái đầu */}
+                    <ProductSelect
+                      products={availableProducts}
+                      value={row.product_id}
+                      onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
+                      placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
+                      className="min-w-[170px]"
+                    />
 
                     <div className="w-28 text-center">
                       <div className="relative">
@@ -510,6 +659,11 @@ export const ExportNotes = () => {
             </div>
           </div>
 
+          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-start sm:items-center gap-2">
+            <span className="font-bold text-amber-800 shrink-0">Quy trình xuất kho:</span>
+            <span>Phiếu mới lập sẽ ở trạng thái <strong>Chờ xuất kho</strong> (chưa trừ tồn kho). Tồn kho và Thẻ kho chỉ được ghi nhận khi bạn bấm <strong>Giao hàng</strong>.</span>
+          </div>
+
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
@@ -523,7 +677,7 @@ export const ExportNotes = () => {
               disabled={stockViolations.length > 0}
               className={`btn-primary ${stockViolations.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Xác nhận & Xuất kho
+              Lập Phiếu (Xác nhận)
             </button>
           </div>
         </form>
@@ -548,9 +702,7 @@ export const ExportNotes = () => {
               </div>
               <div>
                 <span className="text-wood-500 block">Trạng thái:</span>
-                <Badge variant={selectedNote.status === 'COMPLETED' ? 'green' : 'red'}>
-                  {selectedNote.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}
-                </Badge>
+                {renderStatusBadge(selectedNote.status)}
               </div>
             </div>
 
@@ -571,7 +723,6 @@ export const ExportNotes = () => {
                       <tr key={d.id}>
                         <td className="p-2.5">
                           <p className="font-medium text-wood-900">{d.product_name}</p>
-                          <p className="text-[11px] font-mono text-wood-500">{d.product_code}</p>
                         </td>
                         <td className="p-2.5 text-center font-bold text-wood-900">{d.quantity}</td>
                         <td className="p-2.5 text-right text-wood-700">{d.unit_price?.toLocaleString()} đ</td>
@@ -588,6 +739,50 @@ export const ExportNotes = () => {
                 </table>
               </div>
             </div>
+
+            {/* Quick Actions in Detail Modal */}
+            {canCreate && (selectedNote.status === 'CONFIRMED' || selectedNote.status === 'SHIPPING') && (
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-wood-200">
+                {selectedNote.status === 'CONFIRMED' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrCancelNote(selectedNote)}
+                      className="px-3 py-1.5 text-rust-600 hover:bg-rust-50 border border-rust-200 rounded-btn font-medium transition-colors cursor-pointer"
+                    >
+                      Hủy & Xóa phiếu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleShipNote(selectedNote)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-btn font-semibold transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Truck className="w-4 h-4" />
+                      <span>Bắt đầu giao hàng (Trừ kho)</span>
+                    </button>
+                  </>
+                )}
+                {selectedNote.status === 'SHIPPING' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrCancelNote(selectedNote)}
+                      className="px-3 py-1.5 text-rust-600 hover:bg-rust-50 border border-rust-200 rounded-btn font-medium transition-colors cursor-pointer"
+                    >
+                      Hủy đơn & Hoàn kho
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCompleteNote(selectedNote)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-600 hover:bg-forest-700 text-white rounded-btn font-semibold transition-colors shadow-sm cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Xác nhận hoàn thành</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>

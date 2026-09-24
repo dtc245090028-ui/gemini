@@ -146,7 +146,7 @@ export const Suppliers = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo mã hoặc tên nhà cung cấp..."
+            placeholder="Tìm kiếm theo tên nhà cung cấp..."
             className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
           />
         </div>
@@ -176,7 +176,6 @@ export const Suppliers = () => {
                     </div>
                     <div>
                       <h4 className="font-serif font-bold text-wood-900 text-sm leading-tight">{s.name}</h4>
-                      <span className="font-mono text-[11px] text-wood-500 font-semibold">{s.code}</span>
                     </div>
                   </div>
                   <Badge variant={s.is_active ? 'green' : 'gray'}>
@@ -240,17 +239,7 @@ export const Suppliers = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-wood-800 mb-1">Mã nhà cung cấp</label>
-            <input
-              type="text"
-              disabled={modalMode === 'edit'}
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              className="input-wood disabled:bg-wood-100/60 disabled:text-wood-400"
-              required
-            />
-          </div>
+          <input type="hidden" value={formData.code} />
 
           <div>
             <label className="block text-xs font-semibold text-wood-800 mb-1">Tên nhà cung cấp</label>

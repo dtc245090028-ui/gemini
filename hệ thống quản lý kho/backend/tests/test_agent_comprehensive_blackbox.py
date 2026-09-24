@@ -356,12 +356,18 @@ def test_integrated_full_warehouse_cycle_and_guard_check(client, admin_headers, 
     prod_verify = client.get(f"/api/v1/products/{prod_id}", headers=admin_headers).json()
     assert prod_verify["current_stock"] == 50
 
-    # 6. Xuất đúng 50 cái -> Thành công
+    # 6. Lập phiếu xuất đúng 50 cái -> Trạng thái CONFIRMED (Tồn vẫn 50)
     export_ok = client.post("/api/v1/export-notes/", json={
         "recipient_name": "Khách hàng hợp lệ",
         "details": [{"product_id": prod_id, "quantity": 50}]
     }, headers=thukho_headers)
     assert export_ok.status_code == 201
+    assert export_ok.json()["status"] == "CONFIRMED"
+
+    # Chuyển sang giao hàng (SHIPPING) -> Tồn về 0
+    ship_res = client.post(f"/api/v1/export-notes/{export_ok.json()['id']}/ship", headers=thukho_headers)
+    assert ship_res.status_code == 200
+    assert ship_res.json()["status"] == "SHIPPING"
 
     # Tồn về 0
     prod_empty = client.get(f"/api/v1/products/{prod_id}", headers=admin_headers).json()

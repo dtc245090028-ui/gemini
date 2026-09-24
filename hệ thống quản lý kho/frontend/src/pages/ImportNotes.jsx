@@ -13,12 +13,14 @@ import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import ProductSelect from '../components/ProductSelect';
 
 export const ImportNotes = () => {
   const { user } = useAuth();
   const [importNotes, setImportNotes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Create Modal State
@@ -37,14 +39,16 @@ export const ImportNotes = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [notesRes, supRes, prodRes] = await Promise.all([
+      const [notesRes, supRes, prodRes, catRes] = await Promise.all([
         apiClient.importNotes.getAll(),
         apiClient.suppliers.getAll(),
-        apiClient.products.getAll({ limit: 100 }),
+        apiClient.products.getAll({ limit: 500 }),
+        apiClient.categories.getAll(),
       ]);
       setImportNotes(Array.isArray(notesRes.data) ? notesRes.data : (notesRes.data.items || []));
       setSuppliers(Array.isArray(supRes.data) ? supRes.data : (supRes.data.items || []));
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.items || []));
+      setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.items || []));
     } catch (err) {
       console.error('Lỗi tải phiếu nhập:', err);
     } finally {
@@ -59,11 +63,13 @@ export const ImportNotes = () => {
   const handleOpenCreate = () => {
     setSupplierId(suppliers[0]?.id || '');
     setNoteText('');
+    const defaultProd = products[0];
     setItems([
       {
-        product_id: products[0]?.id || '',
+        category_id: defaultProd?.category_id || '',
+        product_id: defaultProd?.id || '',
         quantity: 10,
-        unit_price: Math.round((products[0]?.standard_price || 100000) * 0.75),
+        unit_price: Math.round((defaultProd?.standard_price || 100000) * 0.75),
       },
     ]);
     setFormError(null);
@@ -76,6 +82,7 @@ export const ImportNotes = () => {
     setItems([
       ...items,
       {
+        category_id: defaultProd?.category_id || '',
         product_id: defaultProd.id,
         quantity: 1,
         unit_price: Math.round(defaultProd.standard_price * 0.75),
@@ -91,11 +98,27 @@ export const ImportNotes = () => {
   const handleItemChange = (idx, field, val) => {
     const updated = [...items];
     updated[idx][field] = val;
-    // Tự động gợi ý đơn giá nếu đổi sản phẩm
+
+    // Xử lý khi thay đổi nhóm hàng: Tự động lọc và chọn mặt hàng phù hợp
+    if (field === 'category_id') {
+      const catId = val;
+      const available = catId
+        ? products.filter((p) => p.category_id === Number(catId))
+        : products;
+      if (available.length > 0 && !available.some((p) => p.id === Number(updated[idx].product_id))) {
+        updated[idx].product_id = available[0].id;
+        updated[idx].unit_price = Math.round(available[0].standard_price * 0.75);
+      }
+    }
+
+    // Tự động gợi ý đơn giá và đồng bộ nhóm hàng nếu đổi sản phẩm
     if (field === 'product_id') {
       const p = products.find((prod) => prod.id === Number(val));
       if (p) {
         updated[idx].unit_price = Math.round(p.standard_price * 0.75);
+        if (p.category_id && updated[idx].category_id !== p.category_id) {
+          updated[idx].category_id = p.category_id;
+        }
       }
     }
     setItems(updated);
@@ -273,7 +296,7 @@ export const ImportNotes = () => {
               >
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.code} - {s.name}
+                    {s.name}
                   </option>
                 ))}
               </select>
@@ -304,60 +327,80 @@ export const ImportNotes = () => {
               </button>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {items.map((row, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-wood-200">
-                  <div className="flex-1">
-                    <select
-                      value={row.product_id}
-                      onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 focus:outline-none"
-                      required
-                    >
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.code} - {p.name} (Tồn: {p.current_stock})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-24">
-                    <input
-                      type="number"
-                      min="1"
-                      value={row.quantity}
-                      onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                      placeholder="Số lượng"
-                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-center focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="w-32">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={row.unit_price}
-                      onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
-                      placeholder="Giá nhập"
-                      className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-right focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="w-28 text-right font-medium text-xs text-wood-900 pr-1">
-                    {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItemRow(idx)}
-                    disabled={items.length <= 1}
-                    className="text-wood-400 hover:text-rust-500 disabled:opacity-30 p-1 cursor-pointer"
+              {items.map((row, idx) => {
+                const availableProducts = row.category_id
+                  ? products.filter((p) => p.category_id === Number(row.category_id))
+                  : products;
+
+                return (
+                  <div
+                    key={idx}
+                    style={{ zIndex: items.length - idx }}
+                    className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-white p-2 rounded-xl border border-wood-200 relative"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    {/* Chọn nhóm hàng */}
+                    <div className="w-36 shrink-0">
+                      <select
+                        value={row.category_id || ''}
+                        onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
+                        className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 focus:outline-none"
+                        title="Lọc danh sách theo nhóm hàng"
+                      >
+                        <option value="">-- Tất cả nhóm --</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Chọn tên hàng hóa hỗ trợ gõ tìm kiếm & gõ tắt chữ cái đầu */}
+                    <ProductSelect
+                      products={availableProducts}
+                      value={row.product_id}
+                      onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
+                      placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
+                      className="min-w-[170px]"
+                    />
+
+                    <div className="w-24">
+                      <input
+                        type="number"
+                        min="1"
+                        value={row.quantity}
+                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                        placeholder="Số lượng"
+                        className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-center focus:outline-none"
+                        required
+                      />
+                    </div>
+                    <div className="w-32">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={row.unit_price}
+                        onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                        placeholder="Giá nhập"
+                        className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-right focus:outline-none"
+                        required
+                      />
+                    </div>
+                    <div className="w-28 text-right font-medium text-xs text-wood-900 pr-1">
+                      {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItemRow(idx)}
+                      disabled={items.length <= 1}
+                      className="text-wood-400 hover:text-rust-500 disabled:opacity-30 p-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
 
             {/* Total Footer */}
             <div className="mt-3 pt-3 border-t border-wood-200 flex items-center justify-between text-xs">
@@ -426,7 +469,6 @@ export const ImportNotes = () => {
                       <tr key={d.id}>
                         <td className="p-2.5">
                           <p className="font-medium text-wood-900">{d.product_name}</p>
-                          <p className="text-[11px] font-mono text-wood-500">{d.product_code}</p>
                         </td>
                         <td className="p-2.5 text-center font-bold text-wood-900">{d.quantity}</td>
                         <td className="p-2.5 text-right text-wood-700">{d.unit_price?.toLocaleString()} đ</td>

@@ -83,7 +83,10 @@ export const apiClient = {
     getAll: () => api.get('/export-notes/'),
     getById: (id) => api.get(`/export-notes/${id}`),
     create: (data) => api.post('/export-notes/', data),
+    ship: (id) => api.post(`/export-notes/${id}/ship`),
+    complete: (id) => api.post(`/export-notes/${id}/complete`),
     cancel: (id) => api.post(`/export-notes/${id}/cancel`),
+    delete: (id) => api.delete(`/export-notes/${id}`),
   },
 
   // 7. Thẻ kho & Điều chỉnh kiểm kê

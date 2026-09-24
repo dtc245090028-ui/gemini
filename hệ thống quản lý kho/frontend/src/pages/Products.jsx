@@ -376,7 +376,7 @@ export const Products = ({ onSelectProductLedger }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Danh Mục Hàng Hóa</h2>
-          <p className="text-xs text-wood-600 mt-0.5">Quản lý mã SKU, đơn vị tính, định mức tồn kho an toàn và giá chuẩn</p>
+          <p className="text-xs text-wood-600 mt-0.5">Quản lý danh mục hàng hóa, đơn vị tính, định mức tồn kho an toàn và giá chuẩn</p>
         </div>
 
         {canEdit && (
@@ -399,7 +399,7 @@ export const Products = ({ onSelectProductLedger }) => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm theo mã SKU hoặc tên hàng..."
+              placeholder="Tìm kiếm theo tên hàng hóa..."
               className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
             />
           </div>
@@ -438,7 +438,6 @@ export const Products = ({ onSelectProductLedger }) => {
             <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
               <tr>
                 <th className="py-3.5 px-4 text-center w-24">Ảnh</th>
-                <th className="py-3.5 px-4">Mã SKU</th>
                 <th
                   onClick={() => handleSort('name')}
                   className="py-3.5 px-4 cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
@@ -479,13 +478,13 @@ export const Products = ({ onSelectProductLedger }) => {
             <tbody className="divide-y divide-wood-100">
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-10 text-wood-400">
+                  <td colSpan="9" className="text-center py-10 text-wood-400">
                     Đang tải danh sách hàng hóa...
                   </td>
                 </tr>
               ) : paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-10 text-wood-400">
+                  <td colSpan="9" className="text-center py-10 text-wood-400">
                     Không tìm thấy sản phẩm nào khớp với bộ lọc.
                   </td>
                 </tr>
@@ -524,7 +523,6 @@ export const Products = ({ onSelectProductLedger }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-semibold text-wood-700 align-middle">{p.code}</td>
                       <td className="py-3.5 px-4 font-medium text-wood-900 align-middle">{p.name}</td>
                       <td className="py-3.5 px-4 text-wood-600 align-middle">{p.category?.name || 'N/A'}</td>
                       <td className="py-3.5 px-4 text-center text-wood-600 align-middle">{p.unit}</td>
@@ -668,7 +666,7 @@ export const Products = ({ onSelectProductLedger }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Mã SKU</label>
+              <label className="block text-xs font-semibold text-wood-800 mb-1">Mã hàng hóa</label>
               <input
                 type="text"
                 disabled={modalMode === 'edit'}
@@ -795,7 +793,7 @@ export const Products = ({ onSelectProductLedger }) => {
                         <option value="">-- Chọn nhà cung cấp --</option>
                         {suppliers.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.name} ({s.code})
+                            {s.name}
                           </option>
                         ))}
                       </select>
