@@ -8,8 +8,11 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_current_user, get_db, require_roles
 from app.models.category import Category
 from app.models.product import Product
+from app.models.supplier import Supplier
 from app.models.user import User
+from app.schemas.import_note import ImportNoteCreate, ImportNoteDetailCreate
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.services.inventory_service import create_import_note
 
 router = APIRouter(prefix="/products", tags=["Hàng hóa & Tồn kho (Products)"])
 
@@ -90,7 +93,7 @@ def create_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
-    """Thêm mới một mặt hàng vào kho. Kiểm tra trùng SKU và nhóm hàng hợp lệ."""
+    """Thêm mới một mặt hàng vào kho. Kiểm tra trùng SKU, nhóm hàng hợp lệ và tùy chọn khởi tạo phiếu nhập kho đầu kỳ."""
     # 1. Kiểm tra nhóm hàng có tồn tại không
     category = db.query(Category).filter(Category.id == product_in.category_id).first()
     if not category:
@@ -108,21 +111,75 @@ def create_product(
             detail=f"Mã SKU '{sku_code}' đã tồn tại trong hệ thống.",
         )
 
-    # 3. Tạo sản phẩm mới
+    # 3. Kiểm tra nhà cung cấp nếu có yêu cầu tạo phiếu nhập ban đầu
+    has_initial_import = (
+        product_in.initial_supplier_id is not None
+        and product_in.initial_quantity is not None
+        and product_in.initial_quantity > 0
+    )
+    if product_in.initial_supplier_id is not None and not has_initial_import:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Số lượng nhập kho ban đầu phải lớn hơn 0 khi chọn nhà cung cấp.",
+        )
+
+    if has_initial_import:
+        supplier = db.query(Supplier).filter(Supplier.id == product_in.initial_supplier_id).first()
+        if not supplier:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nhà cung cấp với ID {product_in.initial_supplier_id} không tồn tại trong hệ thống.",
+            )
+
+    # 4. Tạo sản phẩm mới
+    # Nếu có phiếu nhập ban đầu, tồn ban đầu bắt đầu từ 0 để create_import_note tăng lên và ghi Thẻ kho (StockLedger) chính xác
+    starting_stock = 0 if has_initial_import else product_in.current_stock
+
     product = Product(
         code=sku_code,
         name=product_in.name.strip(),
         category_id=product_in.category_id,
         unit=product_in.unit.strip(),
         min_stock=product_in.min_stock,
-        current_stock=product_in.current_stock,
+        current_stock=starting_stock,
         standard_price=product_in.standard_price,
         image_url=product_in.image_url.strip() if product_in.image_url else None,
         status=product_in.status.upper(),
     )
     db.add(product)
-    db.commit()
-    db.refresh(product)
+
+    if has_initial_import:
+        db.flush()  # Sinh product.id phục vụ lập phiếu nhập
+
+        unit_price = (
+            product_in.initial_unit_price
+            if product_in.initial_unit_price is not None
+            else product_in.standard_price
+        )
+        import_note_in = ImportNoteCreate(
+            supplier_id=product_in.initial_supplier_id,
+            note=product_in.initial_note.strip()
+            if product_in.initial_note
+            else f"Nhập kho ban đầu khi tạo sản phẩm {product.code}",
+            details=[
+                ImportNoteDetailCreate(
+                    product_id=product.id,
+                    quantity=product_in.initial_quantity,
+                    unit_price=unit_price,
+                )
+            ],
+        )
+        created_note = create_import_note(
+            db=db,
+            note_in=import_note_in,
+            current_user_id=current_user.id,
+        )
+        db.refresh(product)
+        setattr(product, "initial_import_note_code", created_note.code)
+    else:
+        db.commit()
+        db.refresh(product)
+
     return product
 
 

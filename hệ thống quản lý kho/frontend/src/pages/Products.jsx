@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Package,
   Plus,
@@ -12,6 +12,12 @@ import {
   XCircle,
   Image as ImageIcon,
   Upload,
+  ArrowDownToLine,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -22,12 +28,19 @@ export const Products = ({ onSelectProductLedger }) => {
   const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   // Filters State
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+
+  // Pagination & Sorting State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,6 +57,11 @@ export const Products = ({ onSelectProductLedger }) => {
     min_stock: 10,
     standard_price: 100000,
     image_url: '',
+    has_initial_import: false,
+    initial_supplier_id: '',
+    initial_quantity: 10,
+    initial_unit_price: 70000,
+    initial_note: '',
   });
   const [formError, setFormError] = useState(null);
 
@@ -59,6 +77,15 @@ export const Products = ({ onSelectProductLedger }) => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const res = await apiClient.suppliers.getAll();
+      setSuppliers(Array.isArray(res.data) ? res.data : (res.data.items || []));
+    } catch (err) {
+      console.error('Lỗi tải nhà cung cấp:', err);
+    }
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -66,7 +93,7 @@ export const Products = ({ onSelectProductLedger }) => {
       if (search) params.search = search;
       if (selectedCategory) params.category_id = selectedCategory;
       if (filterLowStock) params.is_low_stock = true;
-      params.limit = 100;
+      params.limit = 500;
 
       const res = await apiClient.products.getAll(params);
       setProducts(Array.isArray(res.data) ? res.data : (res.data.items || []));
@@ -79,25 +106,119 @@ export const Products = ({ onSelectProductLedger }) => {
 
   useEffect(() => {
     fetchCategories();
+    fetchSuppliers();
   }, []);
 
   useEffect(() => {
     fetchProducts();
   }, [search, selectedCategory, filterLowStock]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, filterLowStock]);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  // Sắp xếp dữ liệu
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') {
+          return { key, direction: 'desc' };
+        }
+        return { key: null, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortedProducts = useMemo(() => {
+    if (!sortConfig.key) return products;
+    return [...products].sort((a, b) => {
+      if (sortConfig.key === 'name') {
+        const comp = (a.name || '').localeCompare(b.name || '', 'vi', { sensitivity: 'base' });
+        return sortConfig.direction === 'asc' ? comp : -comp;
+      }
+      if (sortConfig.key === 'standard_price') {
+        const diff = (a.standard_price || 0) - (b.standard_price || 0);
+        return sortConfig.direction === 'asc' ? diff : -diff;
+      }
+      if (sortConfig.key === 'current_stock') {
+        const diff = (a.current_stock || 0) - (b.current_stock || 0);
+        return sortConfig.direction === 'asc' ? diff : -diff;
+      }
+      return 0;
+    });
+  }, [products, sortConfig]);
+
+  // Phân trang dữ liệu
+  const totalItems = sortedProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return sortedProducts.slice(startIndex, startIndex + pageSize);
+  }, [sortedProducts, safeCurrentPage, pageSize]);
+
+  const startItem = totalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endItem = Math.min(totalItems, safeCurrentPage * pageSize);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, safeCurrentPage - 2);
+      let end = Math.min(totalPages, start + maxPagesToShow - 1);
+      if (end - start < maxPagesToShow - 1) {
+        start = Math.max(1, end - maxPagesToShow + 1);
+      }
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
+  };
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return (
+        <ArrowUpDown className="w-3.5 h-3.5 text-wood-400 group-hover:text-wood-600 transition-colors shrink-0" />
+      );
+    }
+    return sortConfig.direction === 'asc' ? (
+      <ArrowUp className="w-3.5 h-3.5 text-forest-700 font-bold shrink-0" />
+    ) : (
+      <ArrowDown className="w-3.5 h-3.5 text-rust-700 font-bold shrink-0" />
+    );
+  };
+
   const handleOpenCreate = () => {
     setModalMode('create');
     setCurrentProduct(null);
     setImageFile(null);
     setImagePreview(null);
+    const defaultPrice = 100000;
     setFormData({
       code: `SP${String(products.length + 1).padStart(3, '0')}`,
       name: '',
       category_id: categories[0]?.id || '',
       unit: 'Chiếc',
       min_stock: 10,
-      standard_price: 100000,
+      standard_price: defaultPrice,
       image_url: '',
+      has_initial_import: false,
+      initial_supplier_id: suppliers[0]?.id || '',
+      initial_quantity: 10,
+      initial_unit_price: Math.round(defaultPrice * 0.7),
+      initial_note: '',
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -116,6 +237,11 @@ export const Products = ({ onSelectProductLedger }) => {
       min_stock: p.min_stock,
       standard_price: p.standard_price,
       image_url: p.image_url || '',
+      has_initial_import: false,
+      initial_supplier_id: '',
+      initial_quantity: 10,
+      initial_unit_price: '',
+      initial_note: '',
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -134,14 +260,37 @@ export const Products = ({ onSelectProductLedger }) => {
     setFormError(null);
     try {
       let productId;
+      let createdProductData = null;
       if (modalMode === 'create') {
-        const res = await apiClient.products.create({
-          ...formData,
+        const payload = {
+          code: formData.code,
+          name: formData.name,
           category_id: Number(formData.category_id),
+          unit: formData.unit,
           min_stock: Number(formData.min_stock),
           standard_price: Number(formData.standard_price),
           image_url: formData.image_url || undefined,
-        });
+        };
+
+        if (formData.has_initial_import) {
+          if (!formData.initial_supplier_id) {
+            setFormError('Vui lòng chọn nhà cung cấp cho phiếu nhập ban đầu.');
+            return;
+          }
+          if (Number(formData.initial_quantity) <= 0) {
+            setFormError('Số lượng nhập kho ban đầu phải lớn hơn 0.');
+            return;
+          }
+          payload.initial_supplier_id = Number(formData.initial_supplier_id);
+          payload.initial_quantity = Number(formData.initial_quantity);
+          payload.initial_unit_price = Number(formData.initial_unit_price) || 0;
+          if (formData.initial_note) {
+            payload.initial_note = formData.initial_note;
+          }
+        }
+
+        const res = await apiClient.products.create(payload);
+        createdProductData = res.data;
         productId = res.data?.id;
       } else {
         const res = await apiClient.products.update(currentProduct.id, {
@@ -164,6 +313,25 @@ export const Products = ({ onSelectProductLedger }) => {
 
       setIsModalOpen(false);
       fetchProducts();
+
+      if (modalMode === 'create' && createdProductData) {
+        if (createdProductData.initial_import_note_code) {
+          setNotification({
+            type: 'success',
+            message: `Tạo mặt hàng [${createdProductData.code}] "${createdProductData.name}" thành công và tự động lập Phiếu nhập kho ${createdProductData.initial_import_note_code} (+${formData.initial_quantity} ${formData.unit})!`,
+          });
+        } else {
+          setNotification({
+            type: 'success',
+            message: `Tạo mới mặt hàng [${createdProductData.code}] "${createdProductData.name}" thành công!`,
+          });
+        }
+      } else {
+        setNotification({
+          type: 'success',
+          message: 'Cập nhật thông tin mặt hàng thành công!',
+        });
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || 'Đã có lỗi xảy ra khi lưu mặt hàng.';
       setFormError(msg);
@@ -182,6 +350,28 @@ export const Products = ({ onSelectProductLedger }) => {
 
   return (
     <div className="space-y-6">
+      {/* Thông báo thao tác */}
+      {notification && (
+        <div
+          className={`p-3.5 rounded-xl border flex items-center justify-between transition-all duration-300 shadow-2xs ${
+            notification.type === 'success'
+              ? 'bg-forest-50 border-forest-200 text-forest-800'
+              : 'bg-rust-50 border-rust-200 text-rust-800'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <CheckCircle className="w-5 h-5 text-forest-600 shrink-0" />
+            <span className="text-xs sm:text-sm font-medium">{notification.message}</span>
+          </div>
+          <button
+            onClick={() => setNotification(null)}
+            className="p-1 hover:bg-forest-100 rounded-lg text-forest-600 transition-colors cursor-pointer"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -249,12 +439,39 @@ export const Products = ({ onSelectProductLedger }) => {
               <tr>
                 <th className="py-3.5 px-4 text-center w-24">Ảnh</th>
                 <th className="py-3.5 px-4">Mã SKU</th>
-                <th className="py-3.5 px-4">Tên hàng hóa</th>
+                <th
+                  onClick={() => handleSort('name')}
+                  className="py-3.5 px-4 cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
+                  title="Bấm để sắp xếp theo Tên hàng hóa"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Tên hàng hóa</span>
+                    {renderSortIcon('name')}
+                  </div>
+                </th>
                 <th className="py-3.5 px-4">Nhóm hàng</th>
                 <th className="py-3.5 px-4 text-center">ĐVT</th>
-                <th className="py-3.5 px-4 text-center">Tồn hiện tại</th>
+                <th
+                  onClick={() => handleSort('current_stock')}
+                  className="py-3.5 px-4 text-center cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
+                  title="Bấm để sắp xếp theo Tồn hiện tại"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>Tồn hiện tại</span>
+                    {renderSortIcon('current_stock')}
+                  </div>
+                </th>
                 <th className="py-3.5 px-4 text-center">Tồn an toàn</th>
-                <th className="py-3.5 px-4 text-right">Giá chuẩn</th>
+                <th
+                  onClick={() => handleSort('standard_price')}
+                  className="py-3.5 px-4 text-right cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
+                  title="Bấm để sắp xếp theo Giá chuẩn"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Giá chuẩn</span>
+                    {renderSortIcon('standard_price')}
+                  </div>
+                </th>
                 <th className="py-3.5 px-4 text-center">Trạng thái</th>
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
@@ -266,14 +483,14 @@ export const Products = ({ onSelectProductLedger }) => {
                     Đang tải danh sách hàng hóa...
                   </td>
                 </tr>
-              ) : products.length === 0 ? (
+              ) : paginatedProducts.length === 0 ? (
                 <tr>
                   <td colSpan="10" className="text-center py-10 text-wood-400">
                     Không tìm thấy sản phẩm nào khớp với bộ lọc.
                   </td>
                 </tr>
               ) : (
-                products.map((p) => {
+                paginatedProducts.map((p) => {
                   const isLow = p.current_stock <= p.min_stock;
                   return (
                     <tr key={p.id} className="hover:bg-wood-50/80 transition-colors">
@@ -367,6 +584,72 @@ export const Products = ({ onSelectProductLedger }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        <div className="px-4 py-3.5 bg-wood-50/80 border-t border-wood-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-wood-700">
+          {/* Thông tin số lượng & Chọn pageSize */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <span>
+              Hiển thị <span className="font-semibold text-wood-900">{startItem} - {endItem}</span> trong tổng số{' '}
+              <span className="font-semibold text-wood-900">{totalItems}</span> mặt hàng
+            </span>
+
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="text-wood-500 text-[11px]">Dòng/trang:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="py-1 px-2 bg-white border border-wood-300 rounded-lg text-xs text-wood-900 focus:outline-none focus:ring-1 focus:ring-wood-500 cursor-pointer shadow-2xs"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Cụm nút điều hướng phân trang */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-wood-300 bg-white text-wood-700 hover:bg-wood-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+              title="Trang trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Trước</span>
+            </button>
+
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    pageNum === safeCurrentPage
+                      ? 'bg-wood-800 text-white font-bold shadow-2xs'
+                      : 'bg-white border border-wood-200 text-wood-700 hover:bg-wood-100'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-wood-300 bg-white text-wood-700 hover:bg-wood-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+              title="Trang sau"
+            >
+              <span className="hidden sm:inline">Sau</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Modal Thêm / Sửa Mặt Hàng */}
@@ -456,12 +739,122 @@ export const Products = ({ onSelectProductLedger }) => {
                 min="0"
                 step="1000"
                 value={formData.standard_price}
-                onChange={(e) => setFormData({ ...formData, standard_price: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    standard_price: val,
+                    initial_unit_price: formData.has_initial_import
+                      ? formData.initial_unit_price
+                      : Math.round(Number(val || 0) * 0.7),
+                  });
+                }}
                 className="input-wood"
                 required
               />
             </div>
           </div>
+
+          {/* Khởi tạo tồn kho ban đầu (Tự động tạo Phiếu nhập kho) */}
+          {modalMode === 'create' && (
+            <div className="p-3.5 bg-forest-50/60 rounded-xl border border-forest-200/90 space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.has_initial_import}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFormData({
+                      ...formData,
+                      has_initial_import: checked,
+                      initial_supplier_id: checked ? (formData.initial_supplier_id || suppliers[0]?.id || '') : '',
+                      initial_unit_price: checked ? (formData.initial_unit_price || Math.round(Number(formData.standard_price || 0) * 0.7)) : '',
+                    });
+                  }}
+                  className="w-4 h-4 rounded text-forest-600 focus:ring-forest-500 accent-forest-600 cursor-pointer"
+                />
+                <span className="text-xs font-bold text-forest-950 flex items-center gap-1.5">
+                  <ArrowDownToLine className="w-4 h-4 text-forest-600" />
+                  Khởi tạo tồn kho ban đầu (Tự động tạo Phiếu nhập kho)
+                </span>
+              </label>
+
+              {formData.has_initial_import && (
+                <div className="pt-2.5 border-t border-forest-200/60 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-forest-900 mb-1">
+                        Nhà cung cấp <span className="text-rust-500">*</span>
+                      </label>
+                      <select
+                        value={formData.initial_supplier_id}
+                        onChange={(e) => setFormData({ ...formData, initial_supplier_id: e.target.value })}
+                        className="input-wood bg-white text-xs"
+                        required={formData.has_initial_import}
+                      >
+                        <option value="">-- Chọn nhà cung cấp --</option>
+                        {suppliers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-forest-900 mb-1">
+                          Số lượng nhập <span className="text-rust-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.initial_quantity}
+                          onChange={(e) => setFormData({ ...formData, initial_quantity: e.target.value })}
+                          className="input-wood bg-white text-xs"
+                          required={formData.has_initial_import}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-forest-900 mb-1">
+                          Đơn giá nhập (đ) <span className="text-rust-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={formData.initial_unit_price}
+                          onChange={(e) => setFormData({ ...formData, initial_unit_price: e.target.value })}
+                          className="input-wood bg-white text-xs"
+                          required={formData.has_initial_import}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-forest-900 mb-1">
+                      Ghi chú phiếu nhập ban đầu
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.initial_note}
+                      onChange={(e) => setFormData({ ...formData, initial_note: e.target.value })}
+                      placeholder="VD: Nhập kho ban đầu khi tạo danh mục..."
+                      className="input-wood bg-white text-xs"
+                    />
+                  </div>
+
+                  <div className="p-2.5 bg-forest-100/70 border border-forest-200/80 rounded-lg text-xs text-forest-900 flex items-center justify-between font-medium">
+                    <span>Tổng tiền phiếu nhập dự kiến:</span>
+                    <span className="font-bold text-forest-800 text-sm">
+                      {((Number(formData.initial_quantity) || 0) * (Number(formData.initial_unit_price) || 0)).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Hình ảnh mặt hàng */}
           <div className="p-3.5 bg-wood-50/70 rounded-xl border border-wood-200 space-y-2.5">

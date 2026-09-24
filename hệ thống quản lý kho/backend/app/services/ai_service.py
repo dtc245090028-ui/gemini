@@ -33,6 +33,20 @@ from app.services.fallback_service import FallbackService
 
 logger = logging.getLogger(__name__)
 
+# Cấu hình log lỗi ra file chuyên dụng logs/ai_service.log để phục vụ debug
+LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+log_file = LOGS_DIR / "ai_service.log"
+
+if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)s in %(module)s (line %(lineno)d): %(message)s"
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "ai" / "prompts"
 
 
@@ -374,7 +388,10 @@ class AIService:
             )
 
         except Exception as e:
-            logger.warning(f"Lỗi khi gọi Gemini API cho monthly-report ({e}). Kích hoạt Heuristic Fallback.")
+            logger.error(
+                f"Lỗi khi gọi Gemini API cho monthly-report: {e}. Kích hoạt Heuristic Fallback.",
+                exc_info=True,
+            )
             summary, recs = FallbackService.generate_monthly_report_fallback(metrics, period_str)
             return MonthlyReportResponse(
                 period=period_str,
@@ -473,7 +490,10 @@ class AIService:
             )
 
         except Exception as e:
-            logger.warning(f"Lỗi khi gọi Gemini API cho restock-suggestions ({e}). Dùng Fallback.")
+            logger.error(
+                f"Lỗi khi gọi Gemini API cho restock-suggestions: {e}. Dùng Fallback.",
+                exc_info=True,
+            )
             return RestockSuggestionsResponse(
                 lookback_days=lookback_days,
                 is_fallback=True,
@@ -565,7 +585,10 @@ class AIService:
             )
 
         except Exception as e:
-            logger.warning(f"Lỗi khi gọi Gemini API cho anomalies ({e}). Dùng Fallback.")
+            logger.error(
+                f"Lỗi khi gọi Gemini API cho anomalies: {e}. Dùng Fallback.",
+                exc_info=True,
+            )
             return AnomalyDetectionResponse(
                 lookback_days=lookback_days,
                 is_fallback=True,

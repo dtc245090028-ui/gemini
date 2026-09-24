@@ -256,3 +256,102 @@ def test_crud_supplier_lifecycle(client, admin_headers, thukho_headers):
     del_res = client.delete(f"/api/v1/suppliers/{sup_id}", headers=admin_headers)
     assert del_res.status_code == 200
     assert del_res.json()["success"] is True
+
+
+def test_product_creation_with_initial_import_note(client, admin_headers):
+    """Kiểm tra tính năng tự động tạo phiếu nhập kho và ghi thẻ kho khi thêm mới sản phẩm."""
+    import uuid
+
+    suffix = uuid.uuid4().hex[:6].upper()
+    cat_code = f"CAT-INIT-{suffix}"
+    sup_code = f"SUP-INIT-{suffix}"
+    prod_code = f"SP-INIT-{suffix}"
+
+    # 1. Tạo Category và Supplier phục vụ kiểm thử
+    cat_res = client.post(
+        "/api/v1/categories/",
+        json={"code": cat_code, "name": "Nhóm thử nghiệm phiếu nhập đầu kỳ"},
+        headers=admin_headers,
+    )
+    assert cat_res.status_code == 201
+    cat_id = cat_res.json()["id"]
+
+    sup_res = client.post(
+        "/api/v1/suppliers/",
+        json={"code": sup_code, "name": "NCC Thử nghiệm đầu kỳ"},
+        headers=admin_headers,
+    )
+    assert sup_res.status_code == 201
+    sup_id = sup_res.json()["id"]
+
+    prod_id = None
+    try:
+        # 2. Thử tạo sản phẩm với NCC không tồn tại -> Báo lỗi 400
+        bad_res = client.post(
+            "/api/v1/products/",
+            json={
+                "code": f"SP-FAIL-{suffix}",
+                "name": "Sản phẩm lỗi NCC",
+                "category_id": cat_id,
+                "unit": "Hộp",
+                "standard_price": 50000.0,
+                "initial_supplier_id": 999999,
+                "initial_quantity": 10,
+            },
+            headers=admin_headers,
+        )
+        assert bad_res.status_code == 400
+        assert "không tồn tại" in bad_res.json()["detail"]
+
+        # 3. Tạo sản phẩm hợp lệ kèm tự động tạo phiếu nhập ban đầu
+        create_res = client.post(
+            "/api/v1/products/",
+            json={
+                "code": prod_code,
+                "name": "Sản phẩm khởi tạo tồn kho",
+                "category_id": cat_id,
+                "unit": "Chiếc",
+                "min_stock": 5,
+                "standard_price": 100000.0,
+                "initial_supplier_id": sup_id,
+                "initial_quantity": 20,
+                "initial_unit_price": 70000.0,
+                "initial_note": "Nhập kho ban đầu khi thiết lập danh mục",
+            },
+            headers=admin_headers,
+        )
+        assert create_res.status_code == 201
+        created_prod = create_res.json()
+        prod_id = created_prod["id"]
+
+        # Kiểm tra tồn kho đã được tăng lên 20 và có mã phiếu nhập trả về
+        assert created_prod["current_stock"] == 20
+        assert created_prod["initial_import_note_code"] is not None
+        note_code = created_prod["initial_import_note_code"]
+        assert note_code.startswith("PN-")
+
+        # 4. Kiểm tra phiếu nhập kho trong CSDL
+        note_res = client.get("/api/v1/import-notes/", headers=admin_headers)
+        assert note_res.status_code == 200
+        matched_notes = [n for n in note_res.json() if n["code"] == note_code]
+        assert len(matched_notes) == 1
+        note_data = matched_notes[0]
+        assert note_data["supplier_id"] == sup_id
+        assert note_data["status"] == "COMPLETED"
+        assert note_data["total_amount"] == 20 * 70000.0
+
+        # 5. Kiểm tra Thẻ kho (StockLedger) có ghi nhận giao dịch IMPORT
+        ledger_res = client.get(f"/api/v1/stock-ledger/?product_id={prod_id}", headers=admin_headers)
+        assert ledger_res.status_code == 200
+        ledger_items = ledger_res.json()
+        assert len(ledger_items) == 1
+        assert ledger_items[0]["transaction_type"] == "IMPORT"
+        assert ledger_items[0]["reference_code"] == note_code
+        assert ledger_items[0]["quantity_change"] == 20
+        assert ledger_items[0]["balance_after"] == 20
+    finally:
+        # Dọn dẹp an toàn
+        if prod_id:
+            client.delete(f"/api/v1/products/{prod_id}", headers=admin_headers)
+        client.delete(f"/api/v1/suppliers/{sup_id}", headers=admin_headers)
+        client.delete(f"/api/v1/categories/{cat_id}", headers=admin_headers)
