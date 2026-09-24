@@ -1,0 +1,107 @@
+[
+  {
+    "id": "SCENARIO_01",
+    "persona_name": "Nguyễn Văn Tuấn",
+    "role": "individual",
+    "desired_category": "Máy tính xách tay & Laptop",
+    "context_reason": "Khách hàng sinh viên mua laptop phục vụ năm học mới, quan tâm chính sách hỗ trợ giá học sinh - sinh viên."
+  },
+  {
+    "id": "SCENARIO_02",
+    "persona_name": "Lê Thị Thảo",
+    "role": "individual",
+    "desired_category": "Phụ kiện máy tính",
+    "context_reason": "Nhân viên văn phòng mua bộ chuột và bàn phím không dây làm việc từ xa tại nhà."
+  },
+  {
+    "id": "SCENARIO_03",
+    "persona_name": "Trần Quốc Hưng",
+    "role": "individual",
+    "desired_category": "Linh kiện phần cứng",
+    "context_reason": "Game thủ cá nhân nâng cấp ổ cứng SSD NVMe và thanh RAM để chơi game đồ họa nặng."
+  },
+  {
+    "id": "SCENARIO_04",
+    "persona_name": "Phạm Minh Đức",
+    "role": "individual",
+    "desired_category": "Thiết bị ngoại vi",
+    "context_reason": "Lập trình viên mua màn hình ngoài 24-27 inch mở rộng không gian làm việc đa nhiệm."
+  },
+  {
+    "id": "SCENARIO_05",
+    "persona_name": "Hoàng Bảo Ngọc",
+    "role": "individual",
+    "desired_category": "Điện thoại & Thiết bị di động",
+    "context_reason": "Khách hàng cá nhân đổi điện thoại thông minh mới nhân dịp sinh nhật, thanh toán nhận máy ngay."
+  },
+  {
+    "id": "SCENARIO_06",
+    "persona_name": "Công ty TNHH Phần Mềm F-Tech",
+    "role": "company",
+    "desired_category": "Máy tính xách tay & Laptop",
+    "context_reason": "Doanh nghiệp công nghệ trang bị dàn laptop mới cho đội ngũ nhân sự lập trình vừa onboard đợt tuyển dụng."
+  },
+  {
+    "id": "SCENARIO_07",
+    "persona_name": "Công ty CP Đầu Tư & Xây Dựng An Phát",
+    "role": "company",
+    "desired_category": "Máy tính để bàn & PC",
+    "context_reason": "Doanh nghiệp mua lô máy tính để bàn đồng bộ trang bị cho khối văn phòng chi nhánh mới."
+  },
+  {
+    "id": "SCENARIO_08",
+    "persona_name": "Văn phòng Luật Sư Trí Dũng",
+    "role": "company",
+    "desired_category": "Thiết bị mạng",
+    "context_reason": "Nâng cấp toàn bộ hệ thống mạng nội bộ và thiết bị Wifi Mesh cho tòa nhà văn phòng 3 tầng."
+  },
+  {
+    "id": "SCENARIO_09",
+    "persona_name": "Trung Tâm Ngoại Ngữ Quốc Tế V-Edu",
+    "role": "company",
+    "desired_category": "Thiết bị ngoại vi",
+    "context_reason": "Mua sắm hệ thống màn hình máy tính và webcam HD cho các phòng đào tạo và học trực tuyến."
+  },
+  {
+    "id": "SCENARIO_10",
+    "persona_name": "Công ty TNHH Thiết Kế Sáng Tạo GreenArt",
+    "role": "company",
+    "desired_category": "Linh kiện phần cứng",
+    "context_reason": "Nâng cấp linh kiện RAM và ổ cứng SSD tốc độ cao cho dàn máy render đồ họa kiến trúc."
+  },
+  {
+    "id": "SCENARIO_11",
+    "persona_name": "Đại Lý Tin Học Nam Long",
+    "role": "dealer",
+    "desired_category": "Phụ kiện máy tính",
+    "context_reason": "Đại lý bán lẻ máy tính nhập sỉ chuột, bàn phím và tai nghe chuẩn bị cho chương trình khuyến mãi đầu tháng."
+  },
+  {
+    "id": "SCENARIO_12",
+    "persona_name": "Cửa Hàng Điện Tử & Phụ Kiện Tuấn Khang",
+    "role": "dealer",
+    "desired_category": "Phụ kiện máy tính",
+    "context_reason": "Cửa hàng đại lý nhập sỉ cáp sạc, củ sạc nhanh và sạc dự phòng phục vụ khách lẻ khu vực đại học."
+  },
+  {
+    "id": "SCENARIO_13",
+    "persona_name": "Đại Lý Phân Phối Thiết Bị Số Đông Á",
+    "role": "dealer",
+    "desired_category": "Linh kiện phần cứng",
+    "context_reason": "Nhà phân phối cấp 2 gom đơn sỉ ổ cứng di động, thẻ nhớ và USB để phân phối lại cho các shop tỉnh."
+  },
+  {
+    "id": "SCENARIO_14",
+    "persona_name": "Chuỗi Cửa Hàng Bán Lẻ TechZone",
+    "role": "dealer",
+    "desired_category": "Thiết bị ngoại vi",
+    "context_reason": "Chuỗi cửa hàng nhập lô loa Bluetooth di động phục vụ sự kiện kích cầu mua sắm cuối tuần."
+  },
+  {
+    "id": "SCENARIO_15",
+    "persona_name": "Đại Lý Thiết Bị Viễn Thông Miền Nam",
+    "role": "dealer",
+    "desired_category": "Thiết bị mạng",
+    "context_reason": "Đại lý viễn thông nhập số lượng lớn router Wifi 6 và switch chia mạng phục vụ khách hàng dự án nhà trọ, khách sạn."
+  }
+]

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Trí tuệ nhân tạo
     GEMINI_API_KEY: str = ""
     AI_PROVIDER: str = "gemini"
-    AI_MODEL_NAME: str = "gemini-1.5-flash"
+    AI_MODEL_NAME: str = "gemini-3.5-flash-lite"
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [

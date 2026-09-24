@@ -1,0 +1,57 @@
+{
+  "monthly_report:2026_09": {
+    "date": "2026-09-25",
+    "cached_at": "2026-09-25 01:13:47",
+    "data": {
+      "period": "09/2026",
+      "is_fallback": false,
+      "provider": "gemini",
+      "metrics": {
+        "total_products": 89,
+        "active_products": 43,
+        "total_imports_qty": 600,
+        "total_exports_qty": 911,
+        "low_stock_count": 9,
+        "top_exported_products": [
+          {
+            "product_id": 1,
+            "product_code": "SKU-ACID-01",
+            "product_name": "Ổ cứng SSD NVMe 1TB",
+            "quantity": 130
+          },
+          {
+            "product_id": 3,
+            "product_code": "AI_SP02_SURGE",
+            "product_name": "Miếng dán camera iPhone 18 Pro Nhựa Cứng Thủy Tinh UNIQ OPTIX",
+            "quantity": 125
+          },
+          {
+            "product_id": 2,
+            "product_code": "AI_SP01_FAST",
+            "product_name": "Bao da Smart Folio cho iPad Air M2/M4 11 inch",
+            "quantity": 100
+          },
+          {
+            "product_id": 29,
+            "product_code": "SKU_E2E_120920994502",
+            "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
+            "quantity": 50
+          },
+          {
+            "product_id": 30,
+            "product_code": "SKU_E2E_121134649607",
+            "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
+            "quantity": 50
+          }
+        ]
+      },
+      "executive_summary": "Trong kỳ báo cáo 09/2026, kho hàng quản lý tổng cộng 89 mặt hàng với 43 sản phẩm có phát sinh giao dịch. Tổng lượng xuất kho (911 đơn vị) đang vượt đáng kể so với tổng lượng nhập kho (600 đơn vị), cho thấy nhu cầu tiêu thụ cao và có nguy cơ cạn kiệt nguồn hàng. Hiện tại, có 9 mặt hàng đang nằm dưới mức tồn kho tối thiểu cần được chú ý. Các sản phẩm chủ lực dẫn đầu về sức tiêu thụ bao gồm Ổ cứng SSD NVMe 1TB, Miếng dán camera iPhone 18 Pro và Bao da Smart Folio cho iPad Air.",
+      "recommendations": [
+        "Khẩn trương bổ sung hàng hóa cho 9 mặt hàng đang có số lượng dưới mức tồn tối thiểu để tránh tình trạng đứt gãy chuỗi cung ứng.",
+        "Xem xét điều chỉnh tăng kế hoạch nhập kho cho các sản phẩm có tốc độ xuất kho cao trong top đầu như ổ cứng SSD, miếng dán camera và bao da iPad nhằm đáp ứng kịp thời nhu cầu thị trường trong kỳ tiếp theo.",
+        "Đánh giá lại hiệu quả của 46 mặt hàng không phát sinh giao dịch trong kỳ để có chiến lược xả hàng tồn kho hoặc tối ưu hóa danh mục sản phẩm."
+      ],
+      "is_cached": false
+    }
+  }
+}

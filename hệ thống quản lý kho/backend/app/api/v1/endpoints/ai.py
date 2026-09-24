@@ -29,12 +29,13 @@ router = APIRouter(prefix="/ai", tags=["Trí tuệ nhân tạo (AI)"])
 def get_ai_monthly_report(
     month: Optional[int] = Query(None, ge=1, le=12, description="Tháng báo cáo (1-12)"),
     year: Optional[int] = Query(None, ge=2020, le=2100, description="Năm báo cáo"),
+    force_refresh: bool = Query(False, description="Bỏ qua cache và phân tích lại"),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles([UserRole.ADMIN, UserRole.WAREHOUSE_KEEPER, UserRole.ACCOUNTANT])
     ),
 ):
-    return AIService.generate_monthly_report(db, month=month, year=year)
+    return AIService.generate_monthly_report(db, month=month, year=year, force_refresh=force_refresh)
 
 
 @router.get(
@@ -50,12 +51,13 @@ def get_ai_restock_suggestions(
     lookback_days: int = Query(
         30, ge=1, le=365, description="Số ngày phân tích lịch sử xuất (mặc định 30 ngày)"
     ),
+    force_refresh: bool = Query(False, description="Bỏ qua cache và phân tích lại"),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles([UserRole.ADMIN, UserRole.WAREHOUSE_KEEPER, UserRole.ACCOUNTANT])
     ),
 ):
-    return AIService.generate_restock_suggestions(db, lookback_days=lookback_days)
+    return AIService.generate_restock_suggestions(db, lookback_days=lookback_days, force_refresh=force_refresh)
 
 
 @router.get(
@@ -71,9 +73,10 @@ def get_ai_anomalies(
     lookback_days: int = Query(
         30, ge=1, le=365, description="Số ngày phân tích lịch sử (mặc định 30 ngày)"
     ),
+    force_refresh: bool = Query(False, description="Bỏ qua cache và phân tích lại"),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles([UserRole.ADMIN, UserRole.WAREHOUSE_KEEPER, UserRole.ACCOUNTANT])
     ),
 ):
-    return AIService.generate_anomaly_detection(db, lookback_days=lookback_days)
+    return AIService.generate_anomaly_detection(db, lookback_days=lookback_days, force_refresh=force_refresh)

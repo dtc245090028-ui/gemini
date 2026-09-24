@@ -33,6 +33,7 @@ class MonthlyReportResponse(BaseModel):
     metrics: MonthlyReportMetrics
     executive_summary: str = Field(..., description="Tóm tắt nhận xét điều hành từ AI hoặc Fallback")
     recommendations: List[str] = Field(default_factory=list, description="Các khuyến nghị quản lý kho")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
 
 
 # ==========================================
@@ -61,6 +62,7 @@ class RestockSuggestionsResponse(BaseModel):
     total_suggested_items: int = Field(..., description="Tổng số mặt hàng được gợi ý nhập")
     items: List[RestockSuggestionItem] = Field(default_factory=list)
     executive_summary: str = Field(..., description="Tóm tắt tình hình bổ sung kho")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
 
 
 # ==========================================
@@ -86,3 +88,4 @@ class AnomalyDetectionResponse(BaseModel):
     total_anomalies: int = Field(..., description="Tổng số trường hợp bất thường phát hiện")
     anomalies: List[AnomalyItem] = Field(default_factory=list)
     executive_summary: str = Field(..., description="Tóm tắt nhận định các bất thường")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
