@@ -15,9 +15,59 @@ import {
   Archive,
   RefreshCw,
   Loader2,
+  MessageSquare,
+  Send,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import Badge from '../components/Badge';
+
+const renderFormattedAnswer = (text) => {
+  if (!text) return null;
+  return text.split('\n').map((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={idx} className="h-2" />;
+
+    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+      return (
+        <p key={idx} className="font-bold text-wood-950 text-xs mt-2 mb-1">
+          {trimmed.slice(2, -2)}
+        </p>
+      );
+    }
+
+    if (trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      const content = trimmed.replace(/^[•\-\*]\s*/, '');
+      const parts = content.split(/(\*\*.*?\*\*)/g);
+      return (
+        <div key={idx} className="flex items-start gap-2 text-xs text-charcoal/90 pl-2 py-0.5">
+          <span className="text-amber-600 font-bold shrink-0">•</span>
+          <span>
+            {parts.map((p, pIdx) => {
+              if (p.startsWith('**') && p.endsWith('**')) {
+                return <strong key={pIdx} className="font-bold text-wood-900">{p.slice(2, -2)}</strong>;
+              }
+              return p;
+            })}
+          </span>
+        </div>
+      );
+    }
+
+    const parts = trimmed.split(/(\*\*.*?\*\*)/g);
+    return (
+      <p key={idx} className="text-xs text-charcoal/90 leading-relaxed">
+        {parts.map((p, pIdx) => {
+          if (p.startsWith('**') && p.endsWith('**')) {
+            return <strong key={pIdx} className="font-bold text-wood-900">{p.slice(2, -2)}</strong>;
+          }
+          return p;
+        })}
+      </p>
+    );
+  });
+};
 
 export const AIAssistant = ({ onNavigateToImport }) => {
   const [activeSubTab, setActiveSubTab] = useState('monthly'); // 'monthly' | 'restock' | 'anomalies'
@@ -35,6 +85,39 @@ export const AIAssistant = ({ onNavigateToImport }) => {
 
   // 3. Data Biến động bất thường
   const [anomalyData, setAnomalyData] = useState(null);
+
+  // 4. Interactive Q&A State
+  const [questionInput, setQuestionInput] = useState('');
+  const [isSmartKhoRequired, setIsSmartKhoRequired] = useState(false);
+  const [askingAi, setAskingAi] = useState(false);
+  const [qaResponse, setQaResponse] = useState(null);
+  const [qaError, setQaError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleAskAI = async (customQ = null) => {
+    const q = (customQ || questionInput).trim();
+    if (!q) return;
+    if (customQ) setQuestionInput(customQ);
+
+    setAskingAi(true);
+    setQaError(null);
+    try {
+      const res = await apiClient.ai.ask(q, month, year, isSmartKhoRequired);
+      setQaResponse(res.data);
+    } catch (err) {
+      console.error('Lỗi khi gửi câu hỏi đến AI:', err);
+      setQaError(err.response?.data?.detail || 'Không thể kết nối đến Trợ lý AI vào lúc này.');
+    } finally {
+      setAskingAi(false);
+    }
+  };
+
+  const handleCopyAnswer = () => {
+    if (!qaResponse?.answer) return;
+    navigator.clipboard.writeText(qaResponse.answer);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Fetch Báo cáo tháng
   const handleFetchMonthlyReport = async (forceRefresh = false) => {
@@ -272,6 +355,181 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                     </div>
                   </div>
                 )}
+
+                {/* ========================================================== */}
+                {/* MỤC HỎI ĐÁP ĐIỀU HÀNH VỚI TRỢ LÝ AI (INTERACTIVE Q&A)     */}
+                {/* ========================================================== */}
+                <div className="pt-5 border-t border-wood-200/80 space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-bold font-serif text-wood-950 uppercase tracking-wider mb-1">
+                      <MessageSquare className="w-4 h-4 text-amber-600" />
+                      <span>Hỏi Đáp Chuyên Sâu Cùng Trợ Lý AI:</span>
+                    </div>
+                    <p className="text-[11px] text-charcoal/70">
+                      Gửi câu hỏi hoặc tình huống cần tư vấn dựa trên số liệu thực tế của kỳ {month}/{year}.
+                    </p>
+                  </div>
+
+                  {/* Suggestion Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-wood-600 font-medium mr-1">Gợi ý câu hỏi:</span>
+                    {[
+                      'Cần ưu tiên xử lý các mặt hàng dưới mức tồn an toàn thế nào?',
+                      'Đánh giá hiệu suất xuất kho kỳ này và đề xuất giải pháp?',
+                      'Kế hoạch dự trữ và kiểm soát tồn kho cho tháng tới?',
+                    ].map((sampleQ, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleAskAI(sampleQ)}
+                        disabled={askingAi}
+                        className="text-[11px] bg-wood-100 hover:bg-wood-200 text-wood-800 px-2.5 py-1 rounded-full border border-wood-300 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        💡 {sampleQ}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* SmartKho Mode Toggle Checkbox */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-1">
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-wood-900 bg-white/95 px-3 py-1.5 rounded-lg border border-wood-300 hover:border-amber-400 hover:bg-amber-50/60 transition-all shadow-xs">
+                      <input
+                        type="checkbox"
+                        checked={isSmartKhoRequired}
+                        onChange={(e) => setIsSmartKhoRequired(e.target.checked)}
+                        className="w-4 h-4 text-amber-600 rounded border-wood-300 focus:ring-amber-500 cursor-pointer accent-amber-600"
+                      />
+                      <span className="flex items-center gap-1">
+                        <span>Yêu cầu về</span>
+                        <span className="text-amber-800 font-bold bg-amber-100 px-1 rounded">#SmartKho</span>
+                      </span>
+                    </label>
+
+                    <span className="text-[11px] text-wood-600">
+                      {isSmartKhoRequired ? (
+                        <span className="text-amber-700 font-medium">
+                          ⚡ Đã bật: AI sẽ kết hợp số liệu kho kỳ {month}/{year} và chèn các đề mục báo cáo.
+                        </span>
+                      ) : (
+                        <span className="text-wood-500">
+                          💬 Đang tắt: Gửi thuần câu hỏi, để AI được tự do trả lời bất kỳ câu hỏi nào.
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Input Form */}
+                  <form onSubmit={(e) => { e.preventDefault(); handleAskAI(); }} className="space-y-2">
+                    <div className="relative">
+                      <textarea
+                        value={questionInput}
+                        onChange={(e) => setQuestionInput(e.target.value)}
+                        placeholder={
+                          isSmartKhoRequired
+                            ? `Nhập câu hỏi/yêu cầu điều hành kho kỳ ${month}/${year} (AI sẽ chèn số liệu kho và cấu trúc đề mục báo cáo)...`
+                            : "Nhập bất kỳ câu hỏi nào bạn muốn hỏi AI (AI tự do trả lời, không chèn báo cáo kho)..."
+                        }
+                        rows={2}
+                        className="w-full text-xs p-3 bg-white border border-wood-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all text-wood-950 resize-none pr-28 shadow-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAskAI();
+                          }
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={askingAi || !questionInput.trim()}
+                        className="absolute right-2 bottom-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
+                      >
+                        {askingAi ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        <span>{askingAi ? 'Đang hỏi...' : 'Gửi câu hỏi'}</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {qaError && (
+                    <div className="p-3 bg-rust-50 border border-rust-200 rounded-xl flex items-center gap-2 text-xs text-rust-700">
+                      <AlertTriangle className="w-4 h-4 text-rust-500 shrink-0" />
+                      <span>{qaError}</span>
+                    </div>
+                  )}
+
+                  {/* Cửa sổ đưa đáp án (AI Answer Display Window) */}
+                  {(qaResponse || askingAi) && (
+                    <div className="bg-white/95 rounded-xl border border-amber-200 shadow-sm p-4 space-y-3 transition-all">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-wood-100 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-600" />
+                          <span className="font-bold text-wood-950">Đáp án từ Trợ lý AI</span>
+                          {qaResponse && (
+                            <>
+                              <Badge variant={qaResponse.is_fallback ? 'amber' : 'forest'}>
+                                {qaResponse.provider === 'gemini'
+                                  ? '🤖 Google Gemini'
+                                  : '⚡ Heuristic Engine'}
+                              </Badge>
+                              {qaResponse.include_smartkho && (
+                                <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full font-bold">
+                                  #SmartKho
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {qaResponse && (
+                          <div className="flex items-center gap-3 text-wood-500 text-[11px]">
+                            <span>{qaResponse.timestamp}</span>
+                            <button
+                              type="button"
+                              onClick={handleCopyAnswer}
+                              className="inline-flex items-center gap-1 text-wood-600 hover:text-wood-950 font-medium cursor-pointer transition-colors"
+                              title="Sao chép câu trả lời"
+                            >
+                              {copied ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-forest-600" />
+                                  <span className="text-forest-600">Đã sao chép!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Sao chép</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {askingAi ? (
+                        <div className="py-6 flex flex-col items-center justify-center text-center space-y-2">
+                          <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
+                          <p className="text-xs font-medium text-wood-800">
+                            Trợ lý AI đang phân tích dữ liệu kho kỳ {month}/{year} và soạn thảo đáp án...
+                          </p>
+                        </div>
+                      ) : (
+                        qaResponse && (
+                          <div className="space-y-2 text-xs leading-relaxed text-charcoal">
+                            <div className="p-2.5 bg-wood-50/70 rounded-lg text-[11px] text-wood-800 border border-wood-200/60 font-medium">
+                              <strong>Câu hỏi:</strong> {qaResponse.question}
+                            </div>
+                            <div className="pt-1">
+                              {renderFormattedAnswer(qaResponse.answer)}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

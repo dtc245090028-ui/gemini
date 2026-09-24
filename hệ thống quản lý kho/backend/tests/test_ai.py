@@ -389,3 +389,144 @@ def test_ai_in_day_cache(client, admin_headers, ai_test_data):
             data3 = res3.json()
             assert data3["is_cached"] is False
 
+
+def test_generate_ai_order_fallback(client, admin_headers, ai_test_data):
+    """Kiểm tra sinh đơn hàng khi không có Gemini Key hoặc Offline -> Dùng Heuristic Fallback."""
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        res = client.post("/api/v1/ai/generate-order", headers=admin_headers)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["is_fallback"] is True
+        assert data["provider"] == "heuristic_fallback"
+        assert data["quantity"] > 0
+        assert data["quantity"] <= data["current_stock"]
+        assert data["recipient_name"] != ""
+        assert data["product_code"] != ""
+        assert "Đơn hàng AI:" in data["note"]
+
+
+def test_generate_ai_order_gemini_success_and_cache(client, admin_headers, ai_test_data):
+    """Kiểm tra sinh đơn hàng thành công với Gemini AI và kiểm tra cơ chế Cache trong ngày."""
+    mock_response = MagicMock()
+    mock_response.text = (
+        '{"scenario_id": "SCENARIO_02", "recipient_name": "Công ty TNHH Giải Pháp Đám Mây CloudV", '
+        '"role": "company", "product_sku": "AI_SP02_SURGE", "quantity": 15, "discount_percent": 7.0, '
+        '"reason": "Khách hàng doanh nghiệp trang bị đồng loạt cho trung tâm dữ liệu mới."}'
+    )
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value = mock_response
+
+    with patch.object(settings, "GEMINI_API_KEY", "dummy_test_api_key"):
+        with patch("google.generativeai.GenerativeModel", return_value=mock_model):
+            # Lần gọi 1 -> Thành công và lưu cache trong ngày
+            res1 = client.post("/api/v1/ai/generate-order", headers=admin_headers)
+            assert res1.status_code == 200
+            data1 = res1.json()
+
+            assert data1["is_fallback"] is False
+            assert data1["provider"] == "gemini"
+            assert data1["is_cached"] is False
+            assert data1["product_code"] == "AI_SP02_SURGE"
+            assert data1["quantity"] == 15
+            assert data1["discount_percent"] == 7.0
+            assert "CloudV" in data1["recipient_name"]
+
+            # Lần gọi 2 -> Lấy từ Cache trong ngày mà không gọi lại Gemini API
+            res2 = client.post("/api/v1/ai/generate-order", headers=admin_headers)
+            assert res2.status_code == 200
+            data2 = res2.json()
+
+            assert data2["is_cached"] is True
+            assert data2["product_code"] == data1["product_code"]
+            assert data2["quantity"] == data1["quantity"]
+
+            # Lần gọi 3 -> force_refresh=true thì tính toán lại
+            res3 = client.post("/api/v1/ai/generate-order?force_refresh=true", headers=admin_headers)
+            assert res3.status_code == 200
+            data3 = res3.json()
+            assert data3["is_cached"] is False
+
+
+def test_generate_ai_order_rbac(client, ketoan_headers):
+    """Kiểm tra phân quyền: Chỉ ADMIN và WAREHOUSE_KEEPER mới được tạo đơn hàng AI."""
+    # Chưa đăng nhập -> 401
+    res1 = client.post("/api/v1/ai/generate-order")
+    assert res1.status_code == 401
+
+    # Kế toán -> 403 Forbidden (chỉ ADMIN và THUKHO được tạo phiếu xuất)
+    res2 = client.post("/api/v1/ai/generate-order", headers=ketoan_headers)
+    assert res2.status_code == 403
+
+
+def test_ask_ai_fallback(client, admin_headers, ai_test_data):
+    """Kiểm tra chức năng Hỏi đáp AI khi offline hoặc không có API key -> Trả lời bằng Fallback Engine."""
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        # Chế độ SmartKho
+        res = client.post(
+            "/api/v1/ai/ask",
+            json={
+                "question": "Làm thế nào để xử lý các mặt hàng dưới mức tồn an toàn?",
+                "month": 1,
+                "year": 2026,
+                "include_smartkho": True,
+            },
+            headers=admin_headers,
+        )
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["is_fallback"] is True
+        assert data["provider"] == "heuristic_fallback"
+        assert "tồn kho an toàn" in data["answer"].lower()
+        assert data["include_smartkho"] is True
+        assert len(data["timestamp"]) > 0
+
+
+def test_ask_ai_gemini_pure_and_smartkho_modes(client, admin_headers, ai_test_data):
+    """Kiểm tra chế độ thuần câu hỏi (AI tự do trả lời) và chế độ có tích chọn #SmartKho."""
+    mock_response = MagicMock()
+    mock_response.text = '{"answer": "Xe buýt dừng ở 2 trạm."}'
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value = mock_response
+
+    with patch.object(settings, "GEMINI_API_KEY", "dummy_test_api_key"):
+        with patch("google.generativeai.GenerativeModel", return_value=mock_model):
+            # 1. include_smartkho = False (Thuần câu hỏi)
+            res1 = client.post(
+                "/api/v1/ai/ask",
+                json={"question": "Một chiếc xe buýt dừng ở bao nhiêu trạm?", "include_smartkho": False},
+                headers=admin_headers,
+            )
+            assert res1.status_code == 200
+            data1 = res1.json()
+            assert data1["include_smartkho"] is False
+            assert "Xe buýt dừng ở 2 trạm" in data1["answer"]
+
+            # 2. include_smartkho = True (Chế độ #SmartKho)
+            res2 = client.post(
+                "/api/v1/ai/ask",
+                json={"question": "Kế hoạch nhập hàng tối ưu?", "month": 1, "year": 2026, "include_smartkho": True},
+                headers=admin_headers,
+            )
+            assert res2.status_code == 200
+            data2 = res2.json()
+            assert data2["include_smartkho"] is True
+
+
+def test_ask_ai_rbac_and_unauthorized(client, ketoan_headers):
+    """Kiểm tra phân quyền hỏi đáp AI: Chưa đăng nhập bị 401, Kế toán (ACCOUNTANT) được phép truy cập (200)."""
+    # Chưa đăng nhập -> 401
+    res1 = client.post("/api/v1/ai/ask", json={"question": "Xin chào AI?"})
+    assert res1.status_code == 401
+
+    # Kế toán -> Được phép hỏi đáp (200)
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        res2 = client.post(
+            "/api/v1/ai/ask",
+            json={"question": "Đánh giá xuất nhập kho kỳ này?", "month": 1, "year": 2026},
+            headers=ketoan_headers,
+        )
+        assert res2.status_code == 200
+
+
