@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Truck,
   Plus,
   Search,
   Edit2,
@@ -10,11 +9,14 @@ import {
   MapPin,
   AlertCircle,
   Building2,
+  RotateCcw,
+  Clock,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import { draftStorage } from '../utils/draftStorage';
 
 export const Suppliers = () => {
   const { user } = useAuth();
@@ -25,6 +27,8 @@ export const Suppliers = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState({
     code: '',
@@ -52,10 +56,61 @@ export const Suppliers = () => {
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+    // Tự động khôi phục từ khóa tìm kiếm dở trong vòng 24h nếu có
+    const searchDraft = draftStorage.load(user?.username, 'supplier_search');
+    if (searchDraft && searchDraft.data) {
+      setSearch(searchDraft.data);
+    }
+  }, [user?.username]);
+
+  // Tự động lưu từ khóa tìm kiếm
+  useEffect(() => {
+    if (!user?.username) return;
+    const timer = setTimeout(() => {
+      if (search) {
+        draftStorage.save(user.username, 'supplier_search', search);
+      } else {
+        draftStorage.clear(user.username, 'supplier_search');
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, user?.username]);
+
+  // Tự động lưu bản nháp tạo nhà cung cấp (debounce 500ms)
+  useEffect(() => {
+    if (!isModalOpen || modalMode !== 'create' || !user?.username) return;
+    const timer = setTimeout(() => {
+      if (formData.name || formData.phone || formData.email || formData.address) {
+        draftStorage.save(user.username, 'supplier_form', formData);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData, isModalOpen, modalMode, user?.username]);
 
   const handleOpenCreate = () => {
     setModalMode('create');
+    setFormError(null);
+    const draft = draftStorage.load(user?.username, 'supplier_form');
+    if (draft && draft.data && draft.data.name) {
+      setFormData(draft.data);
+      setIsDraftRestored(true);
+      setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
+    } else {
+      setFormData({
+        code: `NCC_${String(suppliers.length + 1).padStart(3, '0')}`,
+        name: '',
+        phone: '',
+        email: '',
+        address: '',
+      });
+      setIsDraftRestored(false);
+      setDraftSavedTime('');
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleClearDraft = () => {
+    draftStorage.clear(user?.username, 'supplier_form');
     setFormData({
       code: `NCC_${String(suppliers.length + 1).padStart(3, '0')}`,
       name: '',
@@ -63,12 +118,14 @@ export const Suppliers = () => {
       email: '',
       address: '',
     });
-    setFormError(null);
-    setIsModalOpen(true);
+    setIsDraftRestored(false);
+    setDraftSavedTime('');
   };
 
   const handleOpenEdit = (s) => {
     setModalMode('edit');
+    setIsDraftRestored(false);
+    setDraftSavedTime('');
     setSelectedSupplier(s);
     setFormData({
       code: s.code,
@@ -87,6 +144,8 @@ export const Suppliers = () => {
     try {
       if (modalMode === 'create') {
         await apiClient.suppliers.create(formData);
+        draftStorage.clear(user?.username, 'supplier_form');
+        setIsDraftRestored(false);
       } else {
         await apiClient.suppliers.update(selectedSupplier.id, {
           name: formData.name,
@@ -232,6 +291,23 @@ export const Suppliers = () => {
         title={modalMode === 'create' ? 'Thêm Nhà Cung Cấp Mới' : 'Cập Nhật Nhà Cung Cấp'}
       >
         <form onSubmit={handleSaveSupplier} className="space-y-4">
+          {modalMode === 'create' && isDraftRestored && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Đã khôi phục dữ liệu nhập dở lúc <b>{draftSavedTime}</b> (hạn lưu 24h).</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="text-amber-700 underline font-semibold hover:text-amber-900 cursor-pointer flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Xóa bản nháp
+              </button>
+            </div>
+          )}
+
           {formError && (
             <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rust-500 shrink-0" />

@@ -3,7 +3,6 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
   AlertTriangle,
   Edit2,
   Trash2,
@@ -18,9 +17,11 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 
@@ -45,6 +46,8 @@ export const Products = ({ onSelectProductLedger }) => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
   const [currentProduct, setCurrentProduct] = useState(null);
   const [zoomImage, setZoomImage] = useState(null); // Preview ảnh phóng to
   const [imageFile, setImageFile] = useState(null);
@@ -107,7 +110,23 @@ export const Products = ({ onSelectProductLedger }) => {
   useEffect(() => {
     fetchCategories();
     fetchSuppliers();
+    // Tự động khôi phục từ khóa tìm kiếm dở trong vòng 24h nếu có
+    const searchDraft = draftStorage.load(user?.username, 'product_search');
+    if (searchDraft && searchDraft.data) {
+      setSearch(searchDraft.data);
+    }
   }, []);
+
+  // Tự động lưu từ khóa tìm kiếm vào draft (xóa khi để trống)
+  useEffect(() => {
+    if (user?.username) {
+      if (search) {
+        draftStorage.save(user.username, 'product_search', search);
+      } else {
+        draftStorage.clear(user.username, 'product_search');
+      }
+    }
+  }, [search, user?.username]);
 
   useEffect(() => {
     fetchProducts();
@@ -206,6 +225,50 @@ export const Products = ({ onSelectProductLedger }) => {
     setImageFile(null);
     setImagePreview(null);
     const defaultPrice = 100000;
+
+    // Kiểm tra bản nháp tạo sản phẩm trong vòng 24h
+    const draft = draftStorage.load(user?.username, 'product_create');
+    if (draft && draft.data) {
+      setFormData(draft.data);
+      setIsDraftRestored(true);
+      setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
+    } else {
+      setFormData({
+        code: `SP${String(products.length + 1).padStart(3, '0')}`,
+        name: '',
+        category_id: categories[0]?.id || '',
+        unit: 'Chiếc',
+        min_stock: 10,
+        standard_price: defaultPrice,
+        image_url: '',
+        has_initial_import: false,
+        initial_supplier_id: suppliers[0]?.id || '',
+        initial_quantity: 10,
+        initial_unit_price: Math.round(defaultPrice * 0.7),
+        initial_note: '',
+      });
+      setIsDraftRestored(false);
+      setDraftSavedTime('');
+    }
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  // Tự động lưu bản nháp tạo mặt hàng khi người dùng nhập liệu dở
+  useEffect(() => {
+    if (isModalOpen && modalMode === 'create' && user?.username) {
+      const timer = setTimeout(() => {
+        draftStorage.save(user.username, 'product_create', formData);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isModalOpen, modalMode, formData, user?.username]);
+
+  // Hủy bản nháp tạo mặt hàng
+  const handleDiscardDraft = () => {
+    draftStorage.clear(user?.username, 'product_create');
+    setIsDraftRestored(false);
+    const defaultPrice = 100000;
     setFormData({
       code: `SP${String(products.length + 1).padStart(3, '0')}`,
       name: '',
@@ -220,8 +283,6 @@ export const Products = ({ onSelectProductLedger }) => {
       initial_unit_price: Math.round(defaultPrice * 0.7),
       initial_note: '',
     });
-    setFormError(null);
-    setIsModalOpen(true);
   };
 
   const handleOpenEdit = (p) => {
@@ -292,6 +353,9 @@ export const Products = ({ onSelectProductLedger }) => {
         const res = await apiClient.products.create(payload);
         createdProductData = res.data;
         productId = res.data?.id;
+        // Xóa bản nháp sau khi tạo thành công
+        draftStorage.clear(user?.username, 'product_create');
+        setIsDraftRestored(false);
       } else {
         const res = await apiClient.products.update(currentProduct.id, {
           name: formData.name,
@@ -656,6 +720,25 @@ export const Products = ({ onSelectProductLedger }) => {
         onClose={() => setIsModalOpen(false)}
         title={modalMode === 'create' ? 'Thêm Mặt Hàng Mới' : 'Cập Nhật Hàng Hóa'}
       >
+        {isDraftRestored && modalMode === 'create' && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Đã khôi phục bản nháp mặt hàng</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              title="Xóa nội dung nháp này để nhập từ đầu"
+            >
+              Xóa bản nháp
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmitForm} className="space-y-4">
           {formError && (
             <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">

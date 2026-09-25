@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowDownToLine,
   Plus,
   Trash2,
   Eye,
   AlertCircle,
   Ban,
-  CheckCircle,
-  FileText,
+  Sparkles,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
@@ -29,6 +28,8 @@ export const ImportNotes = () => {
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
   const [formError, setFormError] = useState(null);
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
 
   // Detail Modal State
   const [selectedNote, setSelectedNote] = useState(null);
@@ -61,6 +62,58 @@ export const ImportNotes = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    // Kiểm tra xem có bản nháp nào được lưu trong vòng 24h không
+    const draft = draftStorage.load(user?.username, 'import_note');
+    if (draft && draft.data) {
+      setSupplierId(draft.data.supplierId || suppliers[0]?.id || '');
+      setNoteText(draft.data.noteText || '');
+      setItems(
+        draft.data.items && draft.data.items.length > 0
+          ? draft.data.items
+          : [
+              {
+                category_id: products[0]?.category_id || '',
+                product_id: products[0]?.id || '',
+                quantity: 10,
+                unit_price: Math.round((products[0]?.standard_price || 100000) * 0.75),
+              },
+            ]
+      );
+      setIsDraftRestored(true);
+      setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
+    } else {
+      setSupplierId(suppliers[0]?.id || '');
+      setNoteText('');
+      const defaultProd = products[0];
+      setItems([
+        {
+          category_id: defaultProd?.category_id || '',
+          product_id: defaultProd?.id || '',
+          quantity: 10,
+          unit_price: Math.round((defaultProd?.standard_price || 100000) * 0.75),
+        },
+      ]);
+      setIsDraftRestored(false);
+      setDraftSavedTime('');
+    }
+    setFormError(null);
+    setIsCreateOpen(true);
+  };
+
+  // Tự động lưu bản nháp ngầm khi người dùng thay đổi dữ liệu trên modal tạo phiếu
+  useEffect(() => {
+    if (isCreateOpen && user?.username) {
+      const timer = setTimeout(() => {
+        draftStorage.save(user.username, 'import_note', { supplierId, noteText, items });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCreateOpen, supplierId, noteText, items, user?.username]);
+
+  // Hủy bản nháp để làm mới từ đầu
+  const handleDiscardDraft = () => {
+    draftStorage.clear(user?.username, 'import_note');
+    setIsDraftRestored(false);
     setSupplierId(suppliers[0]?.id || '');
     setNoteText('');
     const defaultProd = products[0];
@@ -72,8 +125,6 @@ export const ImportNotes = () => {
         unit_price: Math.round((defaultProd?.standard_price || 100000) * 0.75),
       },
     ]);
-    setFormError(null);
-    setIsCreateOpen(true);
   };
 
   const handleAddItemRow = () => {
@@ -148,6 +199,9 @@ export const ImportNotes = () => {
           unit_price: Number(it.unit_price),
         })),
       });
+      // Xóa bản nháp khi đã lưu thành công
+      draftStorage.clear(user?.username, 'import_note');
+      setIsDraftRestored(false);
       setIsCreateOpen(false);
       fetchData();
     } catch (err) {
@@ -277,6 +331,25 @@ export const ImportNotes = () => {
 
       {/* Modal Lập Phiếu Nhập */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập Phiếu Nhập Kho Mới" maxWidth="max-w-3xl">
+        {isDraftRestored && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Đã khôi phục bản nháp tự động</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              title="Xóa nội dung nháp này để nhập từ đầu"
+            >
+              Xóa bản nháp
+            </button>
+          </div>
+        )}
+
         {formError && (
           <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-xl flex items-center gap-2 text-xs text-rust-700">
             <AlertCircle className="w-4 h-4 shrink-0 text-rust-500" />
