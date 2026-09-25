@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowUpFromLine,
   Plus,
   Trash2,
   Eye,
   AlertCircle,
   Ban,
   AlertTriangle,
-  UserCheck,
   Sparkles,
   Loader2,
   Truck,
@@ -15,6 +13,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
@@ -32,6 +31,8 @@ export const ExportNotes = () => {
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
   const [formError, setFormError] = useState(null);
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
 
   // AI Order Generation State
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -66,9 +67,62 @@ export const ExportNotes = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    // Kiểm tra xem có bản nháp phiếu xuất trong vòng 24h không
+    const draft = draftStorage.load(user?.username, 'export_note');
+    if (draft && draft.data) {
+      setRecipientName(draft.data.recipientName || '');
+      setNoteText(draft.data.noteText || '');
+      setAiSuggestion(null);
+      setItems(
+        draft.data.items && draft.data.items.length > 0
+          ? draft.data.items
+          : [
+              {
+                category_id: products[0]?.category_id || '',
+                product_id: products[0]?.id || '',
+                quantity: 1,
+                unit_price: products[0]?.standard_price || 100000,
+              },
+            ]
+      );
+      setIsDraftRestored(true);
+      setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
+    } else {
+      setRecipientName('');
+      setNoteText('');
+      setAiSuggestion(null);
+      const defaultProd = products[0];
+      setItems([
+        {
+          category_id: defaultProd?.category_id || '',
+          product_id: defaultProd?.id || '',
+          quantity: 1,
+          unit_price: defaultProd?.standard_price || 100000,
+        },
+      ]);
+      setIsDraftRestored(false);
+      setDraftSavedTime('');
+    }
+    setFormError(null);
+    setIsCreateOpen(true);
+  };
+
+  // Tự động lưu bản nháp phiếu xuất ngầm khi người dùng nhập liệu
+  useEffect(() => {
+    if (isCreateOpen && user?.username) {
+      const timer = setTimeout(() => {
+        draftStorage.save(user.username, 'export_note', { recipientName, noteText, items });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCreateOpen, recipientName, noteText, items, user?.username]);
+
+  // Hủy bản nháp phiếu xuất
+  const handleDiscardDraft = () => {
+    draftStorage.clear(user?.username, 'export_note');
+    setIsDraftRestored(false);
     setRecipientName('');
     setNoteText('');
-    setAiSuggestion(null);
     const defaultProd = products[0];
     setItems([
       {
@@ -78,8 +132,6 @@ export const ExportNotes = () => {
         unit_price: defaultProd?.standard_price || 100000,
       },
     ]);
-    setFormError(null);
-    setIsCreateOpen(true);
   };
 
   const handleGenerateAIOrder = async () => {
@@ -208,6 +260,9 @@ export const ExportNotes = () => {
           unit_price: Number(it.unit_price),
         })),
       });
+      // Xóa bản nháp khi tạo thành công
+      draftStorage.clear(user?.username, 'export_note');
+      setIsDraftRestored(false);
       setIsCreateOpen(false);
       fetchData();
     } catch (err) {
@@ -460,6 +515,25 @@ export const ExportNotes = () => {
 
       {/* Modal Lập Phiếu Xuất */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập Phiếu Xuất Kho Mới" maxWidth="max-w-3xl">
+        {isDraftRestored && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Đã khôi phục bản nháp tự động</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              title="Xóa nội dung nháp này để nhập từ đầu"
+            >
+              Xóa bản nháp
+            </button>
+          </div>
+        )}
+
         {/* Hộp thông tin gợi ý từ AI nếu đơn được sinh bởi AI */}
         {aiSuggestion && (
           <div className="mb-4 p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2 text-xs">

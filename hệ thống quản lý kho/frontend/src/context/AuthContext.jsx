@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
+import { draftStorage } from '../utils/draftStorage';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,9 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Tự động dọn dẹp các bản nháp đã quá 24h khi khởi động ứng dụng
+    draftStorage.cleanupExpired();
+
     const handleLogout = () => {
       setUser(null);
       setToken(null);

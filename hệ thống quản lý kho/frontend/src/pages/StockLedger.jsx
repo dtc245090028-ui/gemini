@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ClipboardList,
-  Search,
-  Filter,
-  ArrowDownLeft,
-  ArrowUpRight,
-  SlidersHorizontal,
-  Plus,
   AlertCircle,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
@@ -30,6 +25,8 @@ export const StockLedger = ({ defaultProductId }) => {
   const [actualStock, setActualStock] = useState(0);
   const [adjustNote, setAdjustNote] = useState('');
   const [adjustError, setAdjustError] = useState(null);
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
 
   const canAdjust = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_KEEPER';
 
@@ -70,12 +67,44 @@ export const StockLedger = ({ defaultProductId }) => {
   }, [selectedProductId, transactionType]);
 
   const handleOpenAdjust = () => {
+    // Kiểm tra xem có bản nháp kiểm kê bù trừ trong vòng 24h không
+    const draft = draftStorage.load(user?.username, 'stock_adjust');
+    if (draft && draft.data) {
+      setAdjustProductId(draft.data.adjustProductId || products[0]?.id || '');
+      setActualStock(draft.data.actualStock !== undefined ? draft.data.actualStock : (products[0]?.current_stock || 0));
+      setAdjustNote(draft.data.adjustNote || 'Kiểm kê định kỳ tháng này');
+      setIsDraftRestored(true);
+      setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
+    } else {
+      const firstP = products[0];
+      setAdjustProductId(firstP?.id || '');
+      setActualStock(firstP?.current_stock || 0);
+      setAdjustNote('Kiểm kê định kỳ tháng này');
+      setIsDraftRestored(false);
+      setDraftSavedTime('');
+    }
+    setAdjustError(null);
+    setIsAdjustOpen(true);
+  };
+
+  // Tự động lưu bản nháp kiểm kê ngầm khi người dùng nhập số lượng
+  useEffect(() => {
+    if (isAdjustOpen && user?.username) {
+      const timer = setTimeout(() => {
+        draftStorage.save(user.username, 'stock_adjust', { adjustProductId, actualStock, adjustNote });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAdjustOpen, adjustProductId, actualStock, adjustNote, user?.username]);
+
+  // Hủy bản nháp kiểm kê
+  const handleDiscardDraft = () => {
+    draftStorage.clear(user?.username, 'stock_adjust');
+    setIsDraftRestored(false);
     const firstP = products[0];
     setAdjustProductId(firstP?.id || '');
     setActualStock(firstP?.current_stock || 0);
     setAdjustNote('Kiểm kê định kỳ tháng này');
-    setAdjustError(null);
-    setIsAdjustOpen(true);
   };
 
   const handleProductSelectForAdjust = (pId) => {
@@ -93,6 +122,9 @@ export const StockLedger = ({ defaultProductId }) => {
         actual_stock: Number(actualStock),
         note: adjustNote,
       });
+      // Xóa bản nháp sau khi kiểm kê thành công
+      draftStorage.clear(user?.username, 'stock_adjust');
+      setIsDraftRestored(false);
       setIsAdjustOpen(false);
       fetchLedger();
       fetchProducts();
@@ -250,6 +282,25 @@ export const StockLedger = ({ defaultProductId }) => {
 
       {/* Modal Điều Chỉnh Kiểm Kê */}
       <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title="Điều Chỉnh Tồn Kho Sau Kiểm Kê Thực Tế">
+        {isDraftRestored && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Đã khôi phục bản nháp kiểm kê</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              title="Xóa nội dung nháp này để nhập từ đầu"
+            >
+              Xóa bản nháp
+            </button>
+          </div>
+        )}
+
         {adjustError && (
           <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-btn flex items-center gap-2 text-xs text-rust-700">
             <AlertCircle className="w-4 h-4 shrink-0 text-rust-600" />
