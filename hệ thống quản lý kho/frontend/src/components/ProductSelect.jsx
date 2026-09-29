@@ -181,20 +181,20 @@ export const ProductSelect = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg pl-2.5 pr-12 py-1.5 text-wood-900 focus:outline-none focus:ring-1 focus:ring-wood-400 focus:border-wood-400 placeholder:text-wood-400"
+          className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input pl-3 pr-12 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] focus:ring-1 focus:ring-[var(--wood-500)] placeholder:text-[var(--text-muted)] transition-colors"
           autoComplete="off"
         />
 
-        <div className="absolute right-1 flex items-center gap-0.5">
+        <div className="absolute right-1.5 flex items-center gap-0.5">
           {searchQuery && isOpen && (
             <button
               type="button"
               tabIndex={-1}
               onClick={handleClear}
-              className="text-wood-400 hover:text-wood-600 p-0.5 rounded cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-btn cursor-pointer"
               title="Xóa tìm kiếm"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -208,12 +208,12 @@ export const ProductSelect = ({
                 inputRef.current?.focus();
               }
             }}
-            className="text-wood-400 hover:text-wood-600 p-1 cursor-pointer"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 cursor-pointer rounded-btn"
             title="Mở danh sách hàng hóa"
           >
             <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform duration-150 ${
-                isOpen ? 'rotate-180 text-wood-700' : ''
+              className={`w-4 h-4 transition-transform duration-fast ${
+                isOpen ? 'rotate-180 text-[var(--wood-500)]' : ''
               }`}
             />
           </button>
@@ -224,10 +224,10 @@ export const ProductSelect = ({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute left-0 right-0 top-full mt-1 bg-white border border-wood-200 rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto divide-y divide-wood-100"
+          className="absolute left-0 right-0 top-full mt-1.5 bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-card shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-[var(--border-subtle)]"
         >
           {filteredProducts.length === 0 ? (
-            <div className="p-3 text-center text-xs text-wood-500 italic">
+            <div className="p-3.5 text-center text-xs text-[var(--text-muted)] italic">
               Không tìm thấy hàng hóa (thử gõ chữ cái đầu hoặc từ khóa khác)
             </div>
           ) : (
@@ -239,30 +239,29 @@ export const ProductSelect = ({
                 <div
                   key={p.id}
                   onMouseDown={(e) => {
-                    // Dùng onMouseDown để ngăn blur input trước khi sự kiện chọn diễn ra
                     e.preventDefault();
                     handleSelect(p);
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
-                  className={`flex items-center justify-between px-3 py-2 cursor-pointer text-xs transition-colors ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 cursor-pointer text-xs transition-colors ${
                     isHighlighted
-                      ? 'bg-wood-100/90 text-wood-900'
+                      ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)]'
                       : isSelected
-                      ? 'bg-wood-50 font-semibold text-wood-900'
-                      : 'text-wood-800 hover:bg-wood-50'
+                      ? 'bg-[var(--bg-surface-warm)] font-semibold text-[var(--text-primary)]'
+                      : 'text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-forest-600 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-[var(--semantic-success)] shrink-0" />
                     )}
                     <span className="truncate">{p.name}</span>
                   </div>
                   <span
-                    className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                    className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold border ${
                       p.current_stock > 0
-                        ? 'bg-forest-50 text-forest-700'
-                        : 'bg-rust-50 text-rust-700'
+                        ? 'bg-[var(--semantic-success-bg)] text-[var(--semantic-success)] border-[var(--semantic-success-border)]'
+                        : 'bg-[var(--semantic-alert-bg)] text-[var(--semantic-alert)] border-[var(--semantic-alert-border)]'
                     }`}
                   >
                     Tồn: {p.current_stock}

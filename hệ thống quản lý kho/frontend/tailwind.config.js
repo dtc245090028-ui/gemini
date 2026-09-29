@@ -4,62 +4,133 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Fraunces', 'Georgia', 'serif'],
-        sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Fraunces', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'Be Vietnam Pro', '-apple-system', 'sans-serif'],
+        mono: ['var(--font-mono)', 'Space Mono', 'Courier New', 'monospace'],
+      },
+      fontSize: {
+        'xs': ['var(--text-xs)', { lineHeight: '1.4' }],     // 12px min
+        'sm': ['var(--text-sm)', { lineHeight: '1.45' }],    // 13px
+        'base': ['var(--text-base)', { lineHeight: '1.5' }],  // 14px
+        'md': ['var(--text-md)', { lineHeight: '1.5' }],      // 15px
+        'lg': ['var(--text-lg)', { lineHeight: '1.4' }],      // 17px
+        'xl': ['var(--text-xl)', { lineHeight: '1.3' }],      // 20px
+        '2xl': ['var(--text-2xl)', { lineHeight: '1.25' }],   // 24px
+        '3xl': ['var(--text-3xl)', { lineHeight: '1.2' }],    // 30px
       },
       colors: {
+        canvas: {
+          DEFAULT: 'var(--bg-canvas)',
+          subtle: 'var(--bg-canvas-subtle)',
+        },
+        surface: {
+          DEFAULT: 'var(--bg-surface)',
+          warm: 'var(--bg-surface-warm)',
+          hover: 'var(--bg-surface-hover)',
+          active: 'var(--bg-surface-active)',
+        },
+        border: {
+          subtle: 'var(--border-subtle)',
+          medium: 'var(--border-medium)',
+          strong: 'var(--border-strong)',
+        },
+        text: {
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          inverse: 'var(--text-inverse)',
+        },
+        semantic: {
+          alert: 'var(--semantic-alert)',
+          'alert-bg': 'var(--semantic-alert-bg)',
+          'alert-border': 'var(--semantic-alert-border)',
+          'alert-hover': 'var(--semantic-alert-hover)',
+          success: 'var(--semantic-success)',
+          'success-bg': 'var(--semantic-success-bg)',
+          'success-border': 'var(--semantic-success-border)',
+          'success-hover': 'var(--semantic-success-hover)',
+          canceled: 'var(--semantic-canceled)',
+          'canceled-bg': 'var(--semantic-canceled-bg)',
+          'canceled-border': 'var(--semantic-canceled-border)',
+          inactive: 'var(--semantic-inactive)',
+          'inactive-bg': 'var(--semantic-inactive-bg)',
+          'inactive-border': 'var(--semantic-inactive-border)',
+          ai: 'var(--semantic-ai)',
+          'ai-bg': 'var(--semantic-ai-bg)',
+          'ai-border': 'var(--semantic-ai-border)',
+          'ai-btn': 'var(--semantic-ai-btn)',
+          'ai-hover': 'var(--semantic-ai-btn-hover)',
+          'ai-text': 'var(--semantic-ai-btn-text)',
+        },
         wood: {
-          50: '#FDF8F0',   // Soft Parchment (nền sáng tự nhiên)
-          100: '#F5EDE0',  // Cream Linen (nền thẻ, header)
-          200: '#E8D5B7',  // Light Birch (đường viền divider)
-          300: '#D4A04A',  // Golden Amber (hổ phách sáng)
-          400: '#C4893B',  // Honey Oak (sồi mật ong - secondary)
-          500: '#8B5E3C',  // Warm Cedar (tuyết tùng ấm - PRIMARY BRAND)
-          600: '#754B2E',  // Warm Cedar hover
-          700: '#5C3A1E',  // Dark Oak (gỗ sồi đậm)
-          800: '#4A2D16',  // Deep Timber
-          900: '#3B2314',  // Deep Walnut (óc chó đậm - Sidebar background)
-          950: '#26140A',  // Midnight Walnut
+          50: 'var(--wood-50)',
+          100: 'var(--wood-100)',
+          200: 'var(--wood-200)',
+          300: 'var(--wood-300)',
+          400: 'var(--wood-400)',
+          500: 'var(--wood-500)',
+          600: 'var(--wood-600)',
+          700: 'var(--wood-700)',
+          800: 'var(--wood-800)',
+          900: 'var(--wood-900)',
+          950: 'var(--wood-950)',
         },
         forest: {
-          50: '#F1F7F2',
-          100: '#DDECE0',
-          200: '#B8D7BE',
-          500: '#2D5F3A',  // Forest Green (Thành công / An toàn)
-          600: '#234C2E',
-          700: '#1A3922',
+          50: 'var(--semantic-success-bg)',
+          100: 'var(--semantic-success-bg)',
+          200: 'var(--semantic-success-border)',
+          500: 'var(--semantic-success)',
+          600: 'var(--semantic-success)',
+          700: 'var(--semantic-success-hover)',
         },
         rust: {
-          50: '#FDF3EE',
-          100: '#F9E2D6',
-          200: '#F2C1A8',
-          500: '#A0522D',  // Warm Rust (Cảnh báo tồn / Xuất âm)
-          600: '#854222',
-          700: '#693319',
+          50: 'var(--semantic-alert-bg)',
+          100: 'var(--semantic-alert-bg)',
+          200: 'var(--semantic-alert-border)',
+          500: 'var(--semantic-alert)',
+          600: 'var(--semantic-alert)',
+          700: 'var(--semantic-alert-hover)',
         },
         sage: {
-          50: '#F4F7F4',
-          100: '#E5EDE6',
-          500: '#7A9A7E',  // Muted Sage
-          600: '#638067',
+          50: 'var(--semantic-success-bg)',
+          100: 'var(--semantic-success-bg)',
+          200: 'var(--semantic-success-border)',
+          500: 'var(--semantic-success)',
+          600: 'var(--semantic-success)',
         },
         charcoal: {
-          DEFAULT: '#3C3C3C',
-          50: '#F7F7F7',
-          100: '#EFEFEF',
-          500: '#555555',
-          700: '#3C3C3C',
-          900: '#222222',
+          DEFAULT: 'var(--text-primary)',
+          50: 'var(--bg-canvas-subtle)',
+          100: 'var(--border-subtle)',
+          500: 'var(--text-muted)',
+          700: 'var(--text-secondary)',
+          900: 'var(--text-primary)',
         },
       },
       borderRadius: {
-        'btn': '6px', // Button radius từ Figma: 6.0px
+        'sm': 'var(--radius-sm)',
+        'btn': 'var(--radius-btn)',
+        'input': 'var(--radius-input)',
+        'card': 'var(--radius-card)',
+        'modal': 'var(--radius-modal)',
+        '2xl': 'var(--radius-card)',
+        'xl': 'var(--radius-input)',
       },
       boxShadow: {
-        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'xs': 'var(--shadow-xs)',
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': 'var(--shadow-lg)',
+        'xl': 'var(--shadow-lg)',
+        '2xl': 'var(--shadow-modal)',
+      },
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        normal: 'var(--duration-normal)',
       }
     },
   },

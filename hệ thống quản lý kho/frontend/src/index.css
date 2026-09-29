@@ -1,59 +1,173 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    margin: 0;
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #FAFAF7;
-    color: #3C3C3C;
-    -webkit-font-smoothing: antialiased;
+  *, *::before, *::after {
+    border-color: var(--border-subtle);
   }
 
-  h1, h2, h3, h4, .font-serif {
-    font-family: 'Fraunces', Georgia, serif;
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color var(--duration-fast) var(--ease-craft),
+                color var(--duration-fast) var(--ease-craft);
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: var(--font-serif);
     letter-spacing: -0.015em;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  code, kbd, samp, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  /* Không cho phép bất kỳ font size nào dưới 12px theo chuẩn WCAG */
+  small, .text-xs {
+    font-size: var(--text-xs);
   }
 }
 
 @layer components {
-  /* Button Styles từ Figma Section 03 (Radius 6px) */
+  /* =====================================================================
+     HỆ THỐNG NÚT BẤM (BUTTONS) — Bo góc 6px, Chuyển động nhanh < 200ms
+     ===================================================================== */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-wood-500 hover:bg-wood-600 active:bg-wood-700 text-wood-50 rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-btn text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--wood-500);
+    color: var(--text-inverse);
+    transition: background-color var(--duration-fast) ease, transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--wood-600);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary:active:not(:disabled) {
+    background-color: var(--wood-700);
+    transform: translateY(1px);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-wood-400 hover:bg-wood-300 active:bg-[#A3712F] text-wood-900 rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-btn text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--bg-surface-warm);
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+    transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:active:not(:disabled) {
+    background-color: var(--bg-surface-active);
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-wood-500 text-wood-500 hover:bg-wood-500/10 active:bg-wood-500/20 rounded-btn text-xs font-semibold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-transparent rounded-btn text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+    transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+  }
+  .btn-outline:hover:not(:disabled) {
+    background-color: var(--bg-surface-hover);
+    border-color: var(--wood-500);
+    color: var(--wood-500);
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-rust-500 hover:bg-rust-600 active:bg-rust-700 text-white rounded-btn text-xs font-semibold shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-btn text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--semantic-alert);
+    color: #FFFFFF;
+    transition: background-color var(--duration-fast) ease;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--semantic-alert-hover);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 text-wood-500 hover:bg-wood-200/40 active:text-wood-700 rounded-btn text-xs font-medium transition-colors cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-btn text-xs font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    color: var(--text-secondary);
+    transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-primary);
   }
 
-  /* Card Styles & Elevation từ Figma Section 04 */
+  /* Nút thao tác riêng cho Trợ lý AI (Màu hổ phách mật ong, phân biệt hoàn toàn với màu trạng thái) */
+  .btn-ai {
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-btn text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--semantic-ai-btn);
+    color: var(--semantic-ai-btn-text);
+    border: 1px solid var(--semantic-ai-border);
+    transition: background-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  }
+  .btn-ai:hover:not(:disabled) {
+    background-color: var(--semantic-ai-btn-hover);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* =====================================================================
+     HỆ THỐNG THẺ BẢNG BIỂU & CARD (TIMBER & GRAIN SURFACES)
+     ===================================================================== */
   .card-wood {
-    @apply bg-white border border-wood-200/90 rounded-2xl shadow-xs transition-shadow;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow var(--duration-normal) ease, border-color var(--duration-normal) ease;
+  }
+  .card-wood:hover {
+    border-color: var(--border-medium);
   }
 
   .card-warm {
-    @apply bg-wood-50 border border-wood-200/80 rounded-2xl shadow-xs;
+    background-color: var(--bg-surface-warm);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-xs);
   }
 
   .card-linen {
-    @apply bg-wood-100 border border-wood-200/80 rounded-2xl shadow-xs;
+    background-color: var(--bg-linen);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-xs);
   }
 
-  /* Input fields từ Figma Section 06 */
+  /* =====================================================================
+     Ô NHẬP LIỆU (INPUTS & SELECTS)
+     ===================================================================== */
   .input-wood {
-    @apply w-full bg-wood-50/70 border border-wood-200 rounded-xl px-3 py-2 text-xs text-wood-900 placeholder:text-wood-400 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500 transition-all;
+    width: 100%;
+    background-color: var(--bg-linen);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-input);
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-fast) ease;
+  }
+  .input-wood:focus {
+    outline: none;
+    background-color: var(--bg-surface);
+    border-color: var(--wood-500);
+    box-shadow: 0 0 0 3px rgba(243, 178, 79, 0.2);
+  }
+  .input-wood::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* Rãnh phân cách vân gỗ mộc (Timber grain divider) */
+  .grain-divider {
+    border-top: 1px dashed var(--border-medium);
   }
 }

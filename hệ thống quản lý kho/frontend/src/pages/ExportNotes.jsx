@@ -10,6 +10,7 @@ import {
   Loader2,
   Truck,
   CheckCircle2,
+  Zap,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -285,11 +286,11 @@ export const ExportNotes = () => {
       case 'CONFIRMED':
         return <Badge variant="amber">Chờ xuất kho</Badge>;
       case 'SHIPPING':
-        return <Badge variant="blue">Đang giao hàng</Badge>;
+        return <Badge variant="wood">Đang giao hàng</Badge>;
       case 'COMPLETED':
-        return <Badge variant="green">Hoàn thành</Badge>;
+        return <Badge variant="success">Hoàn thành</Badge>;
       case 'CANCELLED':
-        return <Badge variant="red">Đã hủy</Badge>;
+        return <Badge variant="canceled">Đã hủy</Badge>;
       default:
         return <Badge variant="gray">{status}</Badge>;
     }
@@ -380,8 +381,8 @@ export const ExportNotes = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Quản Lý Phiếu Xuất Kho</h2>
-          <p className="text-xs text-wood-600 mt-0.5">Xuất kho bán lẻ, phân phối đối tác với cơ chế tự động chặn tồn kho âm (ACID)</p>
+          <h2 className="font-serif text-2xl font-bold text-[var(--text-primary)] tracking-tight">Phiếu xuất kho</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Xuất kho bán lẻ, phân phối đối tác với cơ chế tự động chặn tồn kho âm (ACID)</p>
         </div>
 
         {canCreate && (
@@ -389,15 +390,15 @@ export const ExportNotes = () => {
             <button
               onClick={handleGenerateAIOrder}
               disabled={aiGenerating}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-btn text-xs font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+              className="btn-ai"
               title="AI tự động đọc kịch bản khách hàng, phân tích tồn kho và lập đơn hàng đề xuất (có cache trong ngày)"
             >
               {aiGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin text-amber-200" />
+                <Loader2 className="w-4 h-4 animate-spin text-[var(--semantic-ai-btn-text)]" />
               ) : (
-                <Sparkles className="w-4 h-4 text-amber-200" />
+                <Sparkles className="w-4 h-4 text-[var(--semantic-ai-btn-text)]" />
               )}
-              <span>{aiGenerating ? 'AI đang tạo đơn...' : '✨ Tạo Đơn Hàng (AI)'}</span>
+              <span>{aiGenerating ? 'AI đang tạo đơn...' : 'Tạo đơn hàng AI'}</span>
             </button>
 
             <button
@@ -405,7 +406,7 @@ export const ExportNotes = () => {
               className="btn-primary"
             >
               <Plus className="w-4 h-4" />
-              <span>Lập Phiếu Xuất Mới</span>
+              <span>Lập phiếu xuất mới</span>
             </button>
           </div>
         )}
@@ -415,7 +416,7 @@ export const ExportNotes = () => {
       <div className="card-wood overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
+            <thead className="bg-[var(--bg-surface-warm)] text-[var(--text-primary)] font-semibold border-b border-[var(--border-medium)]">
               <tr>
                 <th className="py-3.5 px-4">Mã phiếu</th>
                 <th className="py-3.5 px-4">Người nhận / Khách hàng</th>
@@ -426,29 +427,29 @@ export const ExportNotes = () => {
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-wood-100">
+            <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-wood-400">
+                  <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
                     Đang tải danh sách phiếu xuất...
                   </td>
                 </tr>
               ) : exportNotes.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-wood-400">
+                  <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
                     Chưa có phiếu xuất kho nào.
                   </td>
                 </tr>
               ) : (
                 exportNotes.map((n) => (
-                  <tr key={n.id} className="hover:bg-wood-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-wood-700">{n.code}</td>
-                    <td className="py-3.5 px-4 font-medium text-wood-900">{n.recipient_name}</td>
-                    <td className="py-3.5 px-4 text-wood-600">
+                  <tr key={n.id} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-[var(--wood-500)]">{n.code}</td>
+                    <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">{n.recipient_name}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs text-[var(--text-secondary)]">
                       {new Date(n.note_date).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="py-3.5 px-4 text-wood-600">{n.creator?.full_name || 'Hệ thống'}</td>
-                    <td className="py-3.5 px-4 text-right font-bold text-wood-900">
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{n.creator?.full_name || 'Hệ thống'}</td>
+                    <td className="py-3.5 px-4 text-right font-mono text-xs font-bold text-[var(--text-primary)]">
                       {n.total_amount?.toLocaleString()} đ
                     </td>
                     <td className="py-3.5 px-4 text-center">
@@ -459,7 +460,7 @@ export const ExportNotes = () => {
                         <button
                           onClick={() => handleViewDetail(n)}
                           title="Xem chi tiết"
-                          className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-btn transition-colors cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -469,7 +470,7 @@ export const ExportNotes = () => {
                             <button
                               onClick={() => handleShipNote(n)}
                               title="Bắt đầu giao hàng (Trừ tồn kho)"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-btn transition-colors cursor-pointer font-medium text-[11px]"
+                              className="btn-secondary text-xs px-2.5 py-1"
                             >
                               <Truck className="w-3.5 h-3.5" />
                               <span>Giao hàng</span>
@@ -477,7 +478,7 @@ export const ExportNotes = () => {
                             <button
                               onClick={() => handleDeleteOrCancelNote(n)}
                               title="Hủy & Xóa vĩnh viễn phiếu"
-                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -489,7 +490,7 @@ export const ExportNotes = () => {
                             <button
                               onClick={() => handleCompleteNote(n)}
                               title="Xác nhận hoàn thành giao hàng"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-forest-50 hover:bg-forest-100 text-forest-700 rounded-btn transition-colors cursor-pointer font-medium text-[11px]"
+                              className="btn-primary text-xs px-2.5 py-1"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>Hoàn thành</span>
@@ -497,7 +498,7 @@ export const ExportNotes = () => {
                             <button
                               onClick={() => handleDeleteOrCancelNote(n)}
                               title="Hủy đơn giao (Hoàn trả tồn kho)"
-                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
                             >
                               <Ban className="w-4 h-4" />
                             </button>
@@ -514,11 +515,11 @@ export const ExportNotes = () => {
       </div>
 
       {/* Modal Lập Phiếu Xuất */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập Phiếu Xuất Kho Mới" maxWidth="max-w-3xl">
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập phiếu xuất kho mới" maxWidth="max-w-3xl">
         {isDraftRestored && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+          <div className="mb-4 p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-primary)]">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <Sparkles className="w-4 h-4 text-[var(--semantic-ai)] shrink-0" />
               <span>
                 <strong>Đã khôi phục bản nháp tự động</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
               </span>
@@ -526,7 +527,7 @@ export const ExportNotes = () => {
             <button
               type="button"
               onClick={handleDiscardDraft}
-              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              className="text-xs font-semibold text-[var(--semantic-alert)] hover:underline cursor-pointer shrink-0"
               title="Xóa nội dung nháp này để nhập từ đầu"
             >
               Xóa bản nháp
@@ -536,36 +537,38 @@ export const ExportNotes = () => {
 
         {/* Hộp thông tin gợi ý từ AI nếu đơn được sinh bởi AI */}
         {aiSuggestion && (
-          <div className="mb-4 p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2 text-xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200">
-              <div className="flex items-center gap-2 font-bold text-amber-950">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+          <div className="mb-4 p-3.5 bg-[var(--bg-linen)] border border-[var(--border-subtle)] rounded-card space-y-2 text-xs text-[var(--text-primary)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2 font-serif font-semibold text-[var(--text-primary)]">
+                <Sparkles className="w-4 h-4 text-[var(--semantic-ai)] shrink-0" />
                 <span>
-                  Đơn Hàng Đề Xuất Bởi AI ({aiSuggestion.provider === 'gemini' ? 'Google Gemini' : 'Heuristic Engine'})
+                  Đơn hàng đề xuất bởi AI ({aiSuggestion.provider === 'gemini' ? 'Google Gemini' : 'Heuristic Engine'})
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 {aiSuggestion.is_cached && (
-                  <span className="text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded-full font-medium">
-                    ⚡ Đã lưu cache trong ngày
+                  <span className="text-xs bg-[var(--bg-card)] text-[var(--semantic-ai)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-pill font-medium inline-flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-[var(--semantic-ai)]" />
+                    Đã lưu cache trong ngày
                   </span>
                 )}
-                <span className="text-[10px] bg-wood-200 text-wood-800 px-2 py-0.5 rounded-full uppercase font-bold">
+                <span className="text-xs bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-pill font-medium">
                   Khách: {aiSuggestion.role}
                 </span>
               </div>
             </div>
 
-            <p className="text-amber-900 text-[11px] leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               <strong>Lý do AI chọn:</strong> {aiSuggestion.reason}
             </p>
 
             {aiSuggestion.discount_percent > 0 && (
-              <div className="p-2.5 bg-white/90 rounded-lg border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
-                <span className="text-amber-950 font-medium">
-                  💡 <strong>Gợi ý chiết khấu:</strong> Đề xuất giảm giá <strong>{aiSuggestion.discount_percent}%</strong> (Đơn giá tham khảo sau giảm: <strong>{Number(aiSuggestion.suggested_unit_price).toLocaleString()} đ</strong>)
+              <div className="p-2.5 bg-[var(--bg-card)] rounded-btn border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                <span className="text-[var(--text-primary)] font-medium inline-flex items-center gap-1.5 flex-wrap">
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--semantic-ai)] shrink-0" />
+                  <strong>Gợi ý chiết khấu:</strong> Đề xuất giảm giá <strong>{aiSuggestion.discount_percent}%</strong> (Đơn giá tham khảo sau giảm: <span className="font-mono">{Number(aiSuggestion.suggested_unit_price).toLocaleString()} đ</span>)
                 </span>
-                <span className="text-wood-500 italic text-[10px]">
+                <span className="text-[var(--text-muted)] italic text-xs">
                   (Chỉ gợi ý - Không tự động trừ, bạn có thể chỉnh đơn giá tùy ý)
                 </span>
               </div>
@@ -574,21 +577,21 @@ export const ExportNotes = () => {
         )}
 
         {formError && (
-          <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-xl flex items-center gap-2 text-xs text-rust-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rust-500" />
+          <div className="mb-4 p-3 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card flex items-center gap-2 text-xs text-[var(--semantic-alert)] font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         {/* Cảnh báo xuất âm Realtime (Defensive UI) */}
         {stockViolations.length > 0 && (
-          <div className="mb-4 p-3.5 bg-rust-50 border border-rust-200 rounded-xl space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-rust-700">
-              <AlertTriangle className="w-4 h-4 text-rust-500" />
+          <div className="mb-4 p-3.5 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--semantic-alert)]">
+              <AlertTriangle className="w-4 h-4" />
               <span>Cảnh báo chống tồn kho âm (Defensive Guard Active):</span>
             </div>
             {stockViolations.map((v, i) => (
-              <p key={i} className="text-[11px] text-rust-600 pl-6">
+              <p key={i} className="text-xs text-[var(--text-primary)] pl-6">
                 • Dòng {v.row}: <strong>{v.productName}</strong> yêu cầu xuất {v.requestedQty} cái nhưng chỉ còn tồn kho {v.currentStock} cái (Thiếu hụt {v.shortage} cái).
               </p>
             ))}
@@ -598,7 +601,7 @@ export const ExportNotes = () => {
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Người nhận / Đơn vị nhận hàng</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Người nhận / Đơn vị nhận hàng</label>
               <input
                 type="text"
                 value={recipientName}
@@ -609,7 +612,7 @@ export const ExportNotes = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Ghi chú mục đích xuất</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Ghi chú mục đích xuất</label>
               <input
                 type="text"
                 value={noteText}
@@ -621,13 +624,13 @@ export const ExportNotes = () => {
           </div>
 
           {/* Chi tiết mặt hàng xuất */}
-          <div className="border border-wood-200 rounded-xl p-3 bg-wood-50/50">
+          <div className="border border-[var(--border-subtle)] rounded-card p-3 bg-[var(--bg-linen)]">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-bold text-wood-900 uppercase tracking-wider">Danh mục sản phẩm xuất kho</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Danh mục sản phẩm xuất kho</h4>
               <button
                 type="button"
                 onClick={handleAddItemRow}
-                className="text-xs text-wood-600 hover:text-wood-800 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-[var(--wood-accent)] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Thêm dòng sản phẩm</span>
@@ -647,8 +650,8 @@ export const ExportNotes = () => {
                   <div
                     key={idx}
                     style={{ zIndex: items.length - idx }}
-                    className={`flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-xl border transition-colors relative ${
-                      isOverStock ? 'bg-rust-50/60 border-rust-300' : 'bg-white border-wood-200'
+                    className={`flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-card border transition-colors relative ${
+                      isOverStock ? 'bg-[var(--semantic-alert)]/10 border-[var(--semantic-alert)]' : 'bg-[var(--bg-card)] border-[var(--border-subtle)]'
                     }`}
                   >
                     {/* Chọn nhóm hàng */}
@@ -656,7 +659,7 @@ export const ExportNotes = () => {
                       <select
                         value={row.category_id || ''}
                         onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
-                        className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 focus:outline-none"
+                        className="w-full text-xs input-wood p-1.5"
                         title="Lọc danh sách theo nhóm hàng"
                       >
                         <option value="">-- Tất cả nhóm --</option>
@@ -685,15 +688,15 @@ export const ExportNotes = () => {
                           value={row.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
                           placeholder="SL"
-                          className={`w-full text-xs rounded-lg p-1.5 text-center focus:outline-none border ${
+                          className={`w-full text-xs rounded-btn p-1.5 text-center focus:outline-none border ${
                             isOverStock
-                              ? 'bg-rust-50 border-rust-400 text-rust-700 font-bold'
-                              : 'bg-wood-50/70 border-wood-200'
+                              ? 'bg-[var(--semantic-alert)]/10 border-[var(--semantic-alert)] text-[var(--semantic-alert)] font-bold'
+                              : 'input-wood'
                           }`}
                           required
                         />
                       </div>
-                      <span className="text-[10px] text-wood-500 block mt-0.5">Tồn: {availableStock}</span>
+                      <span className="text-xs text-[var(--text-muted)] block mt-0.5">Tồn: {availableStock}</span>
                     </div>
 
                     <div className="w-32">
@@ -704,12 +707,12 @@ export const ExportNotes = () => {
                         value={row.unit_price}
                         onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
                         placeholder="Giá bán"
-                        className="w-full text-xs bg-wood-50/70 border border-wood-200 rounded-lg p-1.5 text-right focus:outline-none"
+                        className="w-full text-xs input-wood p-1.5 text-right font-mono"
                         required
                       />
                     </div>
 
-                    <div className="w-28 text-right font-medium text-xs text-wood-900 pr-1">
+                    <div className="w-28 text-right font-mono font-medium text-xs text-[var(--text-primary)] pr-1">
                       {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
                     </div>
 
@@ -717,7 +720,7 @@ export const ExportNotes = () => {
                       type="button"
                       onClick={() => handleRemoveItemRow(idx)}
                       disabled={items.length <= 1}
-                      className="text-wood-400 hover:text-rust-500 disabled:opacity-30 p-1 cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] disabled:opacity-30 p-1 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -727,14 +730,14 @@ export const ExportNotes = () => {
             </div>
 
             {/* Total Footer */}
-            <div className="mt-3 pt-3 border-t border-wood-200 flex items-center justify-between text-xs">
-              <span className="font-semibold text-wood-700">Tổng giá trị đơn xuất dự tính:</span>
-              <span className="font-bold text-base text-wood-900">{totalCalculated.toLocaleString()} đ</span>
+            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+              <span className="font-semibold text-[var(--text-secondary)]">Tổng giá trị đơn xuất dự tính:</span>
+              <span className="font-serif font-bold text-base text-[var(--text-primary)]">{totalCalculated.toLocaleString()} đ</span>
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-start sm:items-center gap-2">
-            <span className="font-bold text-amber-800 shrink-0">Quy trình xuất kho:</span>
+          <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card text-xs text-[var(--text-secondary)] flex items-start sm:items-center gap-2">
+            <span className="font-bold text-[var(--text-primary)] shrink-0">Quy trình xuất kho:</span>
             <span>Phiếu mới lập sẽ ở trạng thái <strong>Chờ xuất kho</strong> (chưa trừ tồn kho). Tồn kho và Thẻ kho chỉ được ghi nhận khi bạn bấm <strong>Giao hàng</strong>.</span>
           </div>
 
@@ -751,40 +754,40 @@ export const ExportNotes = () => {
               disabled={stockViolations.length > 0}
               className={`btn-primary ${stockViolations.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Lập Phiếu (Xác nhận)
+              Lập phiếu (Xác nhận)
             </button>
           </div>
         </form>
       </Modal>
 
       {/* Modal Xem Chi Tiết Phiếu Xuất */}
-      <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Chi Tiết Phiếu Xuất: ${selectedNote?.code}`}>
+      <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Chi tiết phiếu xuất: ${selectedNote?.code}`}>
         {selectedNote && (
           <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3 bg-wood-50 rounded-xl border border-wood-200">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-[var(--bg-linen)] rounded-card border border-[var(--border-subtle)]">
               <div>
-                <span className="text-wood-500 block">Người nhận / Đơn vị:</span>
-                <span className="font-semibold text-wood-900">{selectedNote.recipient_name}</span>
+                <span className="text-[var(--text-muted)] block text-xs">Người nhận / Đơn vị:</span>
+                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.recipient_name}</span>
               </div>
               <div>
-                <span className="text-wood-500 block">Ngày xuất:</span>
-                <span className="font-semibold text-wood-900">{new Date(selectedNote.note_date).toLocaleString('vi-VN')}</span>
+                <span className="text-[var(--text-muted)] block text-xs">Ngày xuất:</span>
+                <span className="font-semibold text-[var(--text-primary)]">{new Date(selectedNote.note_date).toLocaleString('vi-VN')}</span>
               </div>
               <div>
-                <span className="text-wood-500 block">Người lập phiếu:</span>
-                <span className="font-semibold text-wood-900">{selectedNote.creator?.full_name || 'Hệ thống'}</span>
+                <span className="text-[var(--text-muted)] block text-xs">Người lập phiếu:</span>
+                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.creator?.full_name || 'Hệ thống'}</span>
               </div>
               <div>
-                <span className="text-wood-500 block">Trạng thái:</span>
+                <span className="text-[var(--text-muted)] block text-xs">Trạng thái:</span>
                 {renderStatusBadge(selectedNote.status)}
               </div>
             </div>
 
             <div>
-              <h5 className="font-bold text-wood-900 uppercase tracking-wider mb-2">Chi tiết sản phẩm đã xuất:</h5>
-              <div className="border border-wood-200 rounded-xl overflow-hidden">
+              <h5 className="font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2 text-xs">Chi tiết sản phẩm đã xuất:</h5>
+              <div className="border border-[var(--border-subtle)] rounded-card overflow-hidden">
                 <table className="w-full text-left">
-                  <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
+                  <thead className="bg-[var(--bg-linen)] text-[var(--text-secondary)] font-medium border-b border-[var(--border-subtle)]">
                     <tr>
                       <th className="p-2.5">Sản phẩm</th>
                       <th className="p-2.5 text-center">Số lượng</th>
@@ -792,22 +795,22 @@ export const ExportNotes = () => {
                       <th className="p-2.5 text-right">Thành tiền</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-wood-100">
+                  <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-card)]">
                     {selectedNote.details?.map((d) => (
                       <tr key={d.id}>
                         <td className="p-2.5">
-                          <p className="font-medium text-wood-900">{d.product_name}</p>
+                          <p className="font-medium text-[var(--text-primary)]">{d.product_name}</p>
                         </td>
-                        <td className="p-2.5 text-center font-bold text-wood-900">{d.quantity}</td>
-                        <td className="p-2.5 text-right text-wood-700">{d.unit_price?.toLocaleString()} đ</td>
-                        <td className="p-2.5 text-right font-bold text-wood-900">{d.subtotal?.toLocaleString()} đ</td>
+                        <td className="p-2.5 text-center font-bold text-[var(--text-primary)] font-mono">{d.quantity}</td>
+                        <td className="p-2.5 text-right font-mono text-[var(--text-secondary)]">{d.unit_price?.toLocaleString()} đ</td>
+                        <td className="p-2.5 text-right font-mono font-bold text-[var(--text-primary)]">{d.subtotal?.toLocaleString()} đ</td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-wood-50 font-bold border-t border-wood-200">
+                  <tfoot className="bg-[var(--bg-linen)] font-bold border-t border-[var(--border-subtle)]">
                     <tr>
-                      <td colSpan="3" className="p-2.5 text-right text-wood-700">Tổng cộng:</td>
-                      <td className="p-2.5 text-right text-wood-900">{selectedNote.total_amount?.toLocaleString()} đ</td>
+                      <td colSpan="3" className="p-2.5 text-right text-[var(--text-secondary)]">Tổng cộng:</td>
+                      <td className="p-2.5 text-right font-serif font-bold text-sm text-[var(--text-primary)]">{selectedNote.total_amount?.toLocaleString()} đ</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -816,20 +819,20 @@ export const ExportNotes = () => {
 
             {/* Quick Actions in Detail Modal */}
             {canCreate && (selectedNote.status === 'CONFIRMED' || selectedNote.status === 'SHIPPING') && (
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-wood-200">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-subtle)]">
                 {selectedNote.status === 'CONFIRMED' && (
                   <>
                     <button
                       type="button"
                       onClick={() => handleDeleteOrCancelNote(selectedNote)}
-                      className="px-3 py-1.5 text-rust-600 hover:bg-rust-50 border border-rust-200 rounded-btn font-medium transition-colors cursor-pointer"
+                      className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert)]/40 hover:bg-[var(--semantic-alert)]/10"
                     >
-                      Hủy & Xóa phiếu
+                      Hủy & xóa phiếu
                     </button>
                     <button
                       type="button"
                       onClick={() => handleShipNote(selectedNote)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-btn font-semibold transition-colors shadow-sm cursor-pointer"
+                      className="btn-primary inline-flex items-center gap-1.5"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Bắt đầu giao hàng (Trừ kho)</span>
@@ -841,14 +844,14 @@ export const ExportNotes = () => {
                     <button
                       type="button"
                       onClick={() => handleDeleteOrCancelNote(selectedNote)}
-                      className="px-3 py-1.5 text-rust-600 hover:bg-rust-50 border border-rust-200 rounded-btn font-medium transition-colors cursor-pointer"
+                      className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert)]/40 hover:bg-[var(--semantic-alert)]/10"
                     >
-                      Hủy đơn & Hoàn kho
+                      Hủy đơn & hoàn kho
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCompleteNote(selectedNote)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-forest-600 hover:bg-forest-700 text-white rounded-btn font-semibold transition-colors shadow-sm cursor-pointer"
+                      className="btn-secondary inline-flex items-center gap-1.5"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Xác nhận hoàn thành</span>
