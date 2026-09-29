@@ -31,11 +31,27 @@
 | 2026-09-23 | Bước 08 | Module AI Trợ lý & Fallback Engine | Hoàn thành | `backend/app/services/ai_service.py`, `services/fallback_service.py`, `api/v1/endpoints/ai.py` | Hoàn thiện 3 tính năng AI (Báo cáo tháng, Gợi ý nhập, Biến động bất thường), Gemini API + Heuristic Fallback offline |
 | 2026-09-23 | Bước 09 | Xây dựng Frontend Web (React + Tailwind) | Hoàn thành | `frontend/src/App.jsx`, `components/`, `pages/`, `api/client.js` | Hoàn thiện SPA React 18 + Tailwind CSS + Lucide Icons cho 7 phân hệ, Defensive UI chống tồn âm, Demo Role Switcher |
 | 2026-09-23 | Bước 10 | Viết Bộ Test Tự động (Pytest) & Seed Data | Hoàn thành | `backend/tests/test_ai.py`, `backend/seed_data.py`, `docs/SDLC/KT3/*.md` | Bộ test 30/30 passed 100%, Seed Data 60 ngày kịch bản SP001/SP002/SP003, bàn giao KT3 |
-| 2026-09-20 | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Chưa bắt đầu | `README.md`, `docs/SDLC/final/...` | Hoàn thiện tài liệu Cuối kỳ |
+| 2026-09-25 | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Hoàn thành | `README.md`, `run.bat`, `docs/SDLC/final/...`, `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`, `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` | Hoàn thành 100% toàn bộ đồ án, trọn bộ SDLC 4 mốc, văn bản Báo cáo kỹ thuật Word, Slide PowerPoint, script run.bat và Pytest 60/60 passed 100% |
 
 ---
 
 ### CHANGELOG
+
+#### [2026-09-25] Hoàn thành Bước 11: Đóng gói toàn diện dự án, Hồ sơ SDLC Cuối kỳ, Báo cáo kỹ thuật Word & Slide PowerPoint Thuyết trình
+
+- **Đóng gói & Khởi chạy 1-Click:**
+  - `run.bat`: Tạo script tự động khởi chạy đồng thời Backend FastAPI (cổng 8000) và Frontend React Vite (cổng 5173) trên Windows.
+  - `README.md`: Hướng dẫn vận hành, danh mục tài khoản mẫu và các lối tắt chấm thi.
+- **Hồ sơ bàn giao giai đoạn Cuối kỳ (`docs/SDLC/final/` & `docs/submissions/final/`):**
+  - `01_Final_Technical_Report.md`: Báo cáo kỹ thuật tổng kết toàn diện 10 chương: kiến trúc Clean Architecture 3 tầng, CSDL chuẩn 3NF (9 bảng), giao dịch ACID, cỗ máy trạng thái xuất kho 3 bước, chốt chặn kép chống tồn âm, phân hệ AI Copilot và kiểm thử.
+  - `02_User_Guide_and_Demo_Script.md`: Cẩm nang hướng dẫn sử dụng 7 phân hệ và Kịch bản Demo 5 phút chuẩn chấm thi phân vai từng phút.
+  - `03_Presentation_Slides.md`: Bản ghi chép nội dung và kịch bản thuyết minh chi tiết cho 16 slide bảo vệ đồ án.
+  - `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`: Văn bản Báo cáo đặc tả yêu cầu & thiết kế kiến trúc hệ thống phiên bản in ấn chính thức (10 chương hoàn chỉnh).
+  - `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx`: Bộ slide trình chiếu 16 trang định dạng PowerPoint chuẩn đồ họa phục vụ bảo vệ đồ án trước Hội đồng.
+- **Kiểm định chất lượng toàn diện:**
+  - Toàn bộ 11/11 bước trong kế hoạch phát triển đã hoàn thành 100%.
+  - Bộ kiểm thử tự động Pytest nâng cấp lên quy mô **60 / 60 ca test PASS 100%** (bao gồm test auth, master data, ACID transaction, AI pipeline, heuristic fallback và blackbox integration).
+  - Đồng bộ đầy đủ dữ liệu bàn giao sang `docs/submissions/` (KT1, KT2, KT3, final).
 
 #### [2026-09-23] Hoàn thành Bước 09: Xây dựng Frontend Web React 18 & Tailwind CSS (Ứng dụng giao diện người dùng)
 

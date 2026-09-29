@@ -95,16 +95,19 @@ he-thong-quan-ly-kho/
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
 
-- [ ] Tất cả các file tài liệu markdown không bị lỗi định dạng, sơ đồ Mermaid render rõ ràng.
-- [ ] Người chưa từng tiếp xúc dự án có thể đọc `README.md` và khởi chạy thành công hệ thống trong 5 phút.
-- [ ] Kịch bản demo mạch lạc, chứng minh đầy đủ 100% yêu cầu của `de_tai_07.md`.
+- [x] Tất cả các file tài liệu markdown không bị lỗi định dạng, sơ đồ Mermaid render rõ ràng.
+- [x] Người chưa từng tiếp xúc dự án có thể đọc `README.md` và khởi chạy thành công hệ thống trong 5 phút qua `run.bat`.
+- [x] Kịch bản demo mạch lạc, chứng minh đầy đủ 100% yêu cầu của `de_tai_07.md`.
+- [x] Đã hoàn thành và đồng bộ đầy đủ văn bản Báo cáo tổng hợp Word (`Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`) và Slide bảo vệ đồ án PowerPoint (`Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx`).
+
+> 📝 **Cập nhật thực tế [2026-09-25]:** Đã hoàn tất 100% toàn bộ gói tài liệu giai đoạn Cuối kỳ (Mốc SDLC Final). Bổ sung tài liệu Báo cáo Kỹ thuật đặc tả kiến trúc toàn diện định dạng Word (`Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx` - 10 chương) và Bộ Slide thuyết trình bảo vệ đồ án PowerPoint (`Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` - 16 slide). Đã tạo script 1-Click `run.bat` trên Windows, hoàn thiện 3 tài liệu markdown chi tiết tại `docs/SDLC/final/` và đồng bộ sang `docs/submissions/final/`. Hệ thống đạt 60/60 tests pass 100%.
 
 ---
 
 ## 5. Cập nhật tiến độ
 
-Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/h%E1%BB%87%20th%E1%BB%91ng%20qu%E1%BA%A3n%20l%C3%BD%20kho/docs/plans/TIEN-DO.md) và cập nhật dòng **Bước 11** theo đúng mẫu sau:
+Đã cập nhật file [docs/plans/TIEN-DO.md](TIEN-DO.md) dòng **Bước 11**:
 
 ```markdown
-| YYYY-MM-DD | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Hoàn thành | `README.md`, `docs/SDLC/final/...` | Đã hoàn tất đóng gói toàn bộ dự án, hồ sơ SDLC 4 giai đoạn và kịch bản demo |
+| 2026-09-25 | Bước 11 | Đóng gói, Tài liệu SDLC & Kịch bản Demo | Hoàn thành | `README.md`, `run.bat`, `docs/SDLC/final/...`, `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`, `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` | Đã hoàn tất đóng gói toàn bộ dự án, hồ sơ SDLC 4 giai đoạn, tài liệu Word/PowerPoint và kịch bản demo (60/60 tests pass) |
 ```

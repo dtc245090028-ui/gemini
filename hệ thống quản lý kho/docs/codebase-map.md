@@ -1,9 +1,9 @@
 # Bản đồ mã nguồn
 
 > **File này bắt buộc cập nhật mỗi khi thêm, xóa hoặc đổi vai trò một file.**
-> Xem `CLAUDE.md §11` — trigger "thêm/xóa/đổi vai trò file bất kỳ" → cập nhật ngay lập tức.
+> Xem `CLAUDE.md §11` — trigger "thêm/xóa/đổi vai trò file bất kỳ" $\rightarrow$ cập nhật ngay lập tức.
 
-**Cập nhật lần cuối:** 2026-09-23 (Hoàn thành mốc KT3)
+**Cập nhật lần cuối:** 2026-09-25 (Hoàn thành 100% dự án & Mốc Cuối kỳ Final)
 
 ---
 
@@ -17,24 +17,31 @@
 | `Prompt.md` | Đặc tả hợp nhất đầy đủ — nguồn sự thật về nghiệp vụ và kỹ thuật |
 | `CLAUDE.md` | Hướng dẫn hành vi agent, quy trình làm việc, quy ước toàn dự án |
 | `GEMINI.md` | Bộ chỉ dẫn hành vi, ranh giới kiến trúc và quy ước quản lý dự án |
-| `README.md` | Nhật ký vận hành phiên làm việc — hướng dẫn mở/đóng phiên cho người dùng |
+| `README.md` | Hướng dẫn khởi chạy hệ thống, danh sách tài khoản mẫu và mục lục hồ sơ SDLC |
+| `run.bat` | Script khởi chạy 1-Click đồng thời Backend và Frontend trên Windows |
 
 ### `docs/`
 
-| File | Vai trò |
+| File / Thư mục | Vai trò |
 | --- | --- |
 | `docs/codebase-map.md` | File này — bản đồ mã nguồn, cập nhật theo phiên |
 | `docs/MASTER-ROADMAP.md` | Bức tranh toàn cảnh 8 giai đoạn — điều hướng sang Buoc-NN.md |
 | `docs/architecture.md` | Sơ đồ kiến trúc 3 tầng và luồng dữ liệu nghiệp vụ kho + AI |
 | `docs/implementation_plan.md` | Phân tích yêu cầu chi tiết và kế hoạch triển khai ban đầu |
-| `docs/plans/TIEN-DO.md` | Nhật ký tiến độ — **nguồn sự thật về trạng thái** |
-| `docs/plans/Buoc-01-*.md` đến `Buoc-11-*.md` | 11 file kế hoạch chi tiết từng bước |
+| `docs/plans/TIEN-DO.md` | Nhật ký tiến độ — **nguồn sự thật về trạng thái** (11/11 Bước Hoàn thành) |
+| `docs/plans/Buoc-01-*.md` đến `Buoc-11-*.md` | 11 file kế hoạch chi tiết từng bước (100% hoàn thành) |
 | `docs/SDLC/KT1/*.md` | Bộ hồ sơ đặc tả SRS, ERD, AI specs và Wireframes mốc KT1 |
 | `docs/SDLC/KT2/*.md` | Bộ hồ sơ API Specs, Transaction Design và AI Evidence mốc KT2 |
-| `docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md` | Báo cáo so sánh định lượng các phiên bản Prompt mốc KT3 |
-| `docs/SDLC/KT3/02_Test_Plan_and_Results.md` | Kế hoạch và kết quả kiểm thử tự động 30/30 tests mốc KT3 |
-| `docs/SDLC/KT3/03_AI_Integration_Architecture.md` | Kiến trúc tích hợp Gemini API và Heuristic Fallback Engine |
-| `docs/submissions/KT1/*.md` | Sản phẩm nộp bài chính thức mốc KT1 |
+| `docs/SDLC/KT3/*.md` | Bộ hồ sơ Prompt Engineering, Test Plan (30 tests) và AI Architecture mốc KT3 |
+| `docs/SDLC/final/01_Final_Technical_Report.md` | Báo cáo kỹ thuật tổng kết toàn diện 10 chương mốc Cuối kỳ |
+| `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | Hướng dẫn sử dụng 7 phân hệ và kịch bản demo 5 phút chấm thi |
+| `docs/SDLC/final/03_Presentation_Slides.md` | Bản chép lời và nội dung 16 slide thuyết trình bảo vệ đồ án |
+| `docs/SDLC/final/Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx` | Văn bản Báo cáo đặc tả kiến trúc định dạng Word chính thức (10 chương) |
+| `docs/SDLC/final/Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` | Bộ Slide thuyết trình định dạng PowerPoint chuẩn đồ họa (16 trang) |
+| `docs/submissions/KT1/` | Bộ sản phẩm nộp bài chính thức mốc KT1 |
+| `docs/submissions/KT2/` | Bộ sản phẩm nộp bài chính thức mốc KT2 |
+| `docs/submissions/KT3/` | Bộ sản phẩm nộp bài chính thức mốc KT3 |
+| `docs/submissions/final/` | Bộ sản phẩm nộp bài chính thức mốc Cuối kỳ (kèm .docx và .pptx) |
 
 ### Gốc dự án (Cấu hình)
 
@@ -81,6 +88,7 @@
 | `backend/tests/test_master_data.py` | Test CRUD Category, Product, Supplier và phân quyền RBAC |
 | `backend/tests/test_stock_transactions.py` | Test ACID Nhập/Xuất kho, chống tồn âm, state machine hủy phiếu, báo cáo tồn |
 | `backend/tests/test_ai.py` | Test pipeline bảo mật (không lộ giá mua), Fallback Engine, Mock Gemini API, RBAC |
+| `backend/tests/test_agent_comprehensive_blackbox.py` | Test hộp đen toàn diện luồng nghiệp vụ end-to-end, RBAC, biên và ngoại lệ |
 
 ### `frontend/`
 
@@ -112,14 +120,6 @@
 
 ---
 
-## Chưa có — sẽ thêm ở Giai đoạn tiếp theo
+## Chưa có — Dự án đã hoàn thành 100%
 
-| File | Sẽ tạo ở Giai đoạn |
-| --- | :---: |
-| `docs/SDLC/final/01_Final_Technical_Report.md` | 7 (Cuối kỳ) |
-| `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | 7 (Cuối kỳ) |
-| `docs/SDLC/final/03_Presentation_Slides.md` | 7 (Cuối kỳ) |
-| `README.md` *(nâng cấp thành hướng dẫn cài đặt 1-click)* | 7 (Cuối kỳ) |
-| `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | 7 (Cuối kỳ) |
-| `docs/SDLC/final/03_Presentation_Slides.md` | 7 (Cuối kỳ) |
-| `README.md` *(nâng cấp thành hướng dẫn cài đặt 1-click)* | 7 (Cuối kỳ) |
+> 🎉 **Tất cả các mục tiêu, tài liệu SDLC (KT1, KT2, KT3, Final), mã nguồn Backend, Frontend, kiểm thử tự động (60/60 tests pass), văn bản báo cáo Word (`.docx`) và Slide PowerPoint (`.pptx`) đều đã được hoàn thiện đầy đủ và kiểm thử nghiệm thu 100%.**
