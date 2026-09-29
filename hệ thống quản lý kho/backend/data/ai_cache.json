@@ -1,1 +1,201 @@
-{}
+{
+  "monthly_report:2026_09": {
+    "date": "2026-09-29",
+    "cached_at": "2026-09-29 22:06:46",
+    "data": {
+      "period": "09/2026",
+      "is_fallback": false,
+      "provider": "gemini",
+      "metrics": {
+        "total_products": 89,
+        "active_products": 44,
+        "total_imports_qty": 600,
+        "total_exports_qty": 915,
+        "low_stock_count": 9,
+        "top_exported_products": [
+          {
+            "product_id": 1,
+            "product_code": "SKU-ACID-01",
+            "product_name": "Ổ cứng SSD NVMe 1TB",
+            "quantity": 130
+          },
+          {
+            "product_id": 3,
+            "product_code": "AI_SP02_SURGE",
+            "product_name": "Miếng dán camera iPhone 18 Pro Nhựa Cứng Thủy Tinh UNIQ OPTIX",
+            "quantity": 125
+          },
+          {
+            "product_id": 2,
+            "product_code": "AI_SP01_FAST",
+            "product_name": "Bao da Smart Folio cho iPad Air M2/M4 11 inch",
+            "quantity": 100
+          },
+          {
+            "product_id": 29,
+            "product_code": "SKU_E2E_120920994502",
+            "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
+            "quantity": 50
+          },
+          {
+            "product_id": 30,
+            "product_code": "SKU_E2E_121134649607",
+            "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
+            "quantity": 50
+          }
+        ]
+      },
+      "executive_summary": "Trong kỳ 09/2026, doanh nghiệp quản lý tổng số 89 mặt hàng nhưng chỉ có 44 mặt hàng phát sinh giao dịch. Tổng lượng hàng xuất kho (915 đơn vị) lớn hơn đáng kể so với tổng lượng nhập kho (600 đơn vị), cho thấy xu hướng tiêu thụ mạnh từ phía khách hàng. Đáng chú ý, có 9 mặt hàng hiện đang ở mức dưới tồn kho tối thiểu, tiềm ẩn nguy cơ thiếu hụt hàng hóa phục vụ thị trường. Các sản phẩm chủ lực dẫn đầu lượng xuất kho gồm ổ cứng SSD NVMe 1TB, miếng dán camera iPhone và bao da iPad.",
+      "recommendations": [
+        "Khẩn trương bổ sung hàng hóa cho 9 mặt hàng đang có số lượng dưới mức tồn tối thiểu để tránh tình trạng đứt gãy nguồn cung.",
+        "Tập trung lên kế hoạch nhập thêm các mặt hàng có tốc độ tiêu thụ cao trong top xuất kho như ổ cứng SSD NVMe 1TB, miếng dán camera iPhone và bao da iPad Air.",
+        "Đánh giá lại hiệu quả quản lý đối với 45 mặt hàng không có giao dịch trong kỳ nhằm tối ưu hóa không gian lưu trữ và dòng tiền."
+      ],
+      "is_cached": false
+    }
+  },
+  "generated_order:today": {
+    "date": "2026-09-29",
+    "cached_at": "2026-09-29 22:58:53",
+    "data": {
+      "scenario_id": "SCENARIO_10",
+      "recipient_name": "Công ty TNHH Thiết Kế Sáng Tạo GreenArt",
+      "role": "company",
+      "product_id": 9,
+      "product_code": "SP005",
+      "product_name": "Ổ cứng SSD Samsung 980 1TB NVMe",
+      "current_stock": 25,
+      "quantity": 15,
+      "unit_price": 2200000.0,
+      "discount_percent": 5.0,
+      "suggested_unit_price": 2090000.0,
+      "reason": "Chọn ổ cứng SSD Samsung 980 1TB NVMe phục vụ nhu cầu nâng cấp tốc độ render đồ họa kiến trúc của doanh nghiệp với mức chiết khấu ưu đãi 5%.",
+      "note": "Đơn hàng AI: Công ty TNHH Thiết Kế Sáng Tạo GreenArt (company) - Đề xuất giảm giá 5%: Chọn ổ cứng SSD Samsung 980 1TB NVMe phục vụ nhu cầu nâng cấp tốc độ render đồ họa kiến trúc của doanh nghiệp với mức chiết khấu ưu đãi 5%.",
+      "is_fallback": false,
+      "provider": "gemini",
+      "is_cached": false
+    }
+  },
+  "restock_suggestions:30": {
+    "date": "2026-09-29",
+    "cached_at": "2026-09-29 23:09:12",
+    "data": {
+      "lookback_days": 30,
+      "is_fallback": false,
+      "provider": "gemini",
+      "total_suggested_items": 9,
+      "items": [
+        {
+          "product_id": 5,
+          "product_code": "SP001",
+          "product_name": "Bàn phím cơ Akko 3087",
+          "current_stock": 0,
+          "min_stock": 15,
+          "daily_velocity": 1.33,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 40,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.33/ngày. Cần nhập 40 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 29,
+          "product_code": "SKU_E2E_120920994502",
+          "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 30,
+          "product_code": "SKU_E2E_121134649607",
+          "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 31,
+          "product_code": "SKU_E2E_122956130472",
+          "product_name": "Túi đeo chéo Tomtoc Wander-T26 X-Pac Daily Sling T26S1K1",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 88,
+          "product_code": "SKU_E2E_151733885016",
+          "product_name": "Bộ Tản Nhiệt Nước Coolmoon Aosor AS240 2 Fan 120mm",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 89,
+          "product_code": "SKU_E2E_154720745019",
+          "product_name": "BỘ TẢN NHIỆT KHÍ CPU ID COOLING FROZN A620 PRO SE (2 fan - 6 ống đồng)",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 90,
+          "product_code": "SKU_E2E_160432804590",
+          "product_name": "Miếng dán camera iPhone 16/16 Plus OPTIX ALUMINIUM UNIQ",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hàng đã hết hoàn toàn (tồn kho 0), vận tốc bán 1.67/ngày. Cần nhập 50 sản phẩm để đáp ứng nhu cầu 30 ngày tới."
+        },
+        {
+          "product_id": 2,
+          "product_code": "AI_SP01_FAST",
+          "product_name": "Bao da Smart Folio cho iPad Air M2/M4 11 inch",
+          "current_stock": 3,
+          "min_stock": 15,
+          "daily_velocity": 3.33,
+          "estimated_days_left": 0.9,
+          "suggested_quantity": 97,
+          "priority": "HIGH",
+          "reason": "Tồn kho còn rất ít (3 sản phẩm), chỉ đủ dùng chưa tới 1 ngày. Cần nhập 97 sản phẩm để đáp ứng nhu cầu 30 ngày (khoảng 100 sản phẩm)."
+        },
+        {
+          "product_id": 1,
+          "product_code": "SKU-ACID-01",
+          "product_name": "Ổ cứng SSD NVMe 1TB",
+          "current_stock": 25,
+          "min_stock": 5,
+          "daily_velocity": 4.33,
+          "estimated_days_left": 5.8,
+          "suggested_quantity": 105,
+          "priority": "MEDIUM",
+          "reason": "Tồn kho còn 25, đủ dùng 5.8 ngày. Cần nhập 105 sản phẩm để đáp ứng nhu cầu 30 ngày tới (khoảng 130 sản phẩm)."
+        }
+      ],
+      "executive_summary": "Kho hiện có 8 mặt hàng đã hết hoàn toàn và 1 mặt hàng sắp hết, cần nhập gấp để duy trì hoạt động bán hàng và đáp ứng nhu cầu trong 30 ngày tới.",
+      "is_cached": false
+    }
+  }
+}

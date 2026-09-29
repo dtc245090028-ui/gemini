@@ -22,14 +22,14 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="card-warm p-8 text-center space-y-4 max-w-xl mx-auto my-8 border-rust-200 bg-rust-50/40">
-          <div className="w-12 h-12 rounded-full bg-rust-100 flex items-center justify-center mx-auto text-rust-600">
+        <div className="card-warm p-8 text-center space-y-4 max-w-xl mx-auto my-8 border-[var(--semantic-alert-border)] bg-[var(--semantic-alert-bg)]/60 text-[var(--text-primary)]">
+          <div className="w-12 h-12 rounded-full bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] flex items-center justify-center mx-auto text-[var(--semantic-alert)] shadow-xs">
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold font-serif text-wood-950">
+          <h3 className="text-base font-bold font-serif text-[var(--text-primary)]">
             Đã xảy ra sự cố khi tải giao diện
           </h3>
-          <p className="text-xs text-charcoal/70 leading-relaxed font-sans max-w-md mx-auto">
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans max-w-md mx-auto">
             {this.state.error?.message || 'Có lỗi không xác định xảy ra trong quá trình kết xuất dữ liệu.'}
           </p>
           <div className="pt-2">

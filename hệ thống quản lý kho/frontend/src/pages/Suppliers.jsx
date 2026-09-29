@@ -182,8 +182,8 @@ export const Suppliers = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Đối Tác Nhà Cung Cấp</h2>
-          <p className="text-xs text-wood-600 mt-0.5">Quản lý mạng lưới các đối tác cung ứng thiết bị và nguyên vật liệu</p>
+          <h2 className="font-serif text-2xl font-bold text-[var(--text-primary)] tracking-tight">Nhà cung cấp</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Quản lý mạng lưới các đối tác cung ứng thiết bị và nguyên vật liệu</p>
         </div>
 
         {canEdit && (
@@ -192,7 +192,7 @@ export const Suppliers = () => {
             className="btn-primary"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm Nhà Cung Cấp</span>
+            <span>Thêm nhà cung cấp</span>
           </button>
         )}
       </div>
@@ -200,13 +200,13 @@ export const Suppliers = () => {
       {/* Search */}
       <div className="card-wood p-4">
         <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-wood-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm kiếm theo tên nhà cung cấp..."
-            className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
+            className="w-full pl-9 pr-3.5 py-2 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] placeholder:text-[var(--text-muted)]"
           />
         </div>
       </div>
@@ -214,56 +214,57 @@ export const Suppliers = () => {
       {/* Supplier Grid Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <div className="col-span-full py-12 text-center text-xs text-wood-400">
+          <div className="col-span-full py-12 text-center text-xs text-[var(--text-muted)]">
             Đang tải dữ liệu nhà cung cấp...
           </div>
         ) : filteredSuppliers.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-xs text-wood-400">
+          <div className="col-span-full py-12 text-center text-xs text-[var(--text-muted)]">
             Không tìm thấy nhà cung cấp nào.
           </div>
         ) : (
           filteredSuppliers.map((s) => (
             <div
               key={s.id}
-              className="card-wood p-5 flex flex-col justify-between hover:shadow-md hover:border-wood-300 transition-all"
+              className="card-wood p-5 flex flex-col justify-between hover:shadow-md hover:border-[var(--border-strong)] transition-all"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-wood-100 border border-wood-200 flex items-center justify-center text-wood-700">
+                    <div className="w-9 h-9 rounded-input bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] flex items-center justify-center text-[var(--wood-500)] shadow-xs">
                       <Building2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-serif font-bold text-wood-900 text-sm leading-tight">{s.name}</h4>
+                      <h4 className="font-serif font-bold text-[var(--text-primary)] text-sm leading-tight">{s.name}</h4>
+                      <span className="font-mono text-xs text-[var(--text-secondary)]">{s.code}</span>
                     </div>
                   </div>
-                  <Badge variant={s.is_active ? 'green' : 'gray'}>
+                  <Badge variant={s.is_active ? 'success' : 'inactive'}>
                     {s.is_active ? 'Đang hợp tác' : 'Ngưng hợp tác'}
                   </Badge>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-wood-700 mt-4 border-t border-wood-100 pt-3">
+                <div className="space-y-2 text-xs text-[var(--text-secondary)] mt-4 border-t border-[var(--border-subtle)] pt-3">
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-wood-400 shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                     <span>{s.phone || 'Chưa cập nhật'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-wood-400 shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                     <span className="truncate">{s.email || 'Chưa cập nhật'}</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-wood-400 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2 text-wood-600">{s.address || 'Chưa cập nhật'}</span>
+                    <MapPin className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 mt-0.5" />
+                    <span className="line-clamp-2 text-[var(--text-secondary)]">{s.address || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-1 mt-4 pt-3 border-t border-wood-100">
+              <div className="flex items-center justify-end gap-1 mt-4 pt-3 border-t border-[var(--border-subtle)]">
                 {canEdit && (
                   <button
                     onClick={() => handleOpenEdit(s)}
-                    className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-btn transition-colors cursor-pointer"
                     title="Sửa thông tin"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -272,7 +273,7 @@ export const Suppliers = () => {
                 {canDelete && (
                   <button
                     onClick={() => handleDeleteSupplier(s)}
-                    className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
                     title="Ngưng hợp tác"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -288,19 +289,19 @@ export const Suppliers = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={modalMode === 'create' ? 'Thêm Nhà Cung Cấp Mới' : 'Cập Nhật Nhà Cung Cấp'}
+        title={modalMode === 'create' ? 'Thêm nhà cung cấp mới' : 'Cập nhật nhà cung cấp'}
       >
         <form onSubmit={handleSaveSupplier} className="space-y-4">
           {modalMode === 'create' && isDraftRestored && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
+            <div className="p-3 bg-[var(--semantic-ai-bg)] border border-[var(--semantic-ai-border)] rounded-input text-xs text-[var(--semantic-ai)] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <Clock className="w-4 h-4 text-[var(--semantic-ai-btn)] shrink-0" />
                 <span>Đã khôi phục dữ liệu nhập dở lúc <b>{draftSavedTime}</b> (hạn lưu 24h).</span>
               </div>
               <button
                 type="button"
                 onClick={handleClearDraft}
-                className="text-amber-700 underline font-semibold hover:text-amber-900 cursor-pointer flex items-center gap-1"
+                className="text-[var(--semantic-alert)] underline font-semibold cursor-pointer flex items-center gap-1"
               >
                 <RotateCcw className="w-3 h-3" />
                 Xóa bản nháp
@@ -309,8 +310,8 @@ export const Suppliers = () => {
           )}
 
           {formError && (
-            <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rust-500 shrink-0" />
+            <div className="p-3 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] text-[var(--semantic-alert)] rounded-input text-xs flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 text-[var(--semantic-alert)] shrink-0" />
               <span>{formError}</span>
             </div>
           )}
@@ -318,7 +319,7 @@ export const Suppliers = () => {
           <input type="hidden" value={formData.code} />
 
           <div>
-            <label className="block text-xs font-semibold text-wood-800 mb-1">Tên nhà cung cấp</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Tên nhà cung cấp</label>
             <input
               type="text"
               value={formData.name}
@@ -331,17 +332,17 @@ export const Suppliers = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Số điện thoại</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Số điện thoại</label>
               <input
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="0912345678"
-                className="input-wood"
+                className="input-wood font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Email</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email}
@@ -353,7 +354,7 @@ export const Suppliers = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-wood-800 mb-1">Địa chỉ</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Địa chỉ</label>
             <textarea
               rows="3"
               value={formData.address}
@@ -363,7 +364,7 @@ export const Suppliers = () => {
             ></textarea>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-2 border-t border-wood-200">
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-[var(--border-medium)]">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}

@@ -1,0 +1,292 @@
+/**
+ * SmartKho Design Tokens — "Timber & Grain"
+ * Kiến trúc biến CSS tập trung cho toàn bộ ứng dụng (Hỗ trợ Light & Dark Mode)
+ * Đạt chuẩn tương phản WCAG AA (>= 4.5:1 cho text thường, >= 3:1 cho UI/icons)
+ * Phân chia rõ rệt 3 tầng nền (3-Layer Depth Architecture)
+ */
+
+:root {
+  /* ===================================================================
+     1. KIẾN TRÚC 3 TẦNG NỀN (3-LAYER BACKGROUNDS - LIGHT MODE)
+     =================================================================== */
+  /* TẦNG 1: Nền canvas ứng dụng sâu nhất (Parchment da bò yến mạch) */
+  --bg-canvas: #F5F1EB;
+  --bg-canvas-subtle: #EDE5D9;
+
+  /* TẦNG 2: Bề mặt phụ, Vải lanh linen, Phân vùng header/toolbar, thead bảng */
+  --bg-surface-subtle: #EBE3D7;
+  --bg-header: #FFFFFF;
+  --bg-linen: #F2ECE2;
+
+  /* TẦNG 3: Bề mặt thẻ card chính, Modal, Bảng table, Khung nội dung nổi */
+  --bg-surface: #FFFFFF;
+  --bg-surface-warm: #FAF6F0;
+  --bg-card: #FFFFFF;
+  --bg-card-warm: #FAF6F0;
+  --bg-card-elevated: #FAF6F0;
+
+  /* Tầng 3+ Tương tác: Hover & Active trên thẻ */
+  --bg-surface-hover: #F2EAE0;
+  --bg-surface-active: #E8DEC8;
+
+  /* ===================================================================
+     2. MÀU CHỮ & ĐỘ TƯƠNG PHẢN ĐẠT CHUẨN WCAG AA (>= 4.5:1)
+     =================================================================== */
+  --text-primary: #24180E;       /* Nâu sồi đậm, tương phản > 15:1 */
+  --text-secondary: #523F30;     /* Gỗ óc chó trầm, tương phản > 8.8:1 */
+  --text-muted: #735C4A;         /* Tương phản >= 5.5:1 cho chú thích */
+  --text-inverse: #FAF6F0;
+
+  /* ===================================================================
+     3. ĐƯỜNG VIỀN VÂN GỖ (BORDERS & DIVIDERS)
+     =================================================================== */
+  --border-subtle: #DFD5C7;
+  --border-medium: #CEBFAB;
+  --border-strong: #B49F86;
+
+  /* ===================================================================
+     4. THƯƠNG HIỆU GỖ (TIMBER BRAND SCALE)
+     =================================================================== */
+  --wood-50: #FAF6F0;
+  --wood-100: #F3EDE2;
+  --wood-200: #E6DCce;
+  --wood-300: #CCA058;
+  --wood-400: #B6792E;
+  --wood-500: #8B552E;          /* Primary Brand */
+  --wood-600: #734321;
+  --wood-700: #5A3317;
+  --wood-800: #42240F;
+  --wood-900: #2C180A;          /* Dark Walnut */
+  --wood-950: #1C0F06;
+
+  /* ===================================================================
+     5. SIDEBAR RIÊNG BIỆT (TIMBER WALNUT - TƯƠNG PHẢN SÁNG RÕ)
+     =================================================================== */
+  --sidebar-bg: #1F150E;
+  --sidebar-border: #352519;
+  --sidebar-logo-bg: #3A271A;
+  --sidebar-logo-border: #563B27;
+  --sidebar-logo-icon: #F3B24F;
+  --sidebar-logo-text: #FFFDF9;
+  --sidebar-logo-sub: #D5C7B7;
+  --sidebar-badge-bg: rgba(243, 178, 79, 0.2);
+  --sidebar-badge-border: rgba(243, 178, 79, 0.4);
+  --sidebar-badge-text: #F5C06B;
+
+  --sidebar-text: #D5C7B7;         /* Tương phản 11.2:1 */
+  --sidebar-icon: #B5A595;         /* Tương phản 7.8:1 */
+
+  --sidebar-hover-bg: #2E1E13;
+  --sidebar-hover-text: #FFFFFF;    /* Tương phản 16.3:1 */
+  --sidebar-hover-icon: #F3B24F;
+
+  --sidebar-active-bg: #442E1D;     /* Sáng hơn hover rõ rệt */
+  --sidebar-active-text: #FFFDF9;   /* Tương phản 12.8:1 */
+  --sidebar-active-border: #F3B24F; /* Vàng hổ phách sáng */
+  --sidebar-active-icon: #F3B24F;
+
+  --sidebar-user-bg: #170F0A;
+  --sidebar-user-border: #302014;
+
+  /* ===================================================================
+     6. MÀU NGỮ NGHĨA RIÊNG BIỆT (SEMANTIC STATUS COLORS)
+     =================================================================== */
+  /* Hết hàng / Cảnh báo = Đỏ đất (Terracotta Rust) */
+  --semantic-alert: #9E3B20;
+  --semantic-alert-bg: #FBF0EB;
+  --semantic-alert-border: #F0C4B4;
+  --semantic-alert-hover: #883018;
+
+  /* Hoàn thành / An toàn = Xanh rêu (Moss Forest) */
+  --semantic-success: #265C32;
+  --semantic-success-bg: #EFF7F1;
+  --semantic-success-border: #BFDEC6;
+  --semantic-success-hover: #1E4927;
+
+  /* Đã hủy = Xám ấm (Warm Charcoal Gray) */
+  --semantic-canceled: #585552;
+  --semantic-canceled-bg: #F0EFEF;
+  --semantic-canceled-border: #D6D4D1;
+
+  /* Ngưng bán = Nâu xám (Taupe Timber) */
+  --semantic-inactive: #6E6259;
+  --semantic-inactive-bg: #EFECE8;
+  --semantic-inactive-border: #D3CCC4;
+
+  /* Trợ lý AI = Vàng hổ phách mật ong (Tách biệt hoàn toàn trạng thái) */
+  --semantic-ai: #7E4E06;
+  --semantic-ai-bg: #FEF7EA;
+  --semantic-ai-border: #F8DFAC;
+  --semantic-ai-btn: #C78222;
+  --semantic-ai-btn-hover: #B07018;
+  --semantic-ai-btn-text: #FFFFFF;
+
+  /* ===================================================================
+     7. TYPOGRAPHY & CHUẨN CỠ CHỮ
+     =================================================================== */
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+
+  --text-xs: 0.75rem;    /* 12px min */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 0.9375rem;  /* 15px */
+  --text-lg: 1.0625rem;  /* 17px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+
+  /* ===================================================================
+     8. BO GÓC & ĐỔ BÓNG THỦ CÔNG (RADII & SHADOWS)
+     =================================================================== */
+  --radius-sm: 4px;
+  --radius-btn: 6px;
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-modal: 14px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 2px rgba(44, 32, 22, 0.05);
+  --shadow-sm: 0 2px 4px rgba(44, 32, 22, 0.06), 0 1px 2px rgba(44, 32, 22, 0.04);
+  --shadow-md: 0 4px 12px rgba(44, 32, 22, 0.08), 0 2px 4px rgba(44, 32, 22, 0.04);
+  --shadow-lg: 0 10px 24px rgba(44, 32, 22, 0.12), 0 3px 6px rgba(44, 32, 22, 0.06);
+  --shadow-modal: 0 20px 48px rgba(28, 15, 6, 0.28);
+
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --ease-craft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =====================================================================
+   GIAO DIỆN TỐI (DARK MODE) — "Midnight Timber & Grain"
+   3 TẦNG NỀN PHÂN BIỆT RÕ RỆT (Luminance tăng dần: Tầng 1 < Tầng 2 < Tầng 3 < Tầng 3+)
+   ĐẢM BẢO 100% CÁC CẶP CHỮ/NỀN ĐẠT CHUẨN WCAG AA (>= 4.5:1)
+   MỤC ACTIVE SÁNG HƠN MỤC HOVER VÀ NỀN SIDEBAR
+   ===================================================================== */
+[data-theme="dark"],
+.dark {
+  /* ===================================================================
+     1. KIẾN TRÚC 3 TẦNG NỀN (3-LAYER DEPTH ARCHITECTURE - DARK MODE)
+     =================================================================== */
+  /* TẦNG 1: Nền canvas sâu nhất (Obsidian Charcoal Wood - #100C09, Lum 0.0039) */
+  --bg-canvas: #100C09;
+  --bg-canvas-subtle: #15100C;
+
+  /* TẦNG 2: Bề mặt phụ, Sidebar, Header, Phân vùng Toolbar, thead bảng (#1A1410, Lum 0.0076) */
+  --bg-surface-subtle: #1A1410;
+  --bg-header: #1A1410;
+  --bg-linen: #1E1712;
+
+  /* TẦNG 3: Bề mặt thẻ card nội dung, Modal, Bảng table chính (#271F19, Lum 0.0148) */
+  --bg-surface: #271F19;
+  --bg-surface-warm: #2A221C;
+  --bg-card: #271F19;
+  --bg-card-warm: #2A221C;
+  --bg-card-elevated: #342A22;
+
+  /* Tầng 3+ Tương tác: Ô nhập liệu, Hover thẻ, Active thẻ (#362B22, Lum 0.0263) */
+  --bg-surface-hover: #322720;
+  --bg-surface-active: #3D2E24;
+
+  /* ===================================================================
+     2. MÀU CHỮ & TƯƠNG PHẢN CAO TRÊN CẢ 3 TẦNG NỀN TỐI (WCAG AA >= 4.5:1)
+     =================================================================== */
+  --text-primary: #F8F3EA;       /* Giấy da ngà sáng, tương phản 14.6:1 - 17.6:1 */
+  --text-secondary: #D5C7B7;     /* Cát gỗ sáng, tương phản 9.7:1 - 11.7:1 */
+  --text-muted: #AC9C8C;         /* Gỗ tro sáng, tương phản 6.1:1 - 7.3:1 (luôn >= 4.5:1) */
+  --text-inverse: #100C09;
+
+  /* ===================================================================
+     3. ĐƯỜNG VIỀN VÂN GỖ TỐI (TÁCH BẠCH TỪNG LỚP NỀN)
+     =================================================================== */
+  --border-subtle: #3D2F24;      /* Tách bạch giữa Tầng 1, 2 và 3 */
+  --border-medium: #544234;
+  --border-strong: #725A47;
+
+  /* ===================================================================
+     4. THƯƠNG HIỆU GỖ TRÊN NỀN TỐI (GIỮ ĐỘ SÁNG CHO TEXT)
+     =================================================================== */
+  --wood-50: #FFFDF9;            /* Sáng rõ cho text cần độ rực cao */
+  --wood-100: #F8F3EA;
+  --wood-200: #D5C7B7;
+  --wood-300: #F3B24F;           /* Vàng hổ phách sáng */
+  --wood-400: #E29B38;
+  --wood-500: #B8753C;
+  --wood-600: #CB8548;
+  --wood-700: #DE9658;
+  --wood-800: #382B22;           /* Elevated surface / Border */
+  --wood-900: #271F19;           /* Card surface */
+  --wood-950: #100C09;           /* Deep Canvas */
+
+  /* ===================================================================
+     5. SIDEBAR DARK MODE — ĐỘ TƯƠNG PHẢN CAO & ACTIVE SÁNG HƠN HOVER
+     =================================================================== */
+  --sidebar-bg: #18120E;          /* Tầng 2: Sắc gỗ mun trầm sâu, tách khỏi Tầng 1 */
+  --sidebar-border: #2F241C;
+
+  /* Logo: Tương phản > 10:1 */
+  --sidebar-logo-bg: #2C1E14;
+  --sidebar-logo-border: #4D3523;
+  --sidebar-logo-icon: #F3B24F;   /* Vàng hổ phách (Tương phản 9.98:1) */
+  --sidebar-logo-text: #FFFDF9;   /* Trắng sáng (Tương phản 18.26:1) */
+  --sidebar-logo-sub: #D5C7B7;    /* Cát sáng (Tương phản 11.21:1) */
+  --sidebar-badge-bg: rgba(243, 178, 79, 0.22);
+  --sidebar-badge-border: rgba(243, 178, 79, 0.5);
+  --sidebar-badge-text: #F5C06B;
+
+  /* Chữ & icon menu chưa active: Tương phản >= 7.7:1 (Vượt xa chuẩn 4.5:1) */
+  --sidebar-text: #D5C7B7;         /* Tương phản 11.21:1 trên #18120E */
+  --sidebar-icon: #B5A595;         /* Tương phản 7.76:1 trên #18120E */
+
+  /* Trạng thái Hover: Sáng hơn nền sidebar (Lum 0.01458 vs 0.0076) */
+  --sidebar-hover-bg: #281F18;
+  --sidebar-hover-text: #FFFFFF;   /* Tương phản 16.26:1 */
+  --sidebar-hover-icon: #F3B24F;
+
+  /* Trạng thái Active: SÁNG HƠN MỤC HOVER RÕ RỆT (Lum 0.03073, gấp đôi hover!) */
+  --sidebar-active-bg: #3D2E24;
+  --sidebar-active-text: #FFFDF9;  /* Tương phản 12.80:1 */
+  --sidebar-active-border: #F3B24F;/* Vàng mật ong nổi bật */
+  --sidebar-active-icon: #F3B24F;  /* Tương phản 6.99:1 */
+
+  --sidebar-user-bg: #130E0A;
+  --sidebar-user-border: #281D15;
+
+  /* ===================================================================
+     6. MÀU NGỮ NGHĨA TRÊN NỀN TỐI (ĐẢM BẢO TƯƠNG PHẢN >= 5.8:1)
+     =================================================================== */
+  --semantic-alert: #F58B75;       /* Tương phản 6.8:1 - 8.2:1 */
+  --semantic-alert-bg: #3A1B14;
+  --semantic-alert-border: #6B291D;
+  --semantic-alert-hover: #F8A18E;
+
+  --semantic-success: #78CE87;     /* Tương phản 8.5:1 - 10.2:1 */
+  --semantic-success-bg: #14351B;
+  --semantic-success-border: #265F32;
+  --semantic-success-hover: #8FDC9C;
+
+  --semantic-canceled: #C4BEB7;    /* Tương phản > 7.5:1 */
+  --semantic-canceled-bg: #2A2522;
+  --semantic-canceled-border: #49413B;
+
+  --semantic-inactive: #C7BCAE;    /* Tương phản > 7.8:1 */
+  --semantic-inactive-bg: #2C251F;
+  --semantic-inactive-border: #4B3E34;
+
+  --semantic-ai: #F3B24F;          /* Vàng hổ phách sáng, tương phản 8.7:1 - 10.5:1 */
+  --semantic-ai-bg: #38250A;
+  --semantic-ai-border: #6D4610;
+  --semantic-ai-btn: #E5A335;
+  --semantic-ai-btn-hover: #F2B34B;
+  --semantic-ai-btn-text: #18120E;
+
+  /* ===================================================================
+     7. ĐỔ BÓNG TRÊN NỀN TỐI
+     =================================================================== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.8), 0 3px 6px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 20px 48px rgba(0, 0, 0, 0.92);
+}

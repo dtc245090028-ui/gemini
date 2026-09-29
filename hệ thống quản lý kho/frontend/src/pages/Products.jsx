@@ -439,8 +439,8 @@ export const Products = ({ onSelectProductLedger }) => {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-wood-900 tracking-tight">Danh Mục Hàng Hóa</h2>
-          <p className="text-xs text-wood-600 mt-0.5">Quản lý danh mục hàng hóa, đơn vị tính, định mức tồn kho an toàn và giá chuẩn</p>
+          <h2 className="font-serif text-2xl font-bold text-[var(--text-primary)] tracking-tight">Hàng hóa & kho</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Quản lý danh mục hàng hóa, đơn vị tính, định mức tồn kho an toàn và giá niêm yết</p>
         </div>
 
         {canEdit && (
@@ -449,7 +449,7 @@ export const Products = ({ onSelectProductLedger }) => {
             className="btn-primary"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm Mặt Hàng Mới</span>
+            <span>Thêm hàng hóa mới</span>
           </button>
         )}
       </div>
@@ -458,20 +458,20 @@ export const Products = ({ onSelectProductLedger }) => {
       <div className="card-wood p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-wood-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo tên hàng hóa..."
-              className="w-full pl-9 pr-3.5 py-2 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20 focus:border-wood-500"
+              className="w-full pl-9 pr-3.5 py-2 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] placeholder:text-[var(--text-muted)]"
             />
           </div>
 
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="py-2 px-3 bg-wood-50/70 border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20"
+            className="py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer"
           >
             <option value="">Tất cả nhóm hàng</option>
             {categories.map((c) => (
@@ -483,14 +483,14 @@ export const Products = ({ onSelectProductLedger }) => {
         </div>
 
         {/* Low Stock Toggle */}
-        <label className="flex items-center gap-2 text-xs font-medium text-wood-800 cursor-pointer select-none bg-wood-50/70 px-3 py-2 rounded-xl border border-wood-200">
+        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer select-none bg-[var(--bg-surface-warm)] px-3 py-2 rounded-input border border-[var(--border-medium)]">
           <input
             type="checkbox"
             checked={filterLowStock}
             onChange={(e) => setFilterLowStock(e.target.checked)}
-            className="rounded text-wood-600 focus:ring-wood-500 w-4 h-4 cursor-pointer accent-wood-500"
+            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)]"
           />
-          <AlertTriangle className="w-3.5 h-3.5 text-rust-500" />
+          <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)]" />
           <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
         </label>
       </div>
@@ -499,12 +499,12 @@ export const Products = ({ onSelectProductLedger }) => {
       <div className="card-wood overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
+            <thead className="bg-[var(--bg-surface-warm)] text-[var(--text-primary)] font-semibold border-b border-[var(--border-medium)]">
               <tr>
                 <th className="py-3.5 px-4 text-center w-24">Ảnh</th>
                 <th
                   onClick={() => handleSort('name')}
-                  className="py-3.5 px-4 cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
+                  className="py-3.5 px-4 cursor-pointer select-none group hover:bg-[var(--bg-surface-hover)] transition-colors"
                   title="Bấm để sắp xếp theo Tên hàng hóa"
                 >
                   <div className="flex items-center gap-1.5">
@@ -516,7 +516,7 @@ export const Products = ({ onSelectProductLedger }) => {
                 <th className="py-3.5 px-4 text-center">ĐVT</th>
                 <th
                   onClick={() => handleSort('current_stock')}
-                  className="py-3.5 px-4 text-center cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
+                  className="py-3.5 px-4 text-center cursor-pointer select-none group hover:bg-[var(--bg-surface-hover)] transition-colors"
                   title="Bấm để sắp xếp theo Tồn hiện tại"
                 >
                   <div className="flex items-center justify-center gap-1.5">
@@ -527,11 +527,11 @@ export const Products = ({ onSelectProductLedger }) => {
                 <th className="py-3.5 px-4 text-center">Tồn an toàn</th>
                 <th
                   onClick={() => handleSort('standard_price')}
-                  className="py-3.5 px-4 text-right cursor-pointer select-none group hover:bg-wood-200/60 transition-colors"
-                  title="Bấm để sắp xếp theo Giá chuẩn"
+                  className="py-3.5 px-4 text-right cursor-pointer select-none group hover:bg-[var(--bg-surface-hover)] transition-colors"
+                  title="Bấm để sắp xếp theo Giá niêm yết"
                 >
                   <div className="flex items-center justify-end gap-1.5">
-                    <span>Giá chuẩn</span>
+                    <span>Giá niêm yết</span>
                     {renderSortIcon('standard_price')}
                   </div>
                 </th>
@@ -539,16 +539,16 @@ export const Products = ({ onSelectProductLedger }) => {
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-wood-100">
+            <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-wood-400">
+                  <td colSpan="9" className="text-center py-10 text-[var(--text-muted)]">
                     Đang tải danh sách hàng hóa...
                   </td>
                 </tr>
               ) : paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-10 text-wood-400">
+                  <td colSpan="9" className="text-center py-10 text-[var(--text-muted)]">
                     Không tìm thấy sản phẩm nào khớp với bộ lọc.
                   </td>
                 </tr>
@@ -556,12 +556,12 @@ export const Products = ({ onSelectProductLedger }) => {
                 paginatedProducts.map((p) => {
                   const isLow = p.current_stock <= p.min_stock;
                   return (
-                    <tr key={p.id} className="hover:bg-wood-50/80 transition-colors">
+                    <tr key={p.id} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
                       <td className="py-3 px-4 text-center align-middle">
                         <div
                           onClick={() => p.image_url && setZoomImage({ url: p.image_url, name: p.name, code: p.code })}
-                          className={`w-20 h-20 min-w-[80px] min-h-[80px] rounded-xl bg-wood-100 border border-wood-200 overflow-hidden inline-flex items-center justify-center transition-all ${
-                            p.image_url ? 'cursor-pointer hover:border-wood-500 hover:ring-2 hover:ring-wood-500/20 shadow-2xs group' : ''
+                          className={`w-16 h-16 min-w-[64px] min-h-[64px] rounded-input bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] overflow-hidden inline-flex items-center justify-center transition-all ${
+                            p.image_url ? 'cursor-pointer hover:border-[var(--wood-500)] hover:ring-2 hover:ring-[var(--wood-500)]/20 shadow-xs group' : ''
                           }`}
                           title={p.image_url ? 'Bấm để xem ảnh phóng to' : 'Chưa có ảnh'}
                         >
@@ -579,34 +579,37 @@ export const Products = ({ onSelectProductLedger }) => {
                             />
                           ) : null}
                           <div
-                            className="w-full h-full flex flex-col items-center justify-center text-wood-400 bg-wood-50 text-[10px]"
+                            className="w-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] bg-[var(--bg-surface-warm)] text-xs"
                             style={{ display: p.image_url ? 'none' : 'flex' }}
                           >
-                            <Package className="w-7 h-7 text-wood-400 mb-1" />
+                            <Package className="w-6 h-6 text-[var(--text-muted)] mb-0.5" />
                             <span>Trống</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-wood-900 align-middle">{p.name}</td>
-                      <td className="py-3.5 px-4 text-wood-600 align-middle">{p.category?.name || 'N/A'}</td>
-                      <td className="py-3.5 px-4 text-center text-wood-600 align-middle">{p.unit}</td>
+                      <td className="py-3.5 px-4 font-medium text-[var(--text-primary)] align-middle">
+                        <div className="leading-snug">{p.name}</div>
+                        <span className="font-mono text-xs text-[var(--text-secondary)]">{p.code}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)] align-middle">{p.category?.name || 'Chưa phân loại'}</td>
+                      <td className="py-3.5 px-4 text-center text-[var(--text-secondary)] align-middle">{p.unit}</td>
                       <td className="py-3.5 px-4 text-center align-middle">
                         <span
-                          className={`font-bold px-2 py-0.5 rounded ${
+                          className={`font-mono text-xs font-bold px-2 py-0.5 rounded-sm border ${
                             isLow
-                              ? 'bg-rust-50 text-rust-600 border border-rust-200'
-                              : 'bg-forest-50 text-forest-700 border border-forest-200'
+                              ? 'bg-[var(--semantic-alert-bg)] text-[var(--semantic-alert)] border-[var(--semantic-alert-border)]'
+                              : 'bg-[var(--semantic-success-bg)] text-[var(--semantic-success)] border-[var(--semantic-success-border)]'
                           }`}
                         >
                           {p.current_stock}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-wood-600 font-medium align-middle">{p.min_stock}</td>
-                      <td className="py-3.5 px-4 text-right font-medium text-wood-800 align-middle">
+                      <td className="py-3.5 px-4 text-center text-[var(--text-secondary)] font-mono text-xs align-middle">{p.min_stock}</td>
+                      <td className="py-3.5 px-4 text-right font-mono text-xs font-semibold text-[var(--text-primary)] align-middle">
                         {p.standard_price.toLocaleString()} đ
                       </td>
                       <td className="py-3.5 px-4 text-center align-middle">
-                        <Badge variant={p.status === 'ACTIVE' ? 'green' : 'gray'}>
+                        <Badge variant={p.status === 'ACTIVE' ? 'success' : 'inactive'}>
                           {p.status === 'ACTIVE' ? 'Kinh doanh' : 'Ngưng bán'}
                         </Badge>
                       </td>
@@ -615,7 +618,7 @@ export const Products = ({ onSelectProductLedger }) => {
                           <button
                             onClick={() => onSelectProductLedger(p.id)}
                             title="Xem lịch sử thẻ kho"
-                            className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+                            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-btn transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -623,7 +626,7 @@ export const Products = ({ onSelectProductLedger }) => {
                             <button
                               onClick={() => handleOpenEdit(p)}
                               title="Sửa hàng hóa"
-                              className="p-1.5 text-wood-400 hover:text-wood-800 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-btn transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -632,7 +635,7 @@ export const Products = ({ onSelectProductLedger }) => {
                             <button
                               onClick={() => handleDeleteProduct(p)}
                               title="Ngưng kinh doanh"
-                              className="p-1.5 text-wood-400 hover:text-rust-600 hover:bg-rust-50 rounded-btn transition-colors cursor-pointer"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -648,23 +651,23 @@ export const Products = ({ onSelectProductLedger }) => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="px-4 py-3.5 bg-wood-50/80 border-t border-wood-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-wood-700">
+        <div className="px-4 py-3.5 bg-[var(--bg-surface-warm)] border-t border-[var(--border-medium)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
           {/* Thông tin số lượng & Chọn pageSize */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <span>
-              Hiển thị <span className="font-semibold text-wood-900">{startItem} - {endItem}</span> trong tổng số{' '}
-              <span className="font-semibold text-wood-900">{totalItems}</span> mặt hàng
+              Hiển thị <span className="font-semibold text-[var(--text-primary)]">{startItem} - {endItem}</span> trong tổng số{' '}
+              <span className="font-semibold text-[var(--text-primary)]">{totalItems}</span> mặt hàng
             </span>
 
             <div className="flex items-center gap-1.5 ml-2">
-              <span className="text-wood-500 text-[11px]">Dòng/trang:</span>
+              <span className="text-[var(--text-muted)] text-xs">Dòng/trang:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="py-1 px-2 bg-white border border-wood-300 rounded-lg text-xs text-wood-900 focus:outline-none focus:ring-1 focus:ring-wood-500 cursor-pointer shadow-2xs"
+                className="py-1 px-2 bg-[var(--bg-surface)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shadow-xs"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -678,7 +681,7 @@ export const Products = ({ onSelectProductLedger }) => {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={safeCurrentPage <= 1}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-wood-300 bg-white text-wood-700 hover:bg-wood-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-btn border border-[var(--border-medium)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
               title="Trang trước"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -690,10 +693,10 @@ export const Products = ({ onSelectProductLedger }) => {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                  className={`w-7 h-7 rounded-btn text-xs font-semibold transition-colors cursor-pointer ${
                     pageNum === safeCurrentPage
-                      ? 'bg-wood-800 text-white font-bold shadow-2xs'
-                      : 'bg-white border border-wood-200 text-wood-700 hover:bg-wood-100'
+                      ? 'bg-[var(--wood-800)] text-white shadow-xs'
+                      : 'bg-[var(--bg-surface)] border border-[var(--border-medium)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
                   {pageNum}
@@ -704,7 +707,7 @@ export const Products = ({ onSelectProductLedger }) => {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={safeCurrentPage >= totalPages}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-wood-300 bg-white text-wood-700 hover:bg-wood-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-btn border border-[var(--border-medium)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
               title="Trang sau"
             >
               <span className="hidden sm:inline">Sau</span>
@@ -718,12 +721,12 @@ export const Products = ({ onSelectProductLedger }) => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={modalMode === 'create' ? 'Thêm Mặt Hàng Mới' : 'Cập Nhật Hàng Hóa'}
+        title={modalMode === 'create' ? 'Thêm hàng hóa mới' : 'Cập nhật hàng hóa'}
       >
         {isDraftRestored && modalMode === 'create' && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+          <div className="mb-4 p-3.5 bg-[var(--semantic-ai-bg)] border border-[var(--semantic-ai-border)] rounded-input flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--semantic-ai)]">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <Sparkles className="w-4 h-4 text-[var(--semantic-ai-btn)] shrink-0" />
               <span>
                 <strong>Đã khôi phục bản nháp mặt hàng</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
               </span>
@@ -731,7 +734,7 @@ export const Products = ({ onSelectProductLedger }) => {
             <button
               type="button"
               onClick={handleDiscardDraft}
-              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              className="text-xs font-bold text-[var(--semantic-alert)] hover:underline cursor-pointer shrink-0"
               title="Xóa nội dung nháp này để nhập từ đầu"
             >
               Xóa bản nháp
@@ -741,31 +744,31 @@ export const Products = ({ onSelectProductLedger }) => {
 
         <form onSubmit={handleSubmitForm} className="space-y-4">
           {formError && (
-            <div className="p-3 bg-rust-50 border border-rust-200 text-rust-700 rounded-xl text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rust-500 shrink-0" />
+            <div className="p-3 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] text-[var(--semantic-alert)] rounded-input text-xs flex items-center gap-2 font-medium">
+              <AlertTriangle className="w-4 h-4 text-[var(--semantic-alert)] shrink-0" />
               <span>{formError}</span>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Mã hàng hóa</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Mã hàng hóa</label>
               <input
                 type="text"
                 disabled={modalMode === 'edit'}
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 placeholder="VD: SP001..."
-                className="input-wood disabled:bg-wood-100/60 disabled:text-wood-400"
+                className="input-wood disabled:opacity-60"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Nhóm hàng</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Nhóm hàng</label>
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="input-wood"
+                className="input-wood cursor-pointer"
                 required
               >
                 <option value="">Chọn nhóm hàng</option>
@@ -779,7 +782,7 @@ export const Products = ({ onSelectProductLedger }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-wood-800 mb-1">Tên mặt hàng</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Tên mặt hàng</label>
             <input
               type="text"
               value={formData.name}
@@ -792,7 +795,7 @@ export const Products = ({ onSelectProductLedger }) => {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Đơn vị tính</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Đơn vị tính</label>
               <input
                 type="text"
                 value={formData.unit}
@@ -803,18 +806,18 @@ export const Products = ({ onSelectProductLedger }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Tồn an toàn</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Tồn an toàn</label>
               <input
                 type="number"
                 min="0"
                 value={formData.min_stock}
                 onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
-                className="input-wood"
+                className="input-wood font-mono"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-wood-800 mb-1">Giá chuẩn (đ)</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Giá niêm yết (đ)</label>
               <input
                 type="number"
                 min="0"
@@ -830,7 +833,7 @@ export const Products = ({ onSelectProductLedger }) => {
                       : Math.round(Number(val || 0) * 0.7),
                   });
                 }}
-                className="input-wood"
+                className="input-wood font-mono"
                 required
               />
             </div>
@@ -838,7 +841,7 @@ export const Products = ({ onSelectProductLedger }) => {
 
           {/* Khởi tạo tồn kho ban đầu (Tự động tạo Phiếu nhập kho) */}
           {modalMode === 'create' && (
-            <div className="p-3.5 bg-forest-50/60 rounded-xl border border-forest-200/90 space-y-3">
+            <div className="p-3.5 bg-[var(--semantic-success-bg)]/40 rounded-card border border-[var(--semantic-success-border)] space-y-3">
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -852,25 +855,25 @@ export const Products = ({ onSelectProductLedger }) => {
                       initial_unit_price: checked ? (formData.initial_unit_price || Math.round(Number(formData.standard_price || 0) * 0.7)) : '',
                     });
                   }}
-                  className="w-4 h-4 rounded text-forest-600 focus:ring-forest-500 accent-forest-600 cursor-pointer"
+                  className="w-4 h-4 rounded text-[var(--semantic-success)] focus:ring-[var(--semantic-success)] accent-[var(--semantic-success)] cursor-pointer"
                 />
-                <span className="text-xs font-bold text-forest-950 flex items-center gap-1.5">
-                  <ArrowDownToLine className="w-4 h-4 text-forest-600" />
-                  Khởi tạo tồn kho ban đầu (Tự động tạo Phiếu nhập kho)
+                <span className="text-xs font-bold text-[var(--semantic-success)] flex items-center gap-1.5">
+                  <ArrowDownToLine className="w-4 h-4 text-[var(--semantic-success)]" />
+                  Khởi tạo tồn kho ban đầu (Tự động lập phiếu nhập kho)
                 </span>
               </label>
 
               {formData.has_initial_import && (
-                <div className="pt-2.5 border-t border-forest-200/60 space-y-3">
+                <div className="pt-2.5 border-t border-[var(--semantic-success-border)]/60 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-forest-900 mb-1">
-                        Nhà cung cấp <span className="text-rust-500">*</span>
+                      <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                        Nhà cung cấp <span className="text-[var(--semantic-alert)]">*</span>
                       </label>
                       <select
                         value={formData.initial_supplier_id}
                         onChange={(e) => setFormData({ ...formData, initial_supplier_id: e.target.value })}
-                        className="input-wood bg-white text-xs"
+                        className="input-wood bg-[var(--bg-surface)] text-xs cursor-pointer"
                         required={formData.has_initial_import}
                       >
                         <option value="">-- Chọn nhà cung cấp --</option>
@@ -884,21 +887,21 @@ export const Products = ({ onSelectProductLedger }) => {
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] font-semibold text-forest-900 mb-1">
-                          Số lượng nhập <span className="text-rust-500">*</span>
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                          Số lượng nhập <span className="text-[var(--semantic-alert)]">*</span>
                         </label>
                         <input
                           type="number"
                           min="1"
                           value={formData.initial_quantity}
                           onChange={(e) => setFormData({ ...formData, initial_quantity: e.target.value })}
-                          className="input-wood bg-white text-xs"
+                          className="input-wood bg-[var(--bg-surface)] text-xs font-mono"
                           required={formData.has_initial_import}
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-forest-900 mb-1">
-                          Đơn giá nhập (đ) <span className="text-rust-500">*</span>
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                          Đơn giá nhập (đ) <span className="text-[var(--semantic-alert)]">*</span>
                         </label>
                         <input
                           type="number"
@@ -906,7 +909,7 @@ export const Products = ({ onSelectProductLedger }) => {
                           step="1000"
                           value={formData.initial_unit_price}
                           onChange={(e) => setFormData({ ...formData, initial_unit_price: e.target.value })}
-                          className="input-wood bg-white text-xs"
+                          className="input-wood bg-[var(--bg-surface)] text-xs font-mono"
                           required={formData.has_initial_import}
                         />
                       </div>
@@ -914,7 +917,7 @@ export const Products = ({ onSelectProductLedger }) => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-forest-900 mb-1">
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                       Ghi chú phiếu nhập ban đầu
                     </label>
                     <input
@@ -922,13 +925,13 @@ export const Products = ({ onSelectProductLedger }) => {
                       value={formData.initial_note}
                       onChange={(e) => setFormData({ ...formData, initial_note: e.target.value })}
                       placeholder="VD: Nhập kho ban đầu khi tạo danh mục..."
-                      className="input-wood bg-white text-xs"
+                      className="input-wood bg-[var(--bg-surface)] text-xs"
                     />
                   </div>
 
-                  <div className="p-2.5 bg-forest-100/70 border border-forest-200/80 rounded-lg text-xs text-forest-900 flex items-center justify-between font-medium">
+                  <div className="p-2.5 bg-[var(--semantic-success-bg)] border border-[var(--semantic-success-border)] rounded-btn text-xs text-[var(--semantic-success)] flex items-center justify-between font-medium">
                     <span>Tổng tiền phiếu nhập dự kiến:</span>
-                    <span className="font-bold text-forest-800 text-sm">
+                    <span className="font-bold font-mono text-sm">
                       {((Number(formData.initial_quantity) || 0) * (Number(formData.initial_unit_price) || 0)).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
@@ -938,13 +941,13 @@ export const Products = ({ onSelectProductLedger }) => {
           )}
 
           {/* Hình ảnh mặt hàng */}
-          <div className="p-3.5 bg-wood-50/70 rounded-xl border border-wood-200 space-y-2.5">
-            <label className="block text-xs font-semibold text-wood-800">
+          <div className="p-3.5 bg-[var(--bg-surface-warm)] rounded-card border border-[var(--border-medium)] space-y-2.5">
+            <label className="block text-xs font-semibold text-[var(--text-primary)]">
               Hình ảnh mặt hàng
             </label>
             <div className="flex items-center gap-3.5">
               {/* Box xem trước ảnh */}
-              <div className="w-16 h-16 rounded-xl border border-wood-300 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="w-16 h-16 rounded-input border border-[var(--border-medium)] bg-[var(--bg-surface)] overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
                 {imagePreview || formData.image_url ? (
                   <img
                     src={imagePreview || formData.image_url}
@@ -957,19 +960,19 @@ export const Products = ({ onSelectProductLedger }) => {
                   />
                 ) : null}
                 <div
-                  className="w-full h-full flex flex-col items-center justify-center text-wood-400 text-[9px] p-1 text-center"
+                  className="w-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] text-xs p-1 text-center"
                   style={{ display: (imagePreview || formData.image_url) ? 'none' : 'flex' }}
                 >
-                  <ImageIcon className="w-5 h-5 text-wood-400 mb-0.5" />
-                  <span>Chưa có ảnh</span>
+                  <ImageIcon className="w-5 h-5 text-[var(--text-muted)] mb-0.5" />
+                  <span>Trống</span>
                 </div>
               </div>
 
               {/* Nút Upload & Input URL */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-wood-300 hover:bg-wood-100 rounded-btn text-xs font-medium text-wood-800 cursor-pointer transition-colors shadow-2xs">
-                    <Upload className="w-3.5 h-3.5 text-wood-600" />
+                  <label className="btn-secondary text-xs cursor-pointer shadow-xs">
+                    <Upload className="w-3.5 h-3.5 text-[var(--wood-500)]" />
                     <span>Tải ảnh từ máy...</span>
                     <input
                       type="file"
@@ -979,7 +982,7 @@ export const Products = ({ onSelectProductLedger }) => {
                     />
                   </label>
                   {imageFile && (
-                    <span className="text-[11px] text-forest-700 font-medium truncate max-w-[180px]">
+                    <span className="text-xs text-[var(--semantic-success)] font-medium truncate max-w-[180px]">
                       {imageFile.name}
                     </span>
                   )}
@@ -993,13 +996,13 @@ export const Products = ({ onSelectProductLedger }) => {
                     setImagePreview(null);
                   }}
                   placeholder="Hoặc dán URL: https://... hoặc /static/products/SP001.jpg"
-                  className="w-full px-3 py-1.5 bg-white border border-wood-200 rounded-xl text-xs text-wood-900 focus:outline-none focus:ring-2 focus:ring-wood-500/20"
+                  className="input-wood bg-[var(--bg-surface)]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-2 border-t border-wood-200">
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-[var(--border-medium)]">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
@@ -1025,7 +1028,7 @@ export const Products = ({ onSelectProductLedger }) => {
           title={`Hình ảnh: [${zoomImage.code}] ${zoomImage.name}`}
         >
           <div className="flex flex-col items-center justify-center p-3 space-y-3">
-            <div className="w-full max-h-[60vh] overflow-hidden rounded-xl bg-wood-100 flex items-center justify-center border border-wood-200 shadow-sm">
+            <div className="w-full max-h-[60vh] overflow-hidden rounded-card bg-[var(--bg-surface-warm)] flex items-center justify-center border border-[var(--border-medium)] shadow-sm">
               <img
                 src={zoomImage.url}
                 alt={zoomImage.name}
@@ -1035,12 +1038,12 @@ export const Products = ({ onSelectProductLedger }) => {
                   if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
                 }}
               />
-              <div className="hidden flex-col items-center justify-center p-10 text-wood-400">
-                <Package className="w-12 h-12 mb-2 text-wood-300" />
+              <div className="hidden flex-col items-center justify-center p-10 text-[var(--text-muted)]">
+                <Package className="w-12 h-12 mb-2 text-[var(--text-muted)]" />
                 <span className="text-xs">Không thể tải file ảnh này</span>
               </div>
             </div>
-            <p className="text-xs text-wood-500 font-mono text-center">
+            <p className="text-xs text-[var(--text-muted)] font-mono text-center">
               Đường dẫn: {zoomImage.url}
             </p>
           </div>

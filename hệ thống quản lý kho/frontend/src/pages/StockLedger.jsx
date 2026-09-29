@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   AlertCircle,
   RefreshCw,
+  SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
@@ -141,8 +142,8 @@ export const StockLedger = ({ defaultProductId }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold font-serif text-wood-950">Sổ Cái Thẻ Kho (Stock Ledger)</h2>
-          <p className="text-xs text-charcoal/70 mt-0.5">Nhật ký kiểm toán bất biến theo từng giây, truy vết biến động và số dư tức thời sau mỗi giao dịch</p>
+          <h2 className="text-xl font-bold font-serif text-[var(--text-primary)]">Sổ cái thẻ kho</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Nhật ký kiểm toán bất biến theo từng giây, truy vết biến động và số dư tức thời sau mỗi giao dịch</p>
         </div>
 
         {canAdjust && (
@@ -151,7 +152,7 @@ export const StockLedger = ({ defaultProductId }) => {
             className="btn-secondary flex items-center gap-2 text-xs"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span>Điều Chỉnh Kiểm Kê Kho</span>
+            <span>Điều chỉnh kiểm kê kho</span>
           </button>
         )}
       </div>
@@ -162,7 +163,7 @@ export const StockLedger = ({ defaultProductId }) => {
           <select
             value={selectedProductId}
             onChange={(e) => setSelectedProductId(e.target.value)}
-            className="py-2 px-3 bg-white border border-wood-200 rounded-btn text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-wood-500/20 flex-1 max-w-sm"
+            className="input-wood text-xs flex-1 max-w-sm"
           >
             <option value="">Tất cả mặt hàng</option>
             {products.map((p) => (
@@ -175,7 +176,7 @@ export const StockLedger = ({ defaultProductId }) => {
           <select
             value={transactionType}
             onChange={(e) => setTransactionType(e.target.value)}
-            className="py-2 px-3 bg-white border border-wood-200 rounded-btn text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-wood-500/20"
+            className="input-wood text-xs"
           >
             <option value="">Tất cả loại giao dịch</option>
             <option value="IMPORT">Nhập kho (IMPORT)</option>
@@ -186,7 +187,7 @@ export const StockLedger = ({ defaultProductId }) => {
 
         <button
           onClick={fetchLedger}
-          className="p-2 text-wood-600 hover:text-wood-900 hover:bg-wood-100 rounded-btn transition-colors cursor-pointer"
+          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-linen)] rounded-btn transition-colors cursor-pointer"
           title="Làm mới sổ cái"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -197,7 +198,7 @@ export const StockLedger = ({ defaultProductId }) => {
       <div className="card-warm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-wood-100 text-wood-800 font-semibold border-b border-wood-200">
+            <thead className="bg-[var(--bg-linen)] text-[var(--text-secondary)] font-medium border-b border-[var(--border-subtle)]">
               <tr>
                 <th className="py-3 px-4">Thời gian</th>
                 <th className="py-3 px-4">Tên hàng hóa</th>
@@ -209,16 +210,16 @@ export const StockLedger = ({ defaultProductId }) => {
                 <th className="py-3 px-4">Ghi chú</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-wood-100 font-sans">
+            <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-card)]">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-10 text-charcoal/40">
+                  <td colSpan="8" className="text-center py-10 text-[var(--text-muted)]">
                     Đang tải lịch sử thẻ kho...
                   </td>
                 </tr>
               ) : ledgerEntries.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-10 text-charcoal/40">
+                  <td colSpan="8" className="text-center py-10 text-[var(--text-muted)]">
                     Chưa ghi nhận biến động nào trong thẻ kho.
                   </td>
                 </tr>
@@ -226,11 +227,11 @@ export const StockLedger = ({ defaultProductId }) => {
                 ledgerEntries.map((l) => {
                   const isPositive = l.quantity_change > 0;
                   return (
-                    <tr key={l.id} className="hover:bg-wood-50/70 transition-colors">
-                      <td className="py-3.5 px-4 text-charcoal/70 font-mono">
+                    <tr key={l.id} className="hover:bg-[var(--bg-linen)]/60 transition-colors">
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)] font-mono">
                         {new Date(l.transaction_date).toLocaleString('vi-VN')}
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-wood-950">
+                      <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">
                         {l.product_name || l.product?.name || 'Mặt hàng'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -250,27 +251,27 @@ export const StockLedger = ({ defaultProductId }) => {
                             : 'Kiểm kê bù trừ'}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-charcoal/80 font-medium">{l.reference_code}</td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 font-mono text-[var(--text-primary)] font-medium">{l.reference_code}</td>
+                      <td className="py-3.5 px-4 text-center font-mono">
                         <span
-                          className={`font-bold px-2 py-0.5 rounded ${
+                          className={`font-bold px-2 py-0.5 rounded-btn inline-block ${
                             isPositive
-                              ? 'bg-forest-50 text-forest-700'
-                              : 'bg-rust-50 text-rust-700'
+                              ? 'bg-[var(--semantic-success)]/10 text-[var(--semantic-success)]'
+                              : 'bg-[var(--semantic-alert)]/10 text-[var(--semantic-alert)]'
                           }`}
                         >
                           {isPositive ? `+${l.quantity_change}` : l.quantity_change}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className="font-bold text-wood-900 bg-wood-100 px-2.5 py-1 rounded-btn border border-wood-200">
+                        <span className="font-mono font-bold text-[var(--text-primary)] bg-[var(--bg-linen)] px-2.5 py-1 rounded-btn border border-[var(--border-subtle)]">
                           {l.balance_after}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-charcoal/80">
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)]">
                         {l.creator_name || l.creator?.full_name || 'Hệ thống'}
                       </td>
-                      <td className="py-3.5 px-4 text-charcoal/60 max-w-xs truncate">{l.note || '-'}</td>
+                      <td className="py-3.5 px-4 text-[var(--text-muted)] max-w-xs truncate">{l.note || '-'}</td>
                     </tr>
                   );
                 })
@@ -281,11 +282,11 @@ export const StockLedger = ({ defaultProductId }) => {
       </div>
 
       {/* Modal Điều Chỉnh Kiểm Kê */}
-      <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title="Điều Chỉnh Tồn Kho Sau Kiểm Kê Thực Tế">
+      <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title="Điều chỉnh tồn kho sau kiểm kê thực tế">
         {isDraftRestored && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+          <div className="mb-4 p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-primary)]">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <Sparkles className="w-4 h-4 text-[var(--semantic-ai)] shrink-0" />
               <span>
                 <strong>Đã khôi phục bản nháp kiểm kê</strong> (lưu lúc {draftSavedTime}). Hệ thống lưu tối đa 1 ngày.
               </span>
@@ -293,7 +294,7 @@ export const StockLedger = ({ defaultProductId }) => {
             <button
               type="button"
               onClick={handleDiscardDraft}
-              className="text-xs font-bold text-rust-600 hover:text-rust-800 underline cursor-pointer shrink-0"
+              className="text-xs font-semibold text-[var(--semantic-alert)] hover:underline cursor-pointer shrink-0"
               title="Xóa nội dung nháp này để nhập từ đầu"
             >
               Xóa bản nháp
@@ -302,15 +303,15 @@ export const StockLedger = ({ defaultProductId }) => {
         )}
 
         {adjustError && (
-          <div className="mb-4 p-3 bg-rust-50 border border-rust-200 rounded-btn flex items-center gap-2 text-xs text-rust-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rust-600" />
+          <div className="mb-4 p-3 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card flex items-center gap-2 text-xs text-[var(--semantic-alert)] font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{adjustError}</span>
           </div>
         )}
 
         <form onSubmit={handleAdjustSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-charcoal mb-1">Mặt hàng kiểm kê</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Mặt hàng kiểm kê</label>
             <ProductSelect
               products={products}
               value={adjustProductId}
@@ -319,33 +320,33 @@ export const StockLedger = ({ defaultProductId }) => {
             />
           </div>
 
-          <div className="p-3 bg-wood-50 border border-wood-200 rounded-btn text-xs space-y-1">
+          <div className="p-3 bg-[var(--bg-linen)] border border-[var(--border-subtle)] rounded-card text-xs space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-charcoal/70">Tồn kho trên hệ thống:</span>
-              <strong className="text-wood-950">{selectedProdForAdjust?.current_stock || 0}</strong>
+              <span className="text-[var(--text-secondary)]">Tồn kho trên hệ thống:</span>
+              <strong className="font-mono text-[var(--text-primary)]">{selectedProdForAdjust?.current_stock || 0}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-charcoal/70">Chênh lệch bù trừ:</span>
-              <strong className={diffQty >= 0 ? 'text-forest-700' : 'text-rust-700'}>
+              <span className="text-[var(--text-secondary)]">Chênh lệch bù trừ:</span>
+              <strong className={`font-mono ${diffQty >= 0 ? 'text-[var(--semantic-success)]' : 'text-[var(--semantic-alert)]'}`}>
                 {diffQty >= 0 ? `+${diffQty}` : diffQty}
               </strong>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-charcoal mb-1">Số lượng đếm thực tế tại kho</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Số lượng đếm thực tế tại kho</label>
             <input
               type="number"
               min="0"
               value={actualStock}
               onChange={(e) => setActualStock(e.target.value)}
-              className="w-full input-wood text-xs font-bold text-wood-800"
+              className="w-full input-wood text-xs font-mono font-bold text-[var(--text-primary)]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-charcoal mb-1">Lý do điều chỉnh kiểm kê</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lý do điều chỉnh kiểm kê</label>
             <input
               type="text"
               value={adjustNote}
@@ -356,19 +357,19 @@ export const StockLedger = ({ defaultProductId }) => {
             />
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-wood-200">
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-[var(--border-subtle)]">
             <button
               type="button"
               onClick={() => setIsAdjustOpen(false)}
-              className="btn-ghost text-xs"
+              className="btn-outline text-xs"
             >
-              Hủy
+              Hủy bỏ
             </button>
             <button
               type="submit"
               className="btn-primary text-xs"
             >
-              Cập Nhật Tồn Kho
+              Cập nhật tồn kho
             </button>
           </div>
         </form>
