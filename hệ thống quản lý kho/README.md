@@ -71,67 +71,52 @@ Trước khi bắt đầu [Bước XX], hãy trả lời:
 
 ---
 
-## 📊 TRẠNG THÁI DỰ ÁN (cập nhật thủ công)
+## 📊 TRẠNG THÁI DỰ ÁN (CẬP NHẬT CHÍNH THỨC)
 
 ```text
-Giai đoạn hiện tại : ⬜ 0 — Nền tảng dự án
-Bước đang làm      : Chưa bắt đầu
-Mốc SDLC gần nhất  : KT1
-Ngày cập nhật dòng này: 2026-09-20
+Giai đoạn hiện tại : ✅ 7 — Đóng gói + Tài liệu cuối (HOÀN THÀNH 100%)
+Bước đang làm      : Hoàn thành toàn bộ (11/11 Bước)
+Mốc SDLC gần nhất  : Cuối kỳ (Final)
+Kết quả kiểm thử   : 60/60 tests PASS (100%)
+Ngày cập nhật dòng này: 2026-09-25
 ```
-
-> Cập nhật 3 dòng trên sau mỗi phiên để phiên sau bạn biết ngay mình đang đứng ở đâu.
 
 ---
 
-## 💬 CÂU HỎI THƯỜNG HỎI AI
+## 🚀 HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG ĐỂ CHẤM THI & TRẢI NGHIỆM
 
-### "Tôi nên làm bước tiếp theo là gì?"
+### Cách 1: Khởi chạy 1-Click trên Windows (Khuyến nghị)
+Nhấp đúp chuột vào file:
+$$\implies \mathbf{run.bat}$$
+Hệ thống sẽ tự động khởi động đồng thời cả Backend (port 8000) và Frontend (port 5173).
 
-```text
-Đọc TIEN-DO.md và MASTER-ROADMAP.md, sau đó đề xuất bước tiếp theo
-theo đúng thứ tự dependency. Nêu lý do tại sao bước đó nên làm trước.
-```
+### Cách 2: Khởi chạy thủ công qua dòng lệnh
+1. **Khởi động Backend API (Terminal 1):**
+   ```bash
+   cd "E:\gemini\hệ thống quản lý kho\backend"
+   uvicorn app.main:app --reload --port 8000
+   ```
+2. **Khởi động Frontend Web App (Terminal 2):**
+   ```bash
+   cd "E:\gemini\hệ thống quản lý kho\frontend"
+   npm run dev
+   ```
 
-### "Kế hoạch bước này có vấn đề gì không?"
+Sau đó mở trình duyệt tại: **`http://localhost:5173`**
 
-```text
-Đọc docs/plans/Buoc-NN-<tên>.md và phân tích:
-- Có thiếu dependency nào không?
-- Có rủi ro kỹ thuật nào chưa được xử lý?
-- Definition of Done có đủ kiểm tra được không?
-```
+### Tài khoản mẫu đăng nhập
+- **Quản trị viên (Admin):** `admin` / `admin123`
+- **Thủ kho (Warehouse):** `thukho` / `thukho123`
+- **Kế toán (Accountant):** `ketoan` / `ketoan123`
 
-### "Tôi muốn điều chỉnh kế hoạch bước XX"
+*(Trên giao diện Web đã tích hợp sẵn thanh công cụ "Chuyển vai trò Demo" để chuyển đổi 1-click giữa 3 vai trò phục vụ thuyết trình).*
 
-```text
-Tôi muốn thay đổi [mô tả thay đổi] trong Bước XX.
-Hãy: (1) phân tích tác động sang các bước khác,
-(2) đề xuất nội dung ghi chú 📝 vào Buoc-XX.md,
-(3) xem có cần cập nhật MASTER-ROADMAP.md không.
-```
+---
 
-### "Review code tôi vừa viết"
+## 📁 DANH MỤC HỒ SƠ BÀN GIAO SDLC & BÁO CÁO TỔNG KẾT
 
-```text
-Review file [tên file] theo tiêu chí trong CLAUDE.md §2, §3, §7, §8.
-Đặc biệt kiểm tra: transaction ACID, chống tồn kho âm, không hardcode giá mua vào AI.
-```
+- **Hồ sơ SDLC 4 Giai đoạn:** Xem tại [`docs/SDLC/`](docs/SDLC/) (gồm `KT1/`, `KT2/`, `KT3/`, `final/`).
+- **Báo cáo Kỹ thuật đặc tả kiến trúc:** [`Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`](docs/SDLC/final/Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx) (10 chương hoàn chỉnh).
+- **Bộ Slide thuyết trình bảo vệ đồ án:** [`Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx`](docs/SDLC/final/Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx) (16 slide đồ họa).
+- **Bản sao lưu hồ sơ nộp bài:** Xem tại [`docs/submissions/final/`](docs/submissions/final/).
 
-## Hướng dẫn khởi chạy ứng dụng để trải nghiệm trực quan
-
-  Bạn có thể chạy thử đồng thời cả 2 server:
-
-  1. Khởi động Backend API (Terminal 1):
-    cd "E:\gemini\hệ thống quản lý kho\backend"
-    uvicorn app.main:app --reload --port 8000
-
-  2. Khởi động Frontend (Terminal 2):
-    cd "E:\gemini\hệ thống quản lý kho\frontend"
-    npm run dev
-  Sau đó mở trình duyệt tại <http://localhost:5173>. Bạn có thể bấm ngay nút "Đăng nhập nhanh: Quản trị viên"
-  để khám phá đầy đủ 7 phân hệ và trải nghiệm 3 bài toán AI!
-
-  Bước tiếp theo theo kế hoạch tổng thể là Giai đoạn 7 / Bước 11: Đóng gói sản phẩm, hoàn thiện tài liệu nộp
-  Cuối kỳ (Final Technical Report, User Guide & Demo Script, Slides). Bạn muốn tiến hành tiếp bước này hay  
-  có lưu ý thêm gì về phần Frontend không?

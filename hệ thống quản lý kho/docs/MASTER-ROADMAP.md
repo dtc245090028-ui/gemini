@@ -31,8 +31,8 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | **3** | Transaction ACID + Stock Ledger | KT2 | ✅ Hoàn thành |
 | **4** | Tích hợp AI + Fallback Engine | KT3 | ✅ Hoàn thành |
 | **5** | Kiểm thử tự động (Pytest) | KT3 | ✅ Hoàn thành |
-| **6** | Frontend React + Tailwind | Cuối kỳ | ⬜ Chưa bắt đầu |
-| **7** | Đóng gói + Tài liệu cuối | Cuối kỳ | ⬜ Chưa bắt đầu |
+| **6** | Frontend React + Tailwind | Cuối kỳ | ✅ Hoàn thành |
+| **7** | Đóng gói + Tài liệu cuối | Cuối kỳ | ✅ Hoàn thành |
 
 > **Quy ước trạng thái ô:** ⬜ Chưa bắt đầu · 🔄 Đang thực hiện · ✅ Hoàn thành · ⚠️ Cần xem xét
 
@@ -188,13 +188,13 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 7.1 | `README.md` hướng dẫn cài đặt 1-click + kịch bản demo | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `README.md` ở gốc dự án | ⬜ |
-| 7.2 | Báo cáo kỹ thuật tổng kết đồ án | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/01_Final_Technical_Report.md` | ⬜ |
-| 7.3 | Hướng dẫn sử dụng + kịch bản demo chấm thi | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | ⬜ |
-| 7.4 | Slide thuyết trình bảo vệ đồ án | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/03_Presentation_Slides.md` | ⬜ |
-| 7.5 | Kiểm tra bảo mật cuối: CORS, JWT expiry, không lộ key | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | Review code + ghi chú trong báo cáo | ⬜ |
+| 7.1 | `README.md` hướng dẫn cài đặt 1-click + script `run.bat` + kịch bản demo | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `README.md`, `run.bat` ở gốc dự án | ✅ |
+| 7.2 | Báo cáo kỹ thuật tổng kết đồ án (Markdown & Word) | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/01_Final_Technical_Report.md`, `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx` | ✅ |
+| 7.3 | Hướng dẫn sử dụng + kịch bản demo chấm thi 5 phút | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | ✅ |
+| 7.4 | Slide thuyết trình bảo vệ đồ án (Markdown & PowerPoint) | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/03_Presentation_Slides.md`, `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` | ✅ |
+| 7.5 | Kiểm tra bảo mật cuối: CORS, JWT expiry, lọc giá vốn, test 60/60 pass | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | Toàn bộ 60/60 Pytest cases pass 100%, ghi chú trong báo cáo | ✅ |
 
-**Tiêu chí hoàn thành Giai đoạn 7:** `git clone` + `pip install` + `npm install` + `python seed_data.py` → app chạy được trong ≤5 phút.
+**Tiêu chí hoàn thành Giai đoạn 7:** Khởi chạy 1-Click qua `run.bat` hoặc cài đặt qua lệnh trong ≤5 phút; trọn bộ hồ sơ SDLC 4 mốc, văn bản Word 10 chương và Slide PowerPoint 16 trang sẵn sàng nộp và thuyết trình. Đã hoàn thành 100%.
 
 ---
 
@@ -209,12 +209,27 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | 2026-09-22 | #5 | Hoàn thành toàn bộ Giai đoạn 3 (Bước 07 & 3 tài liệu KT2/Architecture): Transaction ACID, Chống tồn âm, Guard-check Hủy phiếu, Thẻ kho, Báo cáo Nhập-Xuất-Tồn và 24/24 tests pass |
 | 2026-09-23 | #6 | Hoàn thành toàn bộ Giai đoạn 4 & 5 (Mốc KT3): Tích hợp AI Gemini + Heuristic Fallback offline, 3 prompt templates độc lập, seed data 60 ngày 3 kịch bản cốt lõi và 30/30 tests pass 100% |
 | 2026-09-23 | #7 | Hoàn thành toàn bộ Giai đoạn 6 (Bước 09): Xây dựng hoàn chỉnh ứng dụng Frontend Web React 18 + Tailwind CSS + Lucide Icons cho 7 phân hệ, Defensive UI chống xuất âm, Demo Role Switcher 1-click, build thành công 1551 modules |
+| 2026-09-25 | #8 | Hoàn thành toàn bộ Giai đoạn 7 (Bước 11 & Mốc Cuối kỳ): Đóng gói dự án 1-click (run.bat), trọn bộ hồ sơ SDLC 4 mốc tại docs/SDLC/final/, Báo cáo kỹ thuật Word 10 chương (Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx), Slide PowerPoint bảo vệ đồ án 16 trang (Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx), đồng bộ docs/submissions/final/ và bộ test Pytest đạt 60/60 tests pass 100% |
 
 > **Quy ước ghi lịch sử:** Mỗi lần cập nhật file này (thay đổi trạng thái, thêm/sửa nhiệm vụ, điều chỉnh kế hoạch), thêm 1 dòng vào bảng trên với ngày và lý do. Không xóa dòng cũ.
 
 ---
 
 ## CHANGELOG
+
+### [2026-09-25] Hoàn thành Giai đoạn 7 (Bước 11: Đóng gói dự án, Hồ sơ SDLC Cuối kỳ, Báo cáo kỹ thuật Word & Slide PowerPoint Thuyết trình)
+
+- **Đóng gói & Hướng dẫn Khởi chạy 1-Click (Nhiệm vụ 7.1):**
+  - Tạo script `run.bat` tại gốc dự án tự động kích hoạt đồng thời cả Backend FastAPI (port 8000) và Frontend React Vite (port 5173) trên môi trường Windows.
+  - Cập nhật hướng dẫn trực quan trong `README.md` với danh sách tài khoản mẫu (`admin`, `thukho`, `ketoan`) và kịch bản demo 5 phút phân vai từng phút.
+- **Hồ sơ Bàn giao Cuối kỳ Đầy đủ & Chuẩn mực (Nhiệm vụ 7.2, 7.3, 7.4):**
+  - `docs/SDLC/final/01_Final_Technical_Report.md` & `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`: Tổng hợp toàn bộ 10 chương kiến trúc phân tầng, CSDL chuẩn 3NF (9 bảng), giao dịch ACID, cỗ máy xuất kho 3 bước, chốt chặn kép chống tồn âm, phân hệ AI Copilot và Heuristic Fallback Engine.
+  - `docs/SDLC/final/02_User_Guide_and_Demo_Script.md`: Cẩm nang sử dụng 7 phân hệ và kịch bản thuyết trình demo 5 phút phân vai từng phút.
+  - `docs/SDLC/final/03_Presentation_Slides.md` & `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx`: Bộ 16 slide thuyết trình chuẩn đồ họa phục vụ bảo vệ đồ án trước Hội đồng nghiệm thu.
+- **Kiểm định Chất lượng & Bảo mật Toàn diện (Nhiệm vụ 7.5):**
+  - Mật khẩu băm an toàn với bcrypt (tương thích Python 3.14), JWT HS256 với thời hạn 60 phút, CORS chặt chẽ, loại bỏ hoàn toàn giá mua nhạy cảm khỏi context AI.
+  - Bộ kiểm thử tự động đạt mốc **60 / 60 tests PASS 100%**, tỷ lệ lỗi 0%.
+  - Đồng bộ toàn bộ tài liệu và bài tập sang `docs/submissions/` (KT1, KT2, KT3, final). Toàn bộ dự án đạt mốc hoàn thành 100%.
 
 ### [2026-09-23] Hoàn thành Giai đoạn 6 (Bước 09: Frontend Web React 18 & Tailwind CSS)
 
