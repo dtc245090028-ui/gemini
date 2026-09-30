@@ -14,7 +14,6 @@ import {
   Flame,
   Archive,
   RefreshCw,
-  Loader2,
   MessageSquare,
   Send,
   Copy,
@@ -22,6 +21,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import Badge from '../components/Badge';
+import { Loader } from '../components/Loader';
 
 const renderFormattedAnswer = (text) => {
   if (!text) return null;
@@ -264,22 +264,24 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             <button
               onClick={() => handleFetchMonthlyReport(true)}
               disabled={loading}
-              className="btn-ai text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
+              className="btn-ai text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[200px]"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <Loader variant="inline" />
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              <span>Yêu cầu AI phân tích kỳ này</span>
+              <span>{loading ? 'AI đang phân tích...' : 'Yêu cầu AI phân tích kỳ này'}</span>
             </button>
           </div>
 
           {loading && !monthlyData && (
-            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="w-8 h-8 text-[var(--semantic-ai)] animate-spin mb-3" />
-              <p className="text-sm font-semibold text-[var(--text-primary)] font-serif">AI đang phân tích và tổng hợp số liệu báo cáo...</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-sans">Đang xử lý dữ liệu nhập - xuất - tồn kỳ này.</p>
+            <div className="card-warm p-8">
+              <Loader
+                variant="page"
+                message="Trợ lý AI đang phân tích dữ liệu nhập - xuất - tồn và lập báo cáo tháng..."
+                isAi={true}
+              />
             </div>
           )}
 
@@ -441,10 +443,10 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                       <button
                         type="submit"
                         disabled={askingAi || !questionInput.trim()}
-                        className="absolute right-2 bottom-2.5 btn-ai inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer"
+                        className="absolute right-2 bottom-2.5 btn-ai inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer min-w-[95px] justify-center"
                       >
                         {askingAi ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <Loader variant="inline" />
                         ) : (
                           <Send className="w-3.5 h-3.5" />
                         )}
@@ -509,11 +511,12 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                       </div>
 
                       {askingAi ? (
-                        <div className="py-6 flex flex-col items-center justify-center text-center space-y-2">
-                          <Loader2 className="w-6 h-6 text-[var(--semantic-ai)] animate-spin" />
-                          <p className="text-xs font-medium text-[var(--text-secondary)]">
-                            Trợ lý AI đang phân tích dữ liệu kho kỳ {month}/{year} và soạn thảo đáp án...
-                          </p>
+                        <div className="py-6">
+                          <Loader
+                            variant="page"
+                            message={`Trợ lý AI đang phân tích dữ liệu kho kỳ ${month}/${year} và soạn thảo đáp án...`}
+                            isAi={true}
+                          />
                         </div>
                       ) : (
                         qaResponse && (
@@ -551,22 +554,24 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             <button
               onClick={() => handleFetchRestock(true)}
               disabled={loading}
-              className="btn-secondary text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
+              className="btn-secondary text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[140px]"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <Loader variant="inline" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              <span>Tính toán lại</span>
+              <span>{loading ? 'Đang tính...' : 'Tính toán lại'}</span>
             </button>
           </div>
 
           {loading && !restockData && (
-            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="w-8 h-8 text-[var(--semantic-ai)] animate-spin mb-3" />
-              <p className="text-sm font-semibold text-[var(--text-primary)] font-serif">Đang phân tích tồn kho và tính toán gợi ý nhập hàng...</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-sans">Đang đánh giá tốc độ xuất và dự báo ngày hết hàng.</p>
+            <div className="card-warm p-8">
+              <Loader
+                variant="page"
+                message="Trợ lý AI đang phân tích tồn kho, tốc độ xuất và tính toán gợi ý nhập hàng..."
+                isAi={true}
+              />
             </div>
           )}
 
@@ -673,22 +678,24 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             <button
               onClick={() => handleFetchAnomalies(true)}
               disabled={loading}
-              className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert)]/40 hover:bg-[var(--semantic-alert)]/10 text-xs flex items-center gap-2 disabled:opacity-60 cursor-pointer"
+              className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert)]/40 hover:bg-[var(--semantic-alert)]/10 text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[140px]"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <Loader variant="inline" />
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              <span>Quét lại rủi ro</span>
+              <span>{loading ? 'Đang quét...' : 'Quét lại rủi ro'}</span>
             </button>
           </div>
 
           {loading && !anomalyData && (
-            <div className="card-warm p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="w-8 h-8 text-[var(--semantic-alert)] animate-spin mb-3" />
-              <p className="text-sm font-semibold text-[var(--text-primary)] font-serif">Đang quét phát hiện biến động bất thường và tồn đọng...</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-sans">Đang phân tích rủi ro xuất tăng đột biến &gt;200% và hàng tồn &gt;30 ngày.</p>
+            <div className="card-warm p-8">
+              <Loader
+                variant="page"
+                message="Trợ lý AI đang quét phát hiện biến động bất thường và hàng tồn kho đọng..."
+                isAi={true}
+              />
             </div>
           )}
 

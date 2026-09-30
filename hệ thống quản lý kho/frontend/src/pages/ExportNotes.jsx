@@ -18,6 +18,8 @@ import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
+import Loader from '../components/Loader';
+import useDelayedLoading from '../hooks/useDelayedLoading';
 
 export const ExportNotes = () => {
   const { user } = useAuth();
@@ -25,9 +27,11 @@ export const ExportNotes = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const showTableLoader = useDelayedLoading(loading);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [recipientName, setRecipientName] = useState('');
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
@@ -251,6 +255,7 @@ export const ExportNotes = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await apiClient.exportNotes.create({
         recipient_name: recipientName,
@@ -268,6 +273,8 @@ export const ExportNotes = () => {
       fetchData();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Không thể tạo phiếu xuất kho');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -390,11 +397,11 @@ export const ExportNotes = () => {
             <button
               onClick={handleGenerateAIOrder}
               disabled={aiGenerating}
-              className="btn-ai"
+              className="btn-ai min-w-[155px] justify-center"
               title="AI tự động đọc kịch bản khách hàng, phân tích tồn kho và lập đơn hàng đề xuất (có cache trong ngày)"
             >
               {aiGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[var(--semantic-ai-btn-text)]" />
+                <Loader variant="inline" />
               ) : (
                 <Sparkles className="w-4 h-4 text-[var(--semantic-ai-btn-text)]" />
               )}
@@ -428,12 +435,8 @@ export const ExportNotes = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
-                    Đang tải danh sách phiếu xuất...
-                  </td>
-                </tr>
+              {showTableLoader ? (
+                <Loader variant="table" columns={7} rows={8} />
               ) : exportNotes.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
@@ -751,10 +754,11 @@ export const ExportNotes = () => {
             </button>
             <button
               type="submit"
-              disabled={stockViolations.length > 0}
-              className={`btn-primary ${stockViolations.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={stockViolations.length > 0 || isSubmitting}
+              className={`btn-primary flex items-center justify-center gap-2 min-w-[170px] ${stockViolations.length > 0 || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Lập phiếu (Xác nhận)
+              {isSubmitting && <Loader variant="inline" />}
+              <span>{isSubmitting ? 'Đang lập phiếu...' : 'Lập phiếu (Xác nhận)'}</span>
             </button>
           </div>
         </form>
