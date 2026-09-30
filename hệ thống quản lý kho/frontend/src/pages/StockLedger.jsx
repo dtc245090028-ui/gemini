@@ -11,17 +11,21 @@ import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
+import Loader from '../components/Loader';
+import useDelayedLoading from '../hooks/useDelayedLoading';
 
 export const StockLedger = ({ defaultProductId }) => {
   const { user } = useAuth();
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const showTableLoader = useDelayedLoading(loading);
   const [selectedProductId, setSelectedProductId] = useState(defaultProductId || '');
   const [transactionType, setTransactionType] = useState('');
 
   // Adjustment Modal
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [adjustProductId, setAdjustProductId] = useState('');
   const [actualStock, setActualStock] = useState(0);
   const [adjustNote, setAdjustNote] = useState('');
@@ -117,6 +121,7 @@ export const StockLedger = ({ defaultProductId }) => {
   const handleAdjustSubmit = async (e) => {
     e.preventDefault();
     setAdjustError(null);
+    setIsSubmitting(true);
     try {
       await apiClient.stockLedger.adjust({
         product_id: Number(adjustProductId),
@@ -131,6 +136,8 @@ export const StockLedger = ({ defaultProductId }) => {
       fetchProducts();
     } catch (err) {
       setAdjustError(err.response?.data?.detail || 'Không thể điều chỉnh tồn kho');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -211,12 +218,8 @@ export const StockLedger = ({ defaultProductId }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-card)]">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-10 text-[var(--text-muted)]">
-                    Đang tải lịch sử thẻ kho...
-                  </td>
-                </tr>
+              {showTableLoader ? (
+                <Loader variant="table" columns={8} rows={8} />
               ) : ledgerEntries.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-10 text-[var(--text-muted)]">
@@ -367,9 +370,11 @@ export const StockLedger = ({ defaultProductId }) => {
             </button>
             <button
               type="submit"
-              className="btn-primary text-xs"
+              disabled={isSubmitting}
+              className="btn-primary text-xs flex items-center justify-center gap-2 min-w-[150px]"
             >
-              Cập nhật tồn kho
+              {isSubmitting && <Loader variant="inline" />}
+              <span>{isSubmitting ? 'Đang cập nhật...' : 'Cập nhật tồn kho'}</span>
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Shield, Warehouse, Calculator, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Loader } from '../components/Loader';
 
 export const Login = () => {
   const { login, loading, error } = useAuth();
@@ -72,10 +73,13 @@ export const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5 px-4 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+              className="btn-primary w-full py-2.5 px-4 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer min-w-[140px]"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <>
+                  <Loader variant="inline" />
+                  <span>Đang đăng nhập...</span>
+                </>
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />

@@ -10,7 +10,7 @@ import { ExportNotes } from './pages/ExportNotes';
 import { StockLedger } from './pages/StockLedger';
 import { AIAssistant } from './pages/AIAssistant';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Loader2 } from 'lucide-react';
+import { Loader } from './components/Loader';
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -20,9 +20,8 @@ function AppContent() {
   // Khi đang kiểm tra trạng thái token lưu trữ
   if (loading) {
     return (
-      <div className="min-h-screen bg-wood-950 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
-        <p className="text-sm font-medium font-serif text-wood-200">Đang khởi tạo SmartKho AI...</p>
+      <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center">
+        <Loader variant="page" message="Đang khởi tạo hệ thống SmartKho AI..." />
       </div>
     );
   }

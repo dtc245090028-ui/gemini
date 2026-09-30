@@ -24,6 +24,8 @@ import { useAuth } from '../context/AuthContext';
 import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import { useDelayedLoading } from '../hooks/useDelayedLoading';
+import { Loader } from '../components/Loader';
 
 export const Products = ({ onSelectProductLedger }) => {
   const { user } = useAuth();
@@ -31,6 +33,8 @@ export const Products = ({ onSelectProductLedger }) => {
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const showTableLoader = useDelayedLoading(loading);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
 
   // Filters State
@@ -319,6 +323,7 @@ export const Products = ({ onSelectProductLedger }) => {
   const handleSubmitForm = async (e) => {
     e.preventDefault();
     setFormError(null);
+    setIsSubmitting(true);
     try {
       let productId;
       let createdProductData = null;
@@ -399,6 +404,8 @@ export const Products = ({ onSelectProductLedger }) => {
     } catch (err) {
       const msg = err.response?.data?.detail || 'Đã có lỗi xảy ra khi lưu mặt hàng.';
       setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -540,12 +547,8 @@ export const Products = ({ onSelectProductLedger }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="text-center py-10 text-[var(--text-muted)]">
-                    Đang tải danh sách hàng hóa...
-                  </td>
-                </tr>
+              {showTableLoader ? (
+                <Loader variant="table" columns={9} rows={8} />
               ) : paginatedProducts.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="text-center py-10 text-[var(--text-muted)]">
@@ -1012,9 +1015,11 @@ export const Products = ({ onSelectProductLedger }) => {
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              disabled={isSubmitting}
+              className="btn-primary flex items-center justify-center gap-2 min-w-[120px]"
             >
-              {modalMode === 'create' ? 'Tạo mới' : 'Cập nhật'}
+              {isSubmitting && <Loader variant="inline" />}
+              <span>{isSubmitting ? 'Đang lưu...' : (modalMode === 'create' ? 'Tạo mới' : 'Cập nhật')}</span>
             </button>
           </div>
         </form>

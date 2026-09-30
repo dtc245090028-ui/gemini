@@ -17,16 +17,20 @@ import { useAuth } from '../context/AuthContext';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import { draftStorage } from '../utils/draftStorage';
+import { useDelayedLoading } from '../hooks/useDelayedLoading';
+import { Loader } from '../components/Loader';
 
 export const Suppliers = () => {
   const { user } = useAuth();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const showLoader = useDelayedLoading(loading);
   const [search, setSearch] = useState('');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraftRestored, setIsDraftRestored] = useState(false);
   const [draftSavedTime, setDraftSavedTime] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -141,6 +145,7 @@ export const Suppliers = () => {
   const handleSaveSupplier = async (e) => {
     e.preventDefault();
     setFormError(null);
+    setIsSubmitting(true);
     try {
       if (modalMode === 'create') {
         await apiClient.suppliers.create(formData);
@@ -158,6 +163,8 @@ export const Suppliers = () => {
       fetchSuppliers();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Không thể lưu nhà cung cấp');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -213,10 +220,22 @@ export const Suppliers = () => {
 
       {/* Supplier Grid Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? (
-          <div className="col-span-full py-12 text-center text-xs text-[var(--text-muted)]">
-            Đang tải dữ liệu nhà cung cấp...
-          </div>
+        {showLoader ? (
+          [...Array(6)].map((_, i) => (
+            <div key={i} className="card-wood p-5 flex flex-col justify-between space-y-4 sk-skeleton-pulse">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-input bg-[var(--border-medium)]/60 shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-4 bg-[var(--border-medium)]/70 rounded-sm w-3/4" />
+                  <div className="h-3 bg-[var(--border-medium)]/50 rounded-sm w-1/3" />
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+                <div className="h-3 bg-[var(--border-medium)]/50 rounded-sm w-5/6" />
+                <div className="h-3 bg-[var(--border-medium)]/50 rounded-sm w-2/3" />
+              </div>
+            </div>
+          ))
         ) : filteredSuppliers.length === 0 ? (
           <div className="col-span-full py-12 text-center text-xs text-[var(--text-muted)]">
             Không tìm thấy nhà cung cấp nào.
@@ -374,9 +393,11 @@ export const Suppliers = () => {
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              disabled={isSubmitting}
+              className="btn-primary flex items-center justify-center gap-2 min-w-[120px]"
             >
-              {modalMode === 'create' ? 'Tạo mới' : 'Cập nhật'}
+              {isSubmitting && <Loader variant="inline" />}
+              <span>{isSubmitting ? 'Đang lưu...' : (modalMode === 'create' ? 'Tạo mới' : 'Cập nhật')}</span>
             </button>
           </div>
         </form>

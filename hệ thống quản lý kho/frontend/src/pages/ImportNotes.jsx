@@ -13,6 +13,8 @@ import { draftStorage } from '../utils/draftStorage';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
+import Loader from '../components/Loader';
+import useDelayedLoading from '../hooks/useDelayedLoading';
 
 export const ImportNotes = () => {
   const { user } = useAuth();
@@ -21,9 +23,11 @@ export const ImportNotes = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const showTableLoader = useDelayedLoading(loading);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [supplierId, setSupplierId] = useState('');
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
@@ -189,6 +193,7 @@ export const ImportNotes = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await apiClient.importNotes.create({
         supplier_id: Number(supplierId),
@@ -206,6 +211,8 @@ export const ImportNotes = () => {
       fetchData();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Không thể tạo phiếu nhập kho');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -272,12 +279,8 @@ export const ImportNotes = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
-                    Đang tải danh sách phiếu nhập...
-                  </td>
-                </tr>
+              {showTableLoader ? (
+                <Loader variant="table" columns={7} rows={8} />
               ) : importNotes.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
@@ -492,9 +495,11 @@ export const ImportNotes = () => {
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              disabled={isSubmitting}
+              className="btn-primary flex items-center justify-center gap-2 min-w-[140px]"
             >
-              Lưu & nhập kho
+              {isSubmitting && <Loader variant="inline" />}
+              <span>{isSubmitting ? 'Đang lưu...' : 'Lưu & nhập kho'}</span>
             </button>
           </div>
         </form>

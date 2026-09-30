@@ -11,9 +11,12 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import Badge from '../components/Badge';
+import { useDelayedLoading } from '../hooks/useDelayedLoading';
+import { Loader } from '../components/Loader';
 
 export const Dashboard = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
+  const showLoader = useDelayedLoading(loading);
   const [products, setProducts] = useState([]);
   const [importNotes, setImportNotes] = useState([]);
   const [exportNotes, setExportNotes] = useState([]);
@@ -152,8 +155,12 @@ export const Dashboard = ({ onNavigate }) => {
           </div>
 
           <div className="flex-1 overflow-x-auto">
-            {loading ? (
-              <div className="p-8 text-center text-xs text-[var(--text-muted)]">Đang đồng bộ dữ liệu kho...</div>
+            {showLoader ? (
+              <table className="w-full text-left text-xs">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  <Loader variant="table" columns={4} rows={5} />
+                </tbody>
+              </table>
             ) : lowStockProducts.length === 0 ? (
               <div className="p-10 text-center text-xs text-[var(--text-secondary)]">
                 Không có mặt hàng nào đang ở dưới mức tồn kho an toàn.

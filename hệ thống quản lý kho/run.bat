@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 > nul
 title Hệ Thống Quản Lý Kho Thông Minh Tích Hợp AI - WMS AI (Đề Tài 07)
 echo ===============================================================================
