@@ -39,8 +39,17 @@ export const Products = ({ onSelectProductLedger }) => {
 
   // Filters State
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+
+  // Debounce tìm kiếm 300ms chống spam API khi gõ phím
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Pagination & Sorting State
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,7 +106,7 @@ export const Products = ({ onSelectProductLedger }) => {
     setLoading(true);
     try {
       const params = {};
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (selectedCategory) params.category_id = selectedCategory;
       if (filterLowStock) params.is_low_stock = true;
       params.limit = 500;
@@ -134,11 +143,11 @@ export const Products = ({ onSelectProductLedger }) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [search, selectedCategory, filterLowStock]);
+  }, [debouncedSearch, selectedCategory, filterLowStock]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedCategory, filterLowStock]);
+  }, [debouncedSearch, selectedCategory, filterLowStock]);
 
   useEffect(() => {
     if (notification) {
