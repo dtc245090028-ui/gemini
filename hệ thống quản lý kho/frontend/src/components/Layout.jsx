@@ -19,7 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import Badge from './Badge';
 
 export const Layout = ({ activeTab, onTabChange, children }) => {
-  const { user, logout, switchDemoRole } = useAuth();
+  const { user, logout, switchDemoRole, loading } = useAuth();
 
   // Quản lý trạng thái Giao diện Sáng / Tối (Theme Mode)
   const [theme, setTheme] = useState(() => {
@@ -165,8 +165,9 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
                 Chuyển vai trò:
               </span>
               <button
+                disabled={loading}
                 onClick={() => switchDemoRole('ADMIN')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer ${
+                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   user?.role === 'ADMIN'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -175,8 +176,9 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
                 Admin
               </button>
               <button
+                disabled={loading}
                 onClick={() => switchDemoRole('WAREHOUSE_KEEPER')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer ${
+                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   user?.role === 'WAREHOUSE_KEEPER'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -185,8 +187,9 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
                 Thủ kho
               </button>
               <button
+                disabled={loading}
                 onClick={() => switchDemoRole('ACCOUNTANT')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer ${
+                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   user?.role === 'ACCOUNTANT'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'

@@ -13,9 +13,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader } from './components/Loader';
 
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set(['dashboard']));
   const [ledgerProductId, setLedgerProductId] = useState(null);
+
+  // Khi đổi tài khoản đăng nhập, đưa tab về dashboard
+  React.useEffect(() => {
+    setActiveTab('dashboard');
+    setVisitedTabs(new Set(['dashboard']));
+  }, [user?.username]);
 
   // Khi đang kiểm tra trạng thái token lưu trữ
   if (loading) {
@@ -34,34 +41,60 @@ function AppContent() {
   // Điều hướng từ trang Sản phẩm sang Thẻ kho chi tiết
   const handleSelectProductLedger = (productId) => {
     setLedgerProductId(productId);
+    setVisitedTabs((prev) => new Set(prev).add('stock_ledger'));
     setActiveTab('stock_ledger');
   };
 
-  // Xử lý chuyển tab thông thường
+  // Xử lý chuyển tab thông thường (Lazy Mount & Keep-Alive giữ nguyên trạng thái)
   const handleTabChange = (tabId) => {
     if (tabId !== 'stock_ledger') {
       setLedgerProductId(null);
     }
+    setVisitedTabs((prev) => new Set(prev).add(tabId));
     setActiveTab(tabId);
   };
 
   return (
     <Layout activeTab={activeTab} onTabChange={handleTabChange}>
-      <ErrorBoundary key={activeTab}>
-        {activeTab === 'dashboard' && <Dashboard onNavigate={handleTabChange} />}
-        {activeTab === 'products' && (
-          <Products onSelectProductLedger={handleSelectProductLedger} />
+      <ErrorBoundary>
+        {visitedTabs.has('dashboard') && (
+          <div className={activeTab === 'dashboard' ? '' : 'hidden'}>
+            <Dashboard onNavigate={handleTabChange} />
+          </div>
         )}
-        {activeTab === 'suppliers' && <Suppliers />}
-        {activeTab === 'imports' && <ImportNotes />}
-        {activeTab === 'exports' && <ExportNotes />}
-        {activeTab === 'stock_ledger' && (
-          <StockLedger
-            key={ledgerProductId || 'all'}
-            defaultProductId={ledgerProductId}
-          />
+        {visitedTabs.has('products') && (
+          <div className={activeTab === 'products' ? '' : 'hidden'}>
+            <Products onSelectProductLedger={handleSelectProductLedger} />
+          </div>
         )}
-        {activeTab === 'ai_assistant' && <AIAssistant />}
+        {visitedTabs.has('suppliers') && (
+          <div className={activeTab === 'suppliers' ? '' : 'hidden'}>
+            <Suppliers />
+          </div>
+        )}
+        {visitedTabs.has('imports') && (
+          <div className={activeTab === 'imports' ? '' : 'hidden'}>
+            <ImportNotes />
+          </div>
+        )}
+        {visitedTabs.has('exports') && (
+          <div className={activeTab === 'exports' ? '' : 'hidden'}>
+            <ExportNotes />
+          </div>
+        )}
+        {visitedTabs.has('stock_ledger') && (
+          <div className={activeTab === 'stock_ledger' ? '' : 'hidden'}>
+            <StockLedger
+              key={ledgerProductId || 'all'}
+              defaultProductId={ledgerProductId}
+            />
+          </div>
+        )}
+        {visitedTabs.has('ai_assistant') && (
+          <div className={activeTab === 'ai_assistant' ? '' : 'hidden'}>
+            <AIAssistant />
+          </div>
+        )}
       </ErrorBoundary>
     </Layout>
   );
