@@ -227,7 +227,7 @@ export const apiClient = {
   importNotes: {
     getAll: () => api.get('/import-notes/'),
     getById: (id) => api.get(`/import-notes/${id}`),
-    create: (data) => api.post('/import-notes/', data),
+    create: (data, config = {}) => api.post('/import-notes/', data, config),
     cancel: (id) => api.post(`/import-notes/${id}/cancel`),
   },
 
@@ -235,7 +235,7 @@ export const apiClient = {
   exportNotes: {
     getAll: () => api.get('/export-notes/'),
     getById: (id) => api.get(`/export-notes/${id}`),
-    create: (data) => api.post('/export-notes/', data),
+    create: (data, config = {}) => api.post('/export-notes/', data, config),
     ship: (id) => api.post(`/export-notes/${id}/ship`),
     complete: (id) => api.post(`/export-notes/${id}/complete`),
     cancel: (id) => api.post(`/export-notes/${id}/cancel`),

@@ -46,13 +46,24 @@ def create_import_note(
     db: Session,
     note_in: ImportNoteCreate,
     current_user_id: int,
+    idempotency_key: Optional[str] = None,
 ) -> ImportNote:
     """Lập phiếu nhập kho trong một Transaction ACID duy nhất.
 
     - Tăng current_stock của từng mặt hàng.
     - Tự động ghi nhận bản ghi Thẻ kho (StockLedger).
     - Áp dụng Retry Pattern xử lý đụng độ mã tự sinh.
+    - Idempotency Key bảo đảm chống ghi trùng lặp dữ liệu.
     """
+    if idempotency_key:
+        idempotency_key = idempotency_key.strip() or None
+
+    # Kiểm tra Idempotency Key trước khi thực hiện logic tạo phiếu
+    if idempotency_key:
+        existing_note = db.query(ImportNote).filter(ImportNote.idempotency_key == idempotency_key).first()
+        if existing_note:
+            return existing_note
+
     # 1. Kiểm tra nhà cung cấp
     supplier = db.query(Supplier).filter(Supplier.id == note_in.supplier_id).first()
     if not supplier:
@@ -104,6 +115,7 @@ def create_import_note(
                 total_amount=total_amount,
                 note=note_in.note.strip() if note_in.note else None,
                 status="COMPLETED",
+                idempotency_key=idempotency_key,
             )
             db.add(import_note)
             db.flush()  # Sinh import_note.id
@@ -142,6 +154,11 @@ def create_import_note(
 
         except IntegrityError as exc:
             db.rollback()
+            # Xử lý trường hợp 2 request đồng thời gửi cùng một idempotency_key
+            if idempotency_key:
+                existing_note = db.query(ImportNote).filter(ImportNote.idempotency_key == idempotency_key).first()
+                if existing_note:
+                    return existing_note
             if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -153,13 +170,23 @@ def create_export_note(
     db: Session,
     note_in: ExportNoteCreate,
     current_user_id: int,
+    idempotency_key: Optional[str] = None,
 ) -> ExportNote:
     """Lập phiếu xuất kho trong một Transaction ACID duy nhất.
 
     - Kiểm tra nghiêm ngặt chống tồn kho âm (Rollback 100% nếu thiếu hàng).
-    - Giảm current_stock của từng mặt hàng.
-    - Tự động ghi nhận bản ghi Thẻ kho (StockLedger).
+    - Giảm current_stock của từng mặt hàng khi chuyển trạng thái sang SHIPPING.
+    - Idempotency Key bảo đảm chống ghi trùng lặp dữ liệu.
     """
+    if idempotency_key:
+        idempotency_key = idempotency_key.strip() or None
+
+    # Kiểm tra Idempotency Key trước khi thực hiện logic tạo phiếu
+    if idempotency_key:
+        existing_note = db.query(ExportNote).filter(ExportNote.idempotency_key == idempotency_key).first()
+        if existing_note:
+            return existing_note
+
     # 1. Kiểm tra tồn kho cho tất cả sản phẩm TRƯỚC KHI thực hiện bất kỳ thay đổi nào
     product_map = {}
     for item in note_in.details:
@@ -214,6 +241,7 @@ def create_export_note(
                 total_amount=total_amount,
                 note=note_in.note.strip() if note_in.note else None,
                 status="CONFIRMED",
+                idempotency_key=idempotency_key,
             )
             db.add(export_note)
             db.flush()
@@ -237,6 +265,11 @@ def create_export_note(
 
         except IntegrityError as exc:
             db.rollback()
+            # Xử lý trường hợp 2 request đồng thời gửi cùng một idempotency_key
+            if idempotency_key:
+                existing_note = db.query(ExportNote).filter(ExportNote.idempotency_key == idempotency_key).first()
+                if existing_note:
+                    return existing_note
             if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,

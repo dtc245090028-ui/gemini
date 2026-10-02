@@ -23,6 +23,18 @@ async def lifespan(app: FastAPI):
     # Tự động tạo các bảng CSDL nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
 
+    # Tự động migrate an toàn các cột mới nếu CSDL đã tồn tại trước đó
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector = inspect(conn)
+        for table_name in ["import_notes", "export_notes"]:
+            if inspector.has_table(table_name):
+                columns = [c["name"] for c in inspector.get_columns(table_name)]
+                if "idempotency_key" not in columns:
+                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN idempotency_key VARCHAR(100)"))
+                    conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_{table_name}_idempotency_key ON {table_name} (idempotency_key)"))
+                    conn.commit()
+
     # Tự động nạp dữ liệu tài khoản mặc định (Idempotent seed an toàn)
     db = SessionLocal()
     try:

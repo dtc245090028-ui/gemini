@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -29,9 +29,13 @@ export const ExportNotes = () => {
   const [loading, setLoading] = useState(false);
   const showTableLoader = useDelayedLoading(loading);
 
+  // Synchronous submit lock Ref
+  const isSubmittingRef = useRef(false);
+
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
@@ -72,6 +76,12 @@ export const ExportNotes = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    isSubmittingRef.current = false;
+    const newKey = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `ek-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    setIdempotencyKey(newKey);
+
     // Kiểm tra xem có bản nháp phiếu xuất trong vòng 24h không
     const draft = draftStorage.load(user?.username, 'export_note');
     if (draft && draft.data) {
@@ -110,6 +120,12 @@ export const ExportNotes = () => {
     }
     setFormError(null);
     setIsCreateOpen(true);
+  };
+
+  const handleCloseCreate = () => {
+    setIsCreateOpen(false);
+    isSubmittingRef.current = false;
+    setIdempotencyKey('');
   };
 
   // Tự động lưu bản nháp phiếu xuất ngầm khi người dùng nhập liệu
@@ -241,10 +257,13 @@ export const ExportNotes = () => {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setFormError(null);
 
     if (items.length === 0) {
       setFormError('Vui lòng thêm ít nhất một mặt hàng xuất kho');
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -252,29 +271,35 @@ export const ExportNotes = () => {
       setFormError(
         `Chặn xuất âm: Dòng ${stockViolations[0].row} (${stockViolations[0].productName}) yêu cầu xuất ${stockViolations[0].requestedQty} nhưng chỉ còn tồn ${stockViolations[0].currentStock}!`
       );
+      isSubmittingRef.current = false;
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await apiClient.exportNotes.create({
-        recipient_name: recipientName,
-        note: noteText,
-        details: items.map((it) => ({
-          product_id: Number(it.product_id),
-          quantity: Number(it.quantity),
-          unit_price: Number(it.unit_price),
-        })),
-      });
+      await apiClient.exportNotes.create(
+        {
+          recipient_name: recipientName,
+          note: noteText,
+          details: items.map((it) => ({
+            product_id: Number(it.product_id),
+            quantity: Number(it.quantity),
+            unit_price: Number(it.unit_price),
+          })),
+        },
+        idempotencyKey ? { headers: { 'X-Idempotency-Key': idempotencyKey } } : {}
+      );
       // Xóa bản nháp khi tạo thành công
       draftStorage.clear(user?.username, 'export_note');
       setIsDraftRestored(false);
       setIsCreateOpen(false);
+      setIdempotencyKey('');
       fetchData();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Không thể tạo phiếu xuất kho');
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -518,7 +543,7 @@ export const ExportNotes = () => {
       </div>
 
       {/* Modal Lập Phiếu Xuất */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập phiếu xuất kho mới" maxWidth="max-w-3xl">
+      <Modal isOpen={isCreateOpen} onClose={handleCloseCreate} title="Lập phiếu xuất kho mới" maxWidth="max-w-3xl">
         {isDraftRestored && (
           <div className="mb-4 p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-primary)]">
             <div className="flex items-center gap-2">
@@ -747,7 +772,7 @@ export const ExportNotes = () => {
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsCreateOpen(false)}
+              onClick={handleCloseCreate}
               className="btn-outline"
             >
               Hủy bỏ

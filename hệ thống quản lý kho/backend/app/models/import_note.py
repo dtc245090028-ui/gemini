@@ -17,6 +17,7 @@ class ImportNote(Base):
     total_amount = Column(Float, nullable=False, default=0.0)
     note = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="COMPLETED")  # DRAFT, COMPLETED, CANCELLED
+    idempotency_key = Column(String(100), unique=True, index=True, nullable=True)
 
     # Relationships
     supplier = relationship("Supplier", back_populates="import_notes")

@@ -365,3 +365,89 @@ def test_cancel_shipping_export_note_restores_stock_and_keeps_record(client, thu
     last_entry = ledger_res.json()[0]
     assert last_entry["transaction_type"] == "ADJUSTMENT"
     assert last_entry["quantity_change"] == 5
+
+
+def test_import_note_idempotency_key(client, thukho_headers, sample_master_data):
+    """Kiểm tra: Gửi nhiều request POST /import-notes/ cùng X-Idempotency-Key chỉ tạo 1 phiếu và cộng tồn 1 lần."""
+    import uuid
+    prod_id = sample_master_data["prod_id"]
+    sup_id = sample_master_data["sup_id"]
+    idemp_key = f"idemp-imp-{uuid.uuid4()}"
+
+    # Lấy tồn kho trước
+    stock_before = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+
+    payload = {
+        "supplier_id": sup_id,
+        "note": "Test Idempotency Import",
+        "details": [{"product_id": prod_id, "quantity": 10, "unit_price": 500000.0}],
+    }
+    headers = {**thukho_headers, "X-Idempotency-Key": idemp_key}
+
+    # Lần gửi 1
+    res1 = client.post("/api/v1/import-notes/", json=payload, headers=headers)
+    assert res1.status_code == 201
+    data1 = res1.json()
+    note_id_1 = data1["id"]
+    note_code_1 = data1["code"]
+    assert data1["idempotency_key"] == idemp_key
+
+    # Tồn kho tăng 10
+    stock_after_1 = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+    assert stock_after_1 == stock_before + 10
+
+    # Lần gửi 2 (cùng key)
+    res2 = client.post("/api/v1/import-notes/", json=payload, headers=headers)
+    assert res2.status_code in [200, 201]
+    data2 = res2.json()
+    assert data2["id"] == note_id_1
+    assert data2["code"] == note_code_1
+    assert data2["idempotency_key"] == idemp_key
+
+    # Tồn kho KHÔNG được cộng lần 2 (vẫn giữ nguyên stock_after_1)
+    stock_after_2 = client.get(f"/api/v1/products/{prod_id}", headers=thukho_headers).json()["current_stock"]
+    assert stock_after_2 == stock_after_1
+
+
+def test_export_note_idempotency_key(client, thukho_headers, sample_master_data):
+    """Kiểm tra: Gửi nhiều request POST /export-notes/ cùng X-Idempotency-Key chỉ tạo 1 phiếu."""
+    import uuid
+    prod_id = sample_master_data["prod_id"]
+    idemp_key = f"idemp-exp-{uuid.uuid4()}"
+
+    payload = {
+        "recipient_name": "Khách hàng Idempotency Test",
+        "details": [{"product_id": prod_id, "quantity": 2, "unit_price": 1000000.0}],
+    }
+    headers = {**thukho_headers, "X-Idempotency-Key": idemp_key}
+
+    # Lần gửi 1
+    res1 = client.post("/api/v1/export-notes/", json=payload, headers=headers)
+    assert res1.status_code == 201
+    data1 = res1.json()
+    note_id_1 = data1["id"]
+    assert data1["idempotency_key"] == idemp_key
+
+    # Lần gửi 2 (cùng key)
+    res2 = client.post("/api/v1/export-notes/", json=payload, headers=headers)
+    assert res2.status_code in [200, 201]
+    data2 = res2.json()
+    assert data2["id"] == note_id_1
+    assert data2["code"] == data1["code"]
+
+
+def test_notes_without_idempotency_key_are_backward_compatible(client, thukho_headers, sample_master_data):
+    """Kiểm tra: Client cũ không gửi header X-Idempotency-Key vẫn hoạt động bình thường."""
+    prod_id = sample_master_data["prod_id"]
+    sup_id = sample_master_data["sup_id"]
+
+    res = client.post(
+        "/api/v1/import-notes/",
+        json={
+            "supplier_id": sup_id,
+            "details": [{"product_id": prod_id, "quantity": 1, "unit_price": 100000.0}],
+        },
+        headers=thukho_headers,
+    )
+    assert res.status_code == 201
+    assert res.json()["idempotency_key"] is None
