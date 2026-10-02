@@ -17,6 +17,7 @@ class ExportNote(Base):
     total_amount = Column(Float, nullable=False, default=0.0)
     note = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="CONFIRMED")  # CONFIRMED, SHIPPING, COMPLETED, CANCELLED
+    idempotency_key = Column(String(100), unique=True, index=True, nullable=True)
 
     # Relationships
     creator = relationship("User", back_populates="export_notes")

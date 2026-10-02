@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Package,
   Plus,
@@ -34,6 +34,10 @@ export const Products = ({ onSelectProductLedger }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const showTableLoader = useDelayedLoading(loading);
+
+  // Synchronous submit lock Ref
+  const isSubmittingRef = useRef(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -233,6 +237,7 @@ export const Products = ({ onSelectProductLedger }) => {
   };
 
   const handleOpenCreate = () => {
+    isSubmittingRef.current = false;
     setModalMode('create');
     setCurrentProduct(null);
     setImageFile(null);
@@ -299,6 +304,7 @@ export const Products = ({ onSelectProductLedger }) => {
   };
 
   const handleOpenEdit = (p) => {
+    isSubmittingRef.current = false;
     setModalMode('edit');
     setCurrentProduct(p);
     setImageFile(null);
@@ -331,6 +337,8 @@ export const Products = ({ onSelectProductLedger }) => {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setFormError(null);
     setIsSubmitting(true);
     try {
@@ -350,10 +358,14 @@ export const Products = ({ onSelectProductLedger }) => {
         if (formData.has_initial_import) {
           if (!formData.initial_supplier_id) {
             setFormError('Vui lòng chọn nhà cung cấp cho phiếu nhập ban đầu.');
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
             return;
           }
           if (Number(formData.initial_quantity) <= 0) {
             setFormError('Số lượng nhập kho ban đầu phải lớn hơn 0.');
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
             return;
           }
           payload.initial_supplier_id = Number(formData.initial_supplier_id);
@@ -415,6 +427,7 @@ export const Products = ({ onSelectProductLedger }) => {
       setFormError(msg);
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 

@@ -42,6 +42,7 @@ class ImportNoteResponse(ImportNoteBase):
     note_date: datetime
     total_amount: float
     status: str
+    idempotency_key: Optional[str] = None
     supplier_name: Optional[str] = None
     creator_name: Optional[str] = None
     details: List[ImportNoteDetailResponse] = []

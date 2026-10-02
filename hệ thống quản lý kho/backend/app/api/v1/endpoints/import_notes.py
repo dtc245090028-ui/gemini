@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -45,6 +45,7 @@ def _serialize_import_note(note: ImportNote) -> ImportNoteResponse:
         total_amount=note.total_amount,
         note=note.note,
         status=note.status,
+        idempotency_key=note.idempotency_key,
         details=details,
     )
 
@@ -123,11 +124,17 @@ def get_import_note_by_id(
 )
 def create_new_import_note(
     note_in: ImportNoteCreate,
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Lập phiếu nhập kho: Tăng tồn kho và tự động ghi Thẻ kho (StockLedger)."""
-    note = create_import_note(db=db, note_in=note_in, current_user_id=current_user.id)
+    note = create_import_note(
+        db=db,
+        note_in=note_in,
+        current_user_id=current_user.id,
+        idempotency_key=x_idempotency_key,
+    )
     return _serialize_import_note(note)
 
 

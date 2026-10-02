@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -26,6 +26,9 @@ export const Suppliers = () => {
   const [loading, setLoading] = useState(false);
   const showLoader = useDelayedLoading(loading);
   const [search, setSearch] = useState('');
+
+  // Synchronous submit lock Ref
+  const isSubmittingRef = useRef(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,6 +95,7 @@ export const Suppliers = () => {
   }, [formData, isModalOpen, modalMode, user?.username]);
 
   const handleOpenCreate = () => {
+    isSubmittingRef.current = false;
     setModalMode('create');
     setFormError(null);
     const draft = draftStorage.load(user?.username, 'supplier_form');
@@ -127,6 +131,7 @@ export const Suppliers = () => {
   };
 
   const handleOpenEdit = (s) => {
+    isSubmittingRef.current = false;
     setModalMode('edit');
     setIsDraftRestored(false);
     setDraftSavedTime('');
@@ -144,6 +149,8 @@ export const Suppliers = () => {
 
   const handleSaveSupplier = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setFormError(null);
     setIsSubmitting(true);
     try {
@@ -165,6 +172,7 @@ export const Suppliers = () => {
       setFormError(err.response?.data?.detail || 'Không thể lưu nhà cung cấp');
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 

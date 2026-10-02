@@ -1,47 +1,25 @@
 {
   "monthly_report:2026_10": {
     "date": "2026-10-02",
-    "cached_at": "2026-10-02 01:30:32",
+    "cached_at": "2026-10-02 02:38:10",
     "data": {
       "period": "10/2026",
       "is_fallback": false,
       "provider": "gemini",
       "metrics": {
         "total_products": 89,
-        "active_products": 0,
-        "total_imports_qty": 0,
+        "active_products": 1,
+        "total_imports_qty": 10,
         "total_exports_qty": 0,
         "low_stock_count": 9,
         "top_exported_products": []
       },
-      "executive_summary": "Trong kỳ báo cáo tháng 10/2026, toàn bộ 89 mặt hàng quản lý đều không ghi nhận bất kỳ giao dịch nhập hoặc xuất kho nào. Hoạt động kinh doanh và luân chuyển hàng hóa trong kỳ hoàn toàn đóng băng, không có sản phẩm nào phát sinh lượng xuất. Tuy nhiên, hệ thống vẫn ghi nhận 9 mặt hàng đang ở mức dưới tồn kho tối thiểu từ các kỳ trước, tiềm ẩn rủi ro thiếu hụt hàng hóa khi hoạt động trở lại.",
+      "executive_summary": "Trong kỳ 10/2026, doanh nghiệp quản lý tổng số 89 mặt hàng nhưng chỉ có 1 mặt hàng phát sinh giao dịch, cho thấy mức độ hoạt động và luân chuyển hàng hóa rất thấp. Tổng lượng nhập kho là 10 và lượng xuất kho là 0, phản ánh tình trạng đình trệ trong hoạt động kinh doanh và tiêu thụ sản phẩm. Đáng chú ý, có 9 mặt hàng đang nằm dưới mức tồn tối thiểu, tiềm ẩn rủi ro thiếu hụt hàng hóa cho các hoạt động sắp tới mặc dù thanh khoản chung đang đứng.",
       "recommendations": [
-        "Kiểm tra nguyên nhân dẫn đến việc không phát sinh giao dịch nhập xuất trong kỳ để có kế hoạch điều chỉnh hoạt động kinh doanh.",
-        "Rà soát và lên kế hoạch bổ sung gấp đối với 9 mặt hàng đang có số lượng dưới mức tồn kho tối thiểu nhằm đảm bảo tính sẵn sàng cho kho.",
-        "Theo dõi sát sao tình hình bảo quản của toàn bộ 89 mặt hàng trong bối cảnh không có luân chuyển để tránh hư hỏng hoặc tồn đọng dài hạn."
+        "Khẩn trương rà soát 9 mặt hàng đang có số lượng dưới mức tồn tối thiểu để có kế hoạch bổ sung kịp thời.",
+        "Đánh giá lại nguyên nhân dẫn đến việc chỉ có 1 mặt hàng phát sinh giao dịch và không có lượng hàng xuất kho trong kỳ để tối ưu hóa danh mục sản phẩm.",
+        "Kiểm soát chặt chẽ hoạt động nhập kho mới (10 đơn vị trong kỳ) nhằm tránh tồn đọng vốn với các mặt hàng có tốc độ tiêu thụ chậm."
       ],
-      "is_cached": false
-    }
-  },
-  "generated_order:today": {
-    "date": "2026-10-02",
-    "cached_at": "2026-10-02 01:44:11",
-    "data": {
-      "scenario_id": "SCENARIO_06",
-      "recipient_name": "Công ty TNHH Phần Mềm F-Tech",
-      "role": "company",
-      "product_id": 45,
-      "product_code": "SP036",
-      "product_name": "Dell Inspiron 15 3520 i5",
-      "current_stock": 16,
-      "quantity": 10,
-      "unit_price": 14990000.0,
-      "discount_percent": 5.0,
-      "suggested_unit_price": 14240500.0,
-      "reason": "Chọn laptop Dell Inspiron 15 cho doanh nghiệp F-Tech trang bị nhân sự lập trình mới với mức chiết khấu 5% phù hợp cho đơn hàng doanh nghiệp.",
-      "note": "Đơn hàng AI: Công ty TNHH Phần Mềm F-Tech (company) - Đề xuất giảm giá 5%: Chọn laptop Dell Inspiron 15 cho doanh nghiệp F-Tech trang bị nhân sự lập trình mới với mức chiết khấu 5% phù hợp cho đơn hàng doanh nghiệp.",
-      "is_fallback": false,
-      "provider": "gemini",
       "is_cached": false
     }
   }

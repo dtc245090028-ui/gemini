@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -25,9 +25,13 @@ export const ImportNotes = () => {
   const [loading, setLoading] = useState(false);
   const showTableLoader = useDelayedLoading(loading);
 
+  // Synchronous submit lock Ref
+  const isSubmittingRef = useRef(false);
+
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [noteText, setNoteText] = useState('');
   const [items, setItems] = useState([]);
@@ -66,6 +70,12 @@ export const ImportNotes = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    isSubmittingRef.current = false;
+    const newKey = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `ik-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    setIdempotencyKey(newKey);
+
     // Kiểm tra xem có bản nháp nào được lưu trong vòng 24h không
     const draft = draftStorage.load(user?.username, 'import_note');
     if (draft && draft.data) {
@@ -102,6 +112,12 @@ export const ImportNotes = () => {
     }
     setFormError(null);
     setIsCreateOpen(true);
+  };
+
+  const handleCloseCreate = () => {
+    setIsCreateOpen(false);
+    isSubmittingRef.current = false;
+    setIdempotencyKey('');
   };
 
   // Tự động lưu bản nháp ngầm khi người dùng thay đổi dữ liệu trên modal tạo phiếu
@@ -186,33 +202,41 @@ export const ImportNotes = () => {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setFormError(null);
 
     if (items.length === 0) {
       setFormError('Vui lòng thêm ít nhất một mặt hàng nhập kho');
+      isSubmittingRef.current = false;
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await apiClient.importNotes.create({
-        supplier_id: Number(supplierId),
-        note: noteText,
-        details: items.map((it) => ({
-          product_id: Number(it.product_id),
-          quantity: Number(it.quantity),
-          unit_price: Number(it.unit_price),
-        })),
-      });
+      await apiClient.importNotes.create(
+        {
+          supplier_id: Number(supplierId),
+          note: noteText,
+          details: items.map((it) => ({
+            product_id: Number(it.product_id),
+            quantity: Number(it.quantity),
+            unit_price: Number(it.unit_price),
+          })),
+        },
+        idempotencyKey ? { headers: { 'X-Idempotency-Key': idempotencyKey } } : {}
+      );
       // Xóa bản nháp khi đã lưu thành công
       draftStorage.clear(user?.username, 'import_note');
       setIsDraftRestored(false);
       setIsCreateOpen(false);
+      setIdempotencyKey('');
       fetchData();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Không thể tạo phiếu nhập kho');
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -333,7 +357,7 @@ export const ImportNotes = () => {
       </div>
 
       {/* Modal Lập Phiếu Nhập */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Lập phiếu nhập kho mới" maxWidth="max-w-3xl">
+      <Modal isOpen={isCreateOpen} onClose={handleCloseCreate} title="Lập phiếu nhập kho mới" maxWidth="max-w-3xl">
         {isDraftRestored && (
           <div className="mb-4 p-3.5 bg-[var(--semantic-ai-bg)] border border-[var(--semantic-ai-border)] rounded-input flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--semantic-ai)]">
             <div className="flex items-center gap-2">
@@ -488,7 +512,7 @@ export const ImportNotes = () => {
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsCreateOpen(false)}
+              onClick={handleCloseCreate}
               className="btn-outline"
             >
               Hủy bỏ
