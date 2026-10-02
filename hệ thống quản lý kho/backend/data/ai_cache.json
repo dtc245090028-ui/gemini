@@ -54,785 +54,6 @@
       "is_cached": false
     }
   },
-  "restock_suggestions:30": {
-    "date": "2026-09-30",
-    "cached_at": "2026-09-30 20:07:24",
-    "data": {
-      "lookback_days": 30,
-      "is_fallback": false,
-      "provider": "gemini",
-      "total_suggested_items": 9,
-      "items": [
-        {
-          "product_id": 5,
-          "product_code": "SP001",
-          "product_name": "Bàn phím cơ Akko 3087",
-          "current_stock": 0,
-          "min_stock": 15,
-          "daily_velocity": 1.33,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 40,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, vận tốc bán ổn định, cần nhập gấp đạt mức an toàn (2*min_stock)."
-        },
-        {
-          "product_id": 29,
-          "product_code": "SKU_E2E_120920994502",
-          "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 30,
-          "product_code": "SKU_E2E_121134649607",
-          "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 31,
-          "product_code": "SKU_E2E_122956130472",
-          "product_name": "Túi đeo chéo Tomtoc Wander-T26 X-Pac Daily Sling T26S1K1",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 88,
-          "product_code": "SKU_E2E_151733885016",
-          "product_name": "Bộ Tản Nhiệt Nước Coolmoon Aosor AS240 2 Fan 120mm",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 89,
-          "product_code": "SKU_E2E_154720745019",
-          "product_name": "BỘ TẢN NHIỆT KHÍ CPU ID COOLING FROZN A620 PRO SE (2 fan - 6 ống đồng)",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 90,
-          "product_code": "SKU_E2E_160432804590",
-          "product_name": "Miếng dán camera iPhone 16/16 Plus OPTIX ALUMINIUM UNIQ",
-          "current_stock": 0,
-          "min_stock": 10,
-          "daily_velocity": 1.67,
-          "estimated_days_left": 0.0,
-          "suggested_quantity": 50,
-          "priority": "HIGH",
-          "reason": "Hết hàng hoàn toàn, cần bổ sung để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
-        },
-        {
-          "product_id": 2,
-          "product_code": "AI_SP01_FAST",
-          "product_name": "Bao da Smart Folio cho iPad Air M2/M4 11 inch",
-          "current_stock": 3,
-          "min_stock": 15,
-          "daily_velocity": 3.33,
-          "estimated_days_left": 0.9,
-          "suggested_quantity": 100,
-          "priority": "HIGH",
-          "reason": "Tồn kho thấp (3), chỉ đủ dùng chưa đầy 1 ngày, dưới mức an toàn."
-        },
-        {
-          "product_id": 1,
-          "product_code": "SKU-ACID-01",
-          "product_name": "Ổ cứng SSD NVMe 1TB",
-          "current_stock": 25,
-          "min_stock": 5,
-          "daily_velocity": 4.33,
-          "estimated_days_left": 5.8,
-          "suggested_quantity": 105,
-          "priority": "MEDIUM",
-          "reason": "Tồn kho còn 25, đủ dùng khoảng 5.8 ngày, cần nhập thêm để đáp ứng nhu cầu 30 ngày tới."
-        }
-      ],
-      "executive_summary": "Kho hiện có 8 mặt hàng đã hết hàng hoàn toàn và 1 mặt hàng sắp hết, cần nhập gấp để đáp ứng nhu cầu 30 ngày tới và đảm bảo mức tồn kho an toàn.",
-      "is_cached": false
-    }
-  },
-  "anomaly_detection:30": {
-    "date": "2026-09-30",
-    "cached_at": "2026-09-30 20:11:23",
-    "data": {
-      "lookback_days": 30,
-      "is_fallback": false,
-      "provider": "gemini",
-      "total_anomalies": 53,
-      "anomalies": [
-        {
-          "product_id": 1,
-          "product_code": "SKU-ACID-01",
-          "product_name": "Ổ cứng SSD NVMe 1TB",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Sản phẩm ổ cứng SSD NVMe 1TB có số lượng xuất kho 7 ngày gần nhất là 130 đơn vị, trong khi lượng xuất kho cơ sở hàng tuần bằng 0.0, tạo ra tỷ lệ tăng đột biến gấp 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 130,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Kiểm tra ngay kế hoạch bổ sung hàng hóa để tránh tình trạng đứt gãy chuỗi cung ứng do tốc độ tiêu thụ tăng cao đột ngột."
-        },
-        {
-          "product_id": 4,
-          "product_code": "AI_SP03_DEAD",
-          "product_name": "Miếng dán kính cường lực iPhone 18 Pro Premium AVA+ JC",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Miếng dán kính cường lực iPhone 18 Pro Premium AVA+ JC đang tồn ứ 80 sản phẩm và không phát sinh giao dịch xuất kho trong suốt 30 ngày qua.",
-          "details": {
-            "current_stock": 80,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại danh mục sản phẩm, xem xét áp dụng chương trình khuyến mãi hoặc xả hàng để giải phóng diện tích kho."
-        },
-        {
-          "product_id": 7,
-          "product_code": "SP003",
-          "product_name": "Cáp chuyển đổi VGA to HDMI",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Cáp chuyển đổi VGA to HDMI tồn đọng 60 sản phẩm và không phát sinh xuất kho trong 30 ngày qua.",
-          "details": {
-            "current_stock": 60,
-            "days_inactive": 30
-          },
-          "suggested_action": "Lập kế hoạch giảm giá hoặc kết hợp bán kèm với các thiết bị hiển thị khác để tối ưu hóa tồn kho."
-        },
-        {
-          "product_id": 10,
-          "product_code": "SP006",
-          "product_name": "RAM Corsair Vengeance 16GB DDR4",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "RAM Corsair Vengeance 16GB DDR4 có 35 sản phẩm tồn đọng liên tục trong 43 ngày không có phát sinh xuất kho.",
-          "details": {
-            "current_stock": 35,
-            "days_inactive": 43
-          },
-          "suggested_action": "Kiểm tra chất lượng bảo quản, thực hiện chiến dịch marketing hoặc điều chuyển tồn kho sang kênh bán hàng khác."
-        },
-        {
-          "product_id": 12,
-          "product_code": "SP008",
-          "product_name": "Switch mạng 8 cổng Gigabit TP-Link",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Switch mạng 8 cổng Gigabit TP-Link tồn 25 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 25,
-            "days_inactive": 30
-          },
-          "suggested_action": "Xem xét nhu cầu thị trường hiện tại và đẩy mạnh các gói ưu đãi cho khách hàng doanh nghiệp hoặc dự án."
-        },
-        {
-          "product_id": 13,
-          "product_code": "SP009",
-          "product_name": "Webcam Logitech C920 Pro Full HD",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Webcam Logitech C920 Pro Full HD tồn 18 sản phẩm trong 30 ngày không có giao dịch xuất kho.",
-          "details": {
-            "current_stock": 18,
-            "days_inactive": 30
-          },
-          "suggested_action": "Cân nhắc điều chỉnh giá bán hoặc chạy chương trình combo thiết bị làm việc tại nhà."
-        },
-        {
-          "product_id": 15,
-          "product_code": "SP011",
-          "product_name": "Nguồn máy tính Corsair CV650 650W",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Nguồn máy tính Corsair CV650 650W tồn 15 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 15,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại định mức tồn kho an toàn và kết hợp bán kèm khi khách hàng ráp máy tính PC."
-        },
-        {
-          "product_id": 16,
-          "product_code": "SP012",
-          "product_name": "Bộ phát Wifi Mesh Mercusys Halo H50G",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Bộ phát Wifi Mesh Mercusys Halo H50G tồn đọng 12 sản phẩm trong 30 ngày không xuất kho.",
-          "details": {
-            "current_stock": 12,
-            "days_inactive": 30
-          },
-          "suggested_action": "Lên chương trình ưu đãi lắp đặt hoặc giảm giá nhẹ để thúc đẩy tiêu thụ."
-        },
-        {
-          "product_id": 17,
-          "product_code": "SP013",
-          "product_name": "Ổ cứng di động WD My Passport 2TB",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Ổ cứng di động WD My Passport 2TB tồn 20 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 20,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đẩy mạnh truyền thông sản phẩm hoặc xem xét chính sách giá cạnh tranh hơn."
-        },
-        {
-          "product_id": 18,
-          "product_code": "SP014",
-          "product_name": "Loa vi tính Microlab M-108 2.1",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Loa vi tính Microlab M-108 2.1 tồn 15 sản phẩm trong 30 ngày không có phát sinh xuất kho.",
-          "details": {
-            "current_stock": 15,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đề xuất gom nhóm với các phụ kiện âm thanh khác để kích cầu tiêu dùng."
-        },
-        {
-          "product_id": 19,
-          "product_code": "SP015",
-          "product_name": "Tản nhiệt CPU Deepcool Gammaxx 400",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Tản nhiệt CPU Deepcool Gammaxx 400 tồn 30 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 30,
-            "days_inactive": 30
-          },
-          "suggested_action": "Kiểm tra nhu cầu thị trường linh kiện PC để có chính sách đẩy hàng phù hợp."
-        },
-        {
-          "product_id": 20,
-          "product_code": "SP016",
-          "product_name": "Cáp mạng bấm sẵn Cat6 UTP 10 mét",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Cáp mạng bấm sẵn Cat6 UTP 10 mét tồn kho 45 sản phẩm trong 47 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 45,
-            "days_inactive": 47
-          },
-          "suggested_action": "Đẩy mạnh tiếp cận khách hàng thi công mạng văn phòng hoặc giảm giá xả kho."
-        },
-        {
-          "product_id": 21,
-          "product_code": "SP017",
-          "product_name": "Chuột văn phòng Logitech B100",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Chuột văn phòng Logitech B100 tồn đọng 55 sản phẩm trong 37 ngày không có giao dịch xuất kho.",
-          "details": {
-            "current_stock": 55,
-            "days_inactive": 37
-          },
-          "suggested_action": "Liên hệ nhóm khách hàng doanh nghiệp, văn phòng để thanh lý nhanh lượng tồn kho."
-        },
-        {
-          "product_id": 22,
-          "product_code": "SP018",
-          "product_name": "Bàn di chuột Gaming cỡ lớn 80x30cm",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Bàn di chuột Gaming cỡ lớn 80x30cm tồn 45 sản phẩm trong 30 ngày không xuất kho.",
-          "details": {
-            "current_stock": 45,
-            "days_inactive": 30
-          },
-          "suggested_action": "Chạy chương trình tặng kèm khi khách hàng mua chuột hoặc bàn phím gaming."
-        },
-        {
-          "product_id": 23,
-          "product_code": "SP019",
-          "product_name": "Giá treo tai nghe kim loại đa năng",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Giá treo tai nghe kim loại đa năng tồn 25 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 25,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đưa vào danh mục sản phẩm flash sale hoặc tặng kèm khi mua tai nghe."
-        },
-        {
-          "product_id": 24,
-          "product_code": "SP020",
-          "product_name": "Bộ chia cổng USB 3.0 Orico 4 cổng",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Bộ chia cổng USB 3.0 Orico 4 cổng tồn 35 sản phẩm trong 30 ngày không xuất kho.",
-          "details": {
-            "current_stock": 35,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại chiến lược giá và tối ưu hóa vị trí trưng bày trên kênh online."
-        },
-        {
-          "product_id": 25,
-          "product_code": "SP021",
-          "product_name": "Keo tản nhiệt Arctic MX-4 4g",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Keo tản nhiệt Arctic MX-4 4g tồn 40 sản phẩm không có giao dịch xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 40,
-            "days_inactive": 30
-          },
-          "suggested_action": "Kết hợp bán kèm trong các dịch vụ bảo dưỡng máy tính hoặc sửa chữa."
-        },
-        {
-          "product_id": 26,
-          "product_code": "SP022",
-          "product_name": "Màn hình LG 27 inch 4K IPS",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Màn hình LG 27 inch 4K IPS tồn 8 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 8,
-            "days_inactive": 30
-          },
-          "suggested_action": "Kiểm tra phân khúc giá và tung chương trình ưu đãi cho khách hàng đồ họa, văn phòng cao cấp."
-        },
-        {
-          "product_id": 27,
-          "product_code": "SKU_E2E_130519140787",
-          "product_name": "Loa Bluetooth Alpha Works AW-GENBEAT 520",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Loa Bluetooth Alpha Works AW-GENBEAT 520 tồn 50 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 50,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tổ chức các sự kiện trải nghiệm âm thanh hoặc giảm giá trực tiếp để giải phóng hàng tồn."
-        },
-        {
-          "product_id": 28,
-          "product_code": "SKU_E2E_120824350246",
-          "product_name": "Loa Bluetooth Alpha Works AW-GENBEATX",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Loa Bluetooth Alpha Works AW-GENBEATX tồn 50 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 50,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đẩy mạnh chiến dịch quảng cáo trực tuyến và các sàn thương mại điện tử."
-        },
-        {
-          "product_id": 29,
-          "product_code": "SKU_E2E_120920994502",
-          "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Loa Bluetooth Alpha Works AW-IKON12 ghi nhận xuất kho 7 ngày gần nhất đạt 50 đơn vị, trong khi lượng nền bằng 0.0, tăng gấp 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Lên kế hoạch nhập hàng bổ sung ngay lập tức để duy trì nguồn cung cho nhu cầu thị trường đang tăng vọt."
-        },
-        {
-          "product_id": 30,
-          "product_code": "SKU_E2E_121134649607",
-          "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH có số lượng xuất 7 ngày gần nhất là 50, mức nền bằng 0.0, hệ số tăng trưởng đạt 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Kiểm tra mức độ sẵn có của hàng hóa trong kho và làm việc với nhà cung cấp để chuẩn bị thêm nguồn hàng."
-        },
-        {
-          "product_id": 31,
-          "product_code": "SKU_E2E_122956130472",
-          "product_name": "Túi đeo chéo Tomtoc Wander-T26 X-Pac Daily Sling T26S1K1",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Túi đeo chéo Tomtoc Wander-T26 X-Pac Daily Sling T26S1K1 đạt lượng xuất 7 ngày gần nhất 50 đơn vị từ mức nền 0.0, tỷ lệ tăng trưởng 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Theo dõi sát sao tốc độ bán hàng hiện tại và chủ động đặt hàng bổ sung để tránh tình trạng hết hàng."
-        },
-        {
-          "product_id": 33,
-          "product_code": "SP024",
-          "product_name": "iPhone 15 128GB",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "iPhone 15 128GB tồn 14 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 14,
-            "days_inactive": 30
-          },
-          "suggested_action": "Xem xét lại chính sách giá cạnh tranh hoặc chương trình thu cũ đổi mới để kích cầu."
-        },
-        {
-          "product_id": 35,
-          "product_code": "SP026",
-          "product_name": "Samsung Galaxy S24",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Samsung Galaxy S24 tồn 13 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 13,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại biên độ lợi nhuận và tung ra các ưu đãi quà tặng kèm hấp dẫn."
-        },
-        {
-          "product_id": 37,
-          "product_code": "SP028",
-          "product_name": "Samsung Galaxy Z Fold6",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Samsung Galaxy Z Fold6 tồn 12 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 12,
-            "days_inactive": 30
-          },
-          "suggested_action": "Thúc đẩy các hoạt động tiếp thị tập trung vào nhóm khách hàng phân khúc cao cấp."
-        },
-        {
-          "product_id": 39,
-          "product_code": "SP030",
-          "product_name": "Xiaomi Redmi Note 13",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Xiaomi Redmi Note 13 tồn 12 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 12,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tối ưu hóa giá bán hoặc kết hợp các gói trả góp 0% để thu hút người mua."
-        },
-        {
-          "product_id": 41,
-          "product_code": "SP032",
-          "product_name": "Oppo A79",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Oppo A79 tồn 17 sản phẩm không có giao dịch xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 17,
-            "days_inactive": 30
-          },
-          "suggested_action": "Xem xét chương trình khuyến mãi theo mùa hoặc xả kho để thu hồi vốn."
-        },
-        {
-          "product_id": 43,
-          "product_code": "SP034",
-          "product_name": "MacBook Air M3 13 inch",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "MacBook Air M3 13 inch tồn 8 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 8,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tập trung tư vấn cho nhóm khách hàng học sinh, sinh viên và nhân viên văn phòng."
-        },
-        {
-          "product_id": 45,
-          "product_code": "SP036",
-          "product_name": "Dell Inspiron 15 3520 i5",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Dell Inspiron 15 3520 i5 tồn 16 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 16,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại nhu cầu thị trường laptop văn phòng và triển khai ưu đãi phụ kiện đi kèm."
-        },
-        {
-          "product_id": 47,
-          "product_code": "SP038",
-          "product_name": "Asus Vivobook 15 R5",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Asus Vivobook 15 R5 tồn 10 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 10,
-            "days_inactive": 30
-          },
-          "suggested_action": "Lập kế hoạch giảm giá hoặc kích hoạt các chiến dịch quảng cáo nhắm trúng đối tượng."
-        },
-        {
-          "product_id": 49,
-          "product_code": "SP040",
-          "product_name": "HP Pavilion 14",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "HP Pavilion 14 tồn 17 sản phẩm trong 30 ngày không xuất kho.",
-          "details": {
-            "current_stock": 17,
-            "days_inactive": 30
-          },
-          "suggested_action": "Xem xét lại chiến lược phân phối và chính sách hoa hồng cho nhân viên bán hàng."
-        },
-        {
-          "product_id": 51,
-          "product_code": "SP042",
-          "product_name": "Lenovo ThinkPad E14",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Lenovo ThinkPad E14 tồn 13 sản phẩm không phát sinh xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 13,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tiếp cận trực tiếp các đối tượng khách hàng doanh nghiệp vừa và nhỏ."
-        },
-        {
-          "product_id": 53,
-          "product_code": "SP044",
-          "product_name": "Acer Aspire 5",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Acer Aspire 5 tồn 15 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 15,
-            "days_inactive": 30
-          },
-          "suggested_action": "Áp dụng chương trình giảm giá trực tiếp hoặc tặng kèm quà tặng thiết thực."
-        },
-        {
-          "product_id": 55,
-          "product_code": "SP046",
-          "product_name": "PC Gaming Gigabyte i5 RTX4060",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "PC Gaming Gigabyte i5 RTX4060 tồn 7 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 7,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tổ chức các chương trình khuyến mãi trọn gói bộ PC kèm màn hình và phụ kiện."
-        },
-        {
-          "product_id": 57,
-          "product_code": "SP048",
-          "product_name": "Mini PC Intel NUC",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Mini PC Intel NUC tồn 20 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 20,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đẩy mạnh tiếp thị đến các văn phòng có không gian làm việc tối giản."
-        },
-        {
-          "product_id": 59,
-          "product_code": "SP050",
-          "product_name": "Logitech M185",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Logitech M185 tồn 54 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 54,
-            "days_inactive": 30
-          },
-          "suggested_action": "Thực hiện chương trình xả hàng tồn kho hoặc bán giá sỉ cho các đại lý nhỏ lẻ."
-        },
-        {
-          "product_id": 61,
-          "product_code": "SP052",
-          "product_name": "Razer DeathAdder V2",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Razer DeathAdder V2 tồn 24 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 24,
-            "days_inactive": 30
-          },
-          "suggested_action": "Kết hợp bán kèm với các sản phẩm bàn phím cơ hoặc lót chuột gaming."
-        },
-        {
-          "product_id": 63,
-          "product_code": "SP054",
-          "product_name": "Dell S2421H 24 inch",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Dell S2421H 24 inch tồn 19 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 19,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đánh giá lại giá bán cạnh tranh so với các thương hiệu màn hình khác trên thị trường."
-        },
-        {
-          "product_id": 65,
-          "product_code": "SP056",
-          "product_name": "Samsung Odyssey G5",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Samsung Odyssey G5 tồn 20 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 20,
-            "days_inactive": 30
-          },
-          "suggested_action": "Triển khai chiến dịch quảng cáo nhắm đến cộng đồng game thủ trẻ."
-        },
-        {
-          "product_id": 67,
-          "product_code": "SP058",
-          "product_name": "RAM Kingston 8GB DDR4",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "RAM Kingston 8GB DDR4 tồn 55 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 55,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đưa vào các gói nâng cấp máy tính giá rẻ cho khách hàng phổ thông."
-        },
-        {
-          "product_id": 69,
-          "product_code": "SP060",
-          "product_name": "SSD Samsung 970 Evo 500GB",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "SSD Samsung 970 Evo 500GB tồn 26 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 26,
-            "days_inactive": 30
-          },
-          "suggested_action": "Chạy chương trình ưu đãi cho dịch vụ nâng cấp ổ cứng tốc độ cao."
-        },
-        {
-          "product_id": 71,
-          "product_code": "SP062",
-          "product_name": "Bàn phím cơ Akko 3068",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Bàn phím cơ Akko 3068 tồn 56 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 56,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tổ chức các đợt flash sale hoặc chương trình giảm giá theo tuần để giải phóng kho."
-        },
-        {
-          "product_id": 73,
-          "product_code": "SP064",
-          "product_name": "Tai nghe Sony WH-1000XM5",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Tai nghe Sony WH-1000XM5 tồn 13 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 13,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đẩy mạnh hoạt động trải nghiệm sản phẩm tại cửa hàng hoặc ưu đãi thanh toán."
-        },
-        {
-          "product_id": 75,
-          "product_code": "SP066",
-          "product_name": "Sạc dự phòng Anker 10000mAh",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Sạc dự phòng Anker 10000mAh tồn 47 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 47,
-            "days_inactive": 30
-          },
-          "suggested_action": "Kết hợp bán kèm khi khách hàng mua điện thoại hoặc thiết bị di động."
-        },
-        {
-          "product_id": 77,
-          "product_code": "SP068",
-          "product_name": "Cáp sạc USB-C to USB-C",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Cáp sạc USB-C to USB-C tồn 48 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 48,
-            "days_inactive": 30
-          },
-          "suggested_action": "Bố trí sản phẩm ở khu vực thanh toán nhanh (cashier) để kích thích mua sắm bộc phát."
-        },
-        {
-          "product_id": 79,
-          "product_code": "SP070",
-          "product_name": "Sạc nhanh 20W Apple",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Sạc nhanh 20W Apple tồn 33 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 33,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tạo gói combo ưu đãi khi mua kèm các dòng điện thoại thông minh."
-        },
-        {
-          "product_id": 81,
-          "product_code": "SP072",
-          "product_name": "Túi chống sốc laptop 15.6 inch",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Túi chống sốc laptop 15.6 inch tồn 39 sản phẩm không xuất kho trong 30 ngày.",
-          "details": {
-            "current_stock": 39,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tặng kèm khi khách hàng mua các sản phẩm laptop văn phòng."
-        },
-        {
-          "product_id": 83,
-          "product_code": "SP074",
-          "product_name": "Thẻ nhớ SanDisk 128GB",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Thẻ nhớ SanDisk 128GB tồn 56 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 56,
-            "days_inactive": 30
-          },
-          "suggested_action": "Đẩy mạnh chương trình khuyến mãi cho khách hàng mua camera hoặc thiết bị lưu trữ."
-        },
-        {
-          "product_id": 85,
-          "product_code": "SP076",
-          "product_name": "Loa Bluetooth JBL Go 3",
-          "anomaly_type": "DEAD_STOCK",
-          "description": "Loa Bluetooth JBL Go 3 tồn 46 sản phẩm trong 30 ngày không phát sinh xuất kho.",
-          "details": {
-            "current_stock": 46,
-            "days_inactive": 30
-          },
-          "suggested_action": "Tổ chức các chương trình ưu đãi đặc biệt trên các kênh thương mại điện tử."
-        },
-        {
-          "product_id": 88,
-          "product_code": "SKU_E2E_151733885016",
-          "product_name": "Bộ Tản Nhiệt Nước Coolmoon Aosor AS240 2 Fan 120mm",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Bộ Tản Nhiệt Nước Coolmoon Aosor AS240 2 Fan 120mm có số lượng xuất 7 ngày gần nhất đạt 50 đơn vị, từ mức nền 0.0, tăng gấp 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Theo dõi sát kho hàng hiện tại và chủ động làm việc với nhà cung ứng để đặt thêm hàng."
-        },
-        {
-          "product_id": 89,
-          "product_code": "SKU_E2E_154720745019",
-          "product_name": "BỘ TẢN NHIỆT KHÍ CPU ID COOLING FROZN A620 PRO SE (2 fan - 6 ống đồng)",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "BỘ TẢN NHIỆT KHÍ CPU ID COOLING FROZN A620 PRO SE ghi nhận lượng xuất 7 ngày gần nhất là 50, mức nền bằng 0.0, tỷ lệ tăng trưởng đạt 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Kiểm tra tình trạng nguồn hàng và lên kế hoạch nhập bổ sung để đáp ứng nhu cầu tiêu thụ cao."
-        },
-        {
-          "product_id": 90,
-          "product_code": "SKU_E2E_160432804590",
-          "product_name": "Miếng dán camera iPhone 16/16 Plus OPTIX ALUMINIUM UNIQ",
-          "anomaly_type": "SURGE_EXPORT",
-          "description": "Miếng dán camera iPhone 16/16 Plus OPTIX ALUMINIUM UNIQ có lượng xuất 7 ngày gần nhất là 50 đơn vị, mức nền 0.0, hệ số tăng trưởng đạt 3.0 lần (SURGE_EXPORT).",
-          "details": {
-            "recent_7d_qty": 50,
-            "baseline_weekly_qty": 0.0,
-            "surge_ratio": 3.0
-          },
-          "suggested_action": "Đánh giá ngay tốc độ tiêu thụ thực tế để tránh tình trạng hết hàng đột ngột trên kệ."
-        }
-      ],
-      "executive_summary": "Hệ thống ghi nhận tổng cộng 51 mặt hàng có biến động bất thường trong kho trong vòng 30 ngày qua, chia thành 2 nhóm chính: 7 mặt hàng thuộc nhóm SURGE_EXPORT (xuất kho tăng đột biến với tỷ lệ tăng trưởng mạnh so với mức nền) và 44 mặt hàng thuộc nhóm DEAD_STOCK (tồn kho ứ đọng từ 30 đến 47 ngày không phát sinh xuất kho).",
-      "is_cached": false
-    }
-  },
   "generated_order:today": {
     "date": "2026-09-30",
     "cached_at": "2026-09-30 20:13:04",
@@ -852,6 +73,718 @@
       "note": "Đơn hàng AI: Đại Lý Tin Học Nam Long (dealer) - Đề xuất giảm giá 10%: Đại lý nhập sỉ chuột không dây phục vụ chương trình khuyến mãi đầu tháng, áp dụng mức chiết khấu 10% phù hợp cho đối tác phân phối.",
       "is_fallback": false,
       "provider": "gemini",
+      "is_cached": false
+    }
+  },
+  "monthly_report:2026_10": {
+    "date": "2026-10-02",
+    "cached_at": "2026-10-02 07:25:43",
+    "data": {
+      "period": "10/2026",
+      "is_fallback": false,
+      "provider": "gemini",
+      "metrics": {
+        "total_products": 89,
+        "active_products": 0,
+        "total_imports_qty": 0,
+        "total_exports_qty": 0,
+        "low_stock_count": 9,
+        "top_exported_products": []
+      },
+      "executive_summary": "Trong kỳ báo cáo 10/2026, doanh nghiệp quản lý tổng cộng 89 mặt hàng nhưng ghi nhận hoàn toàn không có giao dịch nhập, xuất kho với số lượng giao dịch và lượng hàng nhập, xuất đều bằng 0. Tình hình hoạt động kho hàng đang ở trạng thái ngưng trệ, không phát sinh dòng tiền hàng hóa trong kỳ. Tuy nhiên, hệ thống vẫn ghi nhận 9 mặt hàng đang ở dưới mức tồn kho tối thiểu, tiềm ẩn rủi ro thiếu hụt hàng hóa khi hoạt động trở lại.",
+      "recommendations": [
+        "Kiểm tra lại nguyên nhân không phát sinh giao dịch nhập xuất trong kỳ 10/2026 để đảm bảo tính chính xác của dữ liệu báo cáo.",
+        "Lập kế hoạch bổ sung gấp đối với 9 mặt hàng hiện đang có số lượng dưới mức tồn kho tối thiểu để phòng ngừa rủi ro đứt gãy nguồn cung.",
+        "Đánh giá lại nhu cầu thị trường và kế hoạch kinh doanh nhằm kích hoạt lại các hoạt động xuất nhập kho cho các mặt hàng đang quản lý."
+      ],
+      "is_cached": false
+    }
+  },
+  "restock_suggestions:30": {
+    "date": "2026-10-02",
+    "cached_at": "2026-10-02 07:24:04",
+    "data": {
+      "lookback_days": 30,
+      "is_fallback": false,
+      "provider": "gemini",
+      "total_suggested_items": 9,
+      "items": [
+        {
+          "product_id": 5,
+          "product_code": "SP001",
+          "product_name": "Bàn phím cơ Akko 3087",
+          "current_stock": 0,
+          "min_stock": 15,
+          "daily_velocity": 1.33,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 40,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 40 sản phẩm để đáp ứng nhu cầu 30 ngày (khoảng 40 sản phẩm) và đạt mức an toàn (2 * min_stock = 30)."
+        },
+        {
+          "product_id": 29,
+          "product_code": "SKU_E2E_120920994502",
+          "product_name": "Loa Bluetooth Alpha Works AW-IKON12",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 30,
+          "product_code": "SKU_E2E_121134649607",
+          "product_name": "Túi đeo chéo Tomtoc Monster Hunter EDC Sling Bag T21S1S2MH",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 31,
+          "product_code": "SKU_E2E_122956130472",
+          "product_name": "Túi đeo chéo Tomtoc Wander-T26 X-Pac Daily Sling T26S1K1",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 88,
+          "product_code": "SKU_E2E_151733885016",
+          "product_name": "Bộ Tản Nhiệt Nước Coolmoon Aosor AS240 2 Fan 120mm",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 89,
+          "product_code": "SKU_E2E_154720745019",
+          "product_name": "BỘ TẢN NHIỆT KHÍ CPU ID COOLING FROZN A620 PRO SE (2 fan - 6 ống đồng)",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 90,
+          "product_code": "SKU_E2E_160432804590",
+          "product_name": "Miếng dán camera iPhone 16/16 Plus OPTIX ALUMINIUM UNIQ",
+          "current_stock": 0,
+          "min_stock": 10,
+          "daily_velocity": 1.67,
+          "estimated_days_left": 0.0,
+          "suggested_quantity": 50,
+          "priority": "HIGH",
+          "reason": "Hết hàng hoàn toàn (tồn kho 0). Nhập 50 sản phẩm để đảm bảo nhu cầu 30 ngày (50 sản phẩm) và đạt mức an toàn (2 * min_stock = 20)."
+        },
+        {
+          "product_id": 2,
+          "product_code": "AI_SP01_FAST",
+          "product_name": "Bao da Smart Folio cho iPad Air M2/M4 11 inch",
+          "current_stock": 3,
+          "min_stock": 15,
+          "daily_velocity": 3.33,
+          "estimated_days_left": 0.9,
+          "suggested_quantity": 127,
+          "priority": "HIGH",
+          "reason": "Tồn kho rất thấp (3 cái), chỉ đủ dùng chưa tới 1 ngày. Nhập 127 cái để đạt mức đáp ứng nhu cầu 30 ngày (100 cái) hoặc mức an toàn 2*min_stock (30 cái)."
+        },
+        {
+          "product_id": 1,
+          "product_code": "SKU-ACID-01",
+          "product_name": "Ổ cứng SSD NVMe 1TB",
+          "current_stock": 25,
+          "min_stock": 5,
+          "daily_velocity": 4.33,
+          "estimated_days_left": 5.8,
+          "suggested_quantity": 105,
+          "priority": "MEDIUM",
+          "reason": "Tồn kho hiện tại 25, đủ dùng khoảng 5.8 ngày. Nhập 105 sản phẩm để đáp ứng nhu cầu 30 ngày tới (khoảng 130 sản phẩm)."
+        }
+      ],
+      "executive_summary": "Kho hiện có 8 mặt hàng đã hết hàng hoàn toàn (tồn kho bằng 0) với mức độ ưu tiên cao cần nhập ngay lập tức để tránh mất doanh thu, và 1 mặt hàng còn tồn ít sắp hết. Cần bổ sung tổng cộng để đáp ứng nhu cầu 30 ngày tới hoặc đạt mức an toàn.",
+      "is_cached": false
+    }
+  },
+  "anomaly_detection:30": {
+    "date": "2026-10-02",
+    "cached_at": "2026-10-02 07:24:24",
+    "data": {
+      "lookback_days": 30,
+      "is_fallback": false,
+      "provider": "gemini",
+      "total_anomalies": 46,
+      "anomalies": [
+        {
+          "product_id": 4,
+          "product_code": "AI_SP03_DEAD",
+          "product_name": "Miếng dán kính cường lực iPhone 18 Pro Premium AVA+ JC",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Miếng dán kính cường lực iPhone 18 Pro Premium AVA+ JC không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 80.",
+          "details": {
+            "current_stock": 80,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đánh giá lại nhu cầu thị trường, thực hiện chương trình khuyến mãi hoặc giảm giá để xả hàng tồn."
+        },
+        {
+          "product_id": 7,
+          "product_code": "SP003",
+          "product_name": "Cáp chuyển đổi VGA to HDMI",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Cáp chuyển đổi VGA to HDMI không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 60.",
+          "details": {
+            "current_stock": 60,
+            "days_inactive": 30
+          },
+          "suggested_action": "Kiểm tra chất lượng sản phẩm và xem xét kết hợp bán kèm với các thiết bị hiển thị."
+        },
+        {
+          "product_id": 10,
+          "product_code": "SP006",
+          "product_name": "RAM Corsair Vengeance 16GB DDR4",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm RAM Corsair Vengeance 16GB DDR4 không phát sinh xuất kho trong 44 ngày qua với lượng tồn kho là 35.",
+          "details": {
+            "current_stock": 35,
+            "days_inactive": 44
+          },
+          "suggested_action": "Đẩy mạnh quảng bá hoặc tạo gói combo linh kiện máy tính để kích thích tiêu thụ."
+        },
+        {
+          "product_id": 12,
+          "product_code": "SP008",
+          "product_name": "Switch mạng 8 cổng Gigabit TP-Link",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Switch mạng 8 cổng Gigabit TP-Link không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 25.",
+          "details": {
+            "current_stock": 25,
+            "days_inactive": 30
+          },
+          "suggested_action": "Xem xét nhu cầu từ các dự án mạng văn phòng nhỏ hoặc giảm giá kích cầu."
+        },
+        {
+          "product_id": 13,
+          "product_code": "SP009",
+          "product_name": "Webcam Logitech C920 Pro Full HD",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Webcam Logitech C920 Pro Full HD không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 18.",
+          "details": {
+            "current_stock": 18,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đánh giá lại giá bán so với thị trường và chạy chương trình ưu đãi cho mùa làm việc/học tập từ xa."
+        },
+        {
+          "product_id": 15,
+          "product_code": "SP011",
+          "product_name": "Nguồn máy tính Corsair CV650 650W",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Nguồn máy tính Corsair CV650 650W không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 15.",
+          "details": {
+            "current_stock": 15,
+            "days_inactive": 30
+          },
+          "suggested_action": "Lập chương trình ưu đãi khi mua kèm các linh kiện nâng cấp PC khác."
+        },
+        {
+          "product_id": 16,
+          "product_code": "SP012",
+          "product_name": "Bộ phát Wifi Mesh Mercusys Halo H50G",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Bộ phát Wifi Mesh Mercusys Halo H50G không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 12.",
+          "details": {
+            "current_stock": 12,
+            "days_inactive": 30
+          },
+          "suggested_action": "Khảo sát thị trường và đẩy mạnh marketing trực tuyến cho thiết bị mạng gia đình."
+        },
+        {
+          "product_id": 17,
+          "product_code": "SP013",
+          "product_name": "Ổ cứng di động WD My Passport 2TB",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Ổ cứng di động WD My Passport 2TB không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 20.",
+          "details": {
+            "current_stock": 20,
+            "days_inactive": 30
+          },
+          "suggested_action": "Xem xét chính sách giảm giá hoặc tạo combo với laptop để giải phóng tồn kho."
+        },
+        {
+          "product_id": 18,
+          "product_code": "SP014",
+          "product_name": "Loa vi tính Microlab M-108 2.1",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Loa vi tính Microlab M-108 2.1 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 15.",
+          "details": {
+            "current_stock": 15,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đưa vào danh mục xả hàng hoặc kết hợp khuyến mãi với máy tính để bàn."
+        },
+        {
+          "product_id": 19,
+          "product_code": "SP015",
+          "product_name": "Tản nhiệt CPU Deepcool Gammaxx 400",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Tản nhiệt CPU Deepcool Gammaxx 400 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 30.",
+          "details": {
+            "current_stock": 30,
+            "days_inactive": 30
+          },
+          "suggested_action": "Khuyến khích kỹ thuật viên tư vấn sản phẩm này trong các cấu hình máy tính lắp ráp mới."
+        },
+        {
+          "product_id": 20,
+          "product_code": "SP016",
+          "product_name": "Cáp mạng bấm sẵn Cat6 UTP 10 mét",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Cáp mạng bấm sẵn Cat6 UTP 10 mét không phát sinh xuất kho trong 48 ngày qua với lượng tồn kho là 45.",
+          "details": {
+            "current_stock": 45,
+            "days_inactive": 48
+          },
+          "suggested_action": "Tổ chức kiểm kê và đưa ra mức chiết khấu hấp dẫn cho khách hàng mua số lượng."
+        },
+        {
+          "product_id": 21,
+          "product_code": "SP017",
+          "product_name": "Chuột văn phòng Logitech B100",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Chuột văn phòng Logitech B100 không phát sinh xuất kho trong 38 ngày qua với lượng tồn kho là 55.",
+          "details": {
+            "current_stock": 55,
+            "days_inactive": 38
+          },
+          "suggested_action": "Đẩy mạnh kênh bán sỉ hoặc tạo chương trình quà tặng kèm khi mua laptop/PC."
+        },
+        {
+          "product_id": 22,
+          "product_code": "SP018",
+          "product_name": "Bàn di chuột Gaming cỡ lớn 80x30cm",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Bàn di chuột Gaming cỡ lớn 80x30cm không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 45.",
+          "details": {
+            "current_stock": 45,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tạo gói combo cùng chuột và bàn phím gaming để tăng tốc độ tiêu thụ."
+        },
+        {
+          "product_id": 23,
+          "product_code": "SP019",
+          "product_name": "Giá treo tai nghe kim loại đa năng",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Giá treo tai nghe kim loại đa năng không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 25.",
+          "details": {
+            "current_stock": 25,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh quảng bá trên các kênh thương mại điện tử hoặc chạy khuyến mãi kèm tai nghe."
+        },
+        {
+          "product_id": 24,
+          "product_code": "SP020",
+          "product_name": "Bộ chia cổng USB 3.0 Orico 4 cổng",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Bộ chia cổng USB 3.0 Orico 4 cổng không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 35.",
+          "details": {
+            "current_stock": 35,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đưa sản phẩm vào danh mục phụ kiện giá rẻ hoặc bán kèm laptop."
+        },
+        {
+          "product_id": 25,
+          "product_code": "SP021",
+          "product_name": "Keo tản nhiệt Arctic MX-4 4g",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Keo tản nhiệt Arctic MX-4 4g không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 40.",
+          "details": {
+            "current_stock": 40,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tặng kèm hoặc giảm giá khi khách hàng mua dịch vụ bảo dưỡng máy tính."
+        },
+        {
+          "product_id": 26,
+          "product_code": "SP022",
+          "product_name": "Màn hình LG 27 inch 4K IPS",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Màn hình LG 27 inch 4K IPS không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 8.",
+          "details": {
+            "current_stock": 8,
+            "days_inactive": 30
+          },
+          "suggested_action": "Rà soát lại giá bán và chiến lược tiếp thị nhắm đến nhóm khách hàng thiết kế đồ họa."
+        },
+        {
+          "product_id": 27,
+          "product_code": "SKU_E2E_130519140787",
+          "product_name": "Loa Bluetooth Alpha Works AW-GENBEAT 520",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Loa Bluetooth Alpha Works AW-GENBEAT 520 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 50.",
+          "details": {
+            "current_stock": 50,
+            "days_inactive": 30
+          },
+          "suggested_action": "Chạy chương trình quảng cáo trực tuyến và giảm giá trải nghiệm để thúc đẩy tiêu thụ."
+        },
+        {
+          "product_id": 28,
+          "product_code": "SKU_E2E_120824350246",
+          "product_name": "Loa Bluetooth Alpha Works AW-GENBEATX",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Loa Bluetooth Alpha Works AW-GENBEATX không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 50.",
+          "details": {
+            "current_stock": 50,
+            "days_inactive": 30
+          },
+          "suggested_action": "Xem xét điều chỉnh giá hoặc phối hợp với các chiến dịch marketing âm thanh di động."
+        },
+        {
+          "product_id": 33,
+          "product_code": "SP024",
+          "product_name": "iPhone 15 128GB",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm iPhone 15 128GB không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 14.",
+          "details": {
+            "current_stock": 14,
+            "days_inactive": 30
+          },
+          "suggested_action": "Thực hiện chương trình giảm giá nhẹ hoặc hỗ trợ trả góp 0% để thu hút khách hàng."
+        },
+        {
+          "product_id": 35,
+          "product_code": "SP026",
+          "product_name": "Samsung Galaxy S24",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Samsung Galaxy S24 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 13.",
+          "details": {
+            "current_stock": 13,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh các chương trình trade-in (thu cũ đổi mới) hoặc quà tặng kèm hấp dẫn."
+        },
+        {
+          "product_id": 37,
+          "product_code": "SP028",
+          "product_name": "Samsung Galaxy Z Fold6",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Samsung Galaxy Z Fold6 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 12.",
+          "details": {
+            "current_stock": 12,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tổ chức sự kiện trải nghiệm hoặc ưu đãi đặc biệt cho dòng điện thoại cao cấp này."
+        },
+        {
+          "product_id": 39,
+          "product_code": "SP030",
+          "product_name": "Xiaomi Redmi Note 13",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Xiaomi Redmi Note 13 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 12.",
+          "details": {
+            "current_stock": 12,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tăng cường quảng cáo phân khúc tầm trung và áp dụng chính sách giá cạnh tranh."
+        },
+        {
+          "product_id": 41,
+          "product_code": "SP032",
+          "product_name": "Oppo A79",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Oppo A79 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 17.",
+          "details": {
+            "current_stock": 17,
+            "days_inactive": 30
+          },
+          "suggested_action": "Xem xét lại chiến lược trưng bày tại cửa hàng hoặc chạy chương trình khuyến mãi theo mùa."
+        },
+        {
+          "product_id": 43,
+          "product_code": "SP034",
+          "product_name": "MacBook Air M3 13 inch",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm MacBook Air M3 13 inch không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 8.",
+          "details": {
+            "current_stock": 8,
+            "days_inactive": 30
+          },
+          "suggested_action": "Liên kết với các chương trình ưu đãi dành cho học sinh, sinh viên hoặc dân văn phòng."
+        },
+        {
+          "product_id": 45,
+          "product_code": "SP036",
+          "product_name": "Dell Inspiron 15 3520 i5",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Dell Inspiron 15 3520 i5 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 16.",
+          "details": {
+            "current_stock": 16,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh bán hàng qua kênh doanh nghiệp hoặc giảm giá trực tiếp."
+        },
+        {
+          "product_id": 47,
+          "product_code": "SP038",
+          "product_name": "Asus Vivobook 15 R5",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Asus Vivobook 15 R5 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 10.",
+          "details": {
+            "current_stock": 10,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tạo gói quà tặng phụ kiện kèm theo laptop để kích cầu."
+        },
+        {
+          "product_id": 49,
+          "product_code": "SP040",
+          "product_name": "HP Pavilion 14",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm HP Pavilion 14 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 17.",
+          "details": {
+            "current_stock": 17,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đánh giá lại giá bán cạnh tranh và thúc đẩy nhân viên kinh doanh tư vấn."
+        },
+        {
+          "product_id": 51,
+          "product_code": "SP042",
+          "product_name": "Lenovo ThinkPad E14",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Lenovo ThinkPad E14 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 13.",
+          "details": {
+            "current_stock": 13,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tiếp cận khách hàng mục tiêu là các công ty, văn phòng đang có nhu cầu trang bị thiết bị."
+        },
+        {
+          "product_id": 53,
+          "product_code": "SP044",
+          "product_name": "Acer Aspire 5",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Acer Aspire 5 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 15.",
+          "details": {
+            "current_stock": 15,
+            "days_inactive": 30
+          },
+          "suggested_action": "Xem xét chương trình xả kho hoặc giảm giá cấu hình để thu hút người mua."
+        },
+        {
+          "product_id": 55,
+          "product_code": "SP046",
+          "product_name": "PC Gaming Gigabyte i5 RTX4060",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm PC Gaming Gigabyte i5 RTX4060 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 7.",
+          "details": {
+            "current_stock": 7,
+            "days_inactive": 30
+          },
+          "suggested_action": "Quảng bá trực tiếp tới cộng đồng game thủ hoặc tặng kèm màn hình/phụ kiện."
+        },
+        {
+          "product_id": 57,
+          "product_code": "SP048",
+          "product_name": "Mini PC Intel NUC",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Mini PC Intel NUC không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 20.",
+          "details": {
+            "current_stock": 20,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tìm kiếm khách hàng doanh nghiệp cần giải pháp máy tính tiết kiệm không gian."
+        },
+        {
+          "product_id": 59,
+          "product_code": "SP050",
+          "product_name": "Logitech M185",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Logitech M185 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 54.",
+          "details": {
+            "current_stock": 54,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh phân phối sỉ hoặc tạo chương trình khuyến mãi mua kèm laptop."
+        },
+        {
+          "product_id": 61,
+          "product_code": "SP052",
+          "product_name": "Razer DeathAdder V2",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Razer DeathAdder V2 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 24.",
+          "details": {
+            "current_stock": 24,
+            "days_inactive": 30
+          },
+          "suggested_action": "Chạy chương trình ưu đãi dành riêng cho cộng đồng game thủ."
+        },
+        {
+          "product_id": 63,
+          "product_code": "SP054",
+          "product_name": "Dell S2421H 24 inch",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Dell S2421H 24 inch không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 19.",
+          "details": {
+            "current_stock": 19,
+            "days_inactive": 30
+          },
+          "suggested_action": "Kết hợp bán kèm với máy tính để bàn để tạo thành gói trọn bộ văn phòng."
+        },
+        {
+          "product_id": 65,
+          "product_code": "SP056",
+          "product_name": "Samsung Odyssey G5",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Samsung Odyssey G5 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 20.",
+          "details": {
+            "current_stock": 20,
+            "days_inactive": 30
+          },
+          "suggested_action": "Thực hiện chiến dịch quảng cáo nhắm đến phân khúc người dùng chơi game."
+        },
+        {
+          "product_id": 67,
+          "product_code": "SP058",
+          "product_name": "RAM Kingston 8GB DDR4",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm RAM Kingston 8GB DDR4 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 55.",
+          "details": {
+            "current_stock": 55,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tư vấn nâng cấp RAM cho khách hàng đến bảo dưỡng hoặc mua PC cũ."
+        },
+        {
+          "product_id": 69,
+          "product_code": "SP060",
+          "product_name": "SSD Samsung 970 Evo 500GB",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm SSD Samsung 970 Evo 500GB không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 26.",
+          "details": {
+            "current_stock": 26,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh tiếp thị sản phẩm nâng cấp tốc độ máy tính cho khách hàng."
+        },
+        {
+          "product_id": 71,
+          "product_code": "SP062",
+          "product_name": "Bàn phím cơ Akko 3068",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Bàn phím cơ Akko 3068 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 56.",
+          "details": {
+            "current_stock": 56,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tạo chương trình giảm giá hoặc combo quà tặng phụ kiện máy tính."
+        },
+        {
+          "product_id": 73,
+          "product_code": "SP064",
+          "product_name": "Tai nghe Sony WH-1000XM5",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Tai nghe Sony WH-1000XM5 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 13.",
+          "details": {
+            "current_stock": 13,
+            "days_inactive": 30
+          },
+          "suggested_action": "Chạy chiến dịch quảng cáo cao cấp hoặc ưu đãi giảm giá theo đợt."
+        },
+        {
+          "product_id": 75,
+          "product_code": "SP066",
+          "product_name": "Sạc dự phòng Anker 10000mAh",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Sạc dự phòng Anker 10000mAh không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 47.",
+          "details": {
+            "current_stock": 47,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đưa sản phẩm lên các sàn thương mại điện tử với chương trình flash sale."
+        },
+        {
+          "product_id": 77,
+          "product_code": "SP068",
+          "product_name": "Cáp sạc USB-C to USB-C",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Cáp sạc USB-C to USB-C không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 48.",
+          "details": {
+            "current_stock": 48,
+            "days_inactive": 30
+          },
+          "suggested_action": "Bán kèm với các thiết bị điện thoại hoặc máy tính bảng để giải phóng hàng tồn."
+        },
+        {
+          "product_id": 79,
+          "product_code": "SP070",
+          "product_name": "Sạc nhanh 20W Apple",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Sạc nhanh 20W Apple không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 33.",
+          "details": {
+            "current_stock": 33,
+            "days_inactive": 30
+          },
+          "suggested_action": "Kết hợp ưu đãi khi mua các dòng điện thoại thông minh tương thích."
+        },
+        {
+          "product_id": 81,
+          "product_code": "SP072",
+          "product_name": "Túi chống sốc laptop 15.6 inch",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Túi chống sốc laptop 15.6 inch không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 39.",
+          "details": {
+            "current_stock": 39,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tặng kèm miễn phí khi khách hàng mua các dòng laptop 15.6 inch tương ứng."
+        },
+        {
+          "product_id": 83,
+          "product_code": "SP074",
+          "product_name": "Thẻ nhớ SanDisk 128GB",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Thẻ nhớ SanDisk 128GB không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 56.",
+          "details": {
+            "current_stock": 56,
+            "days_inactive": 30
+          },
+          "suggested_action": "Đẩy mạnh bán kèm với camera an ninh hoặc thiết bị lưu trữ di động."
+        },
+        {
+          "product_id": 85,
+          "product_code": "SP076",
+          "product_name": "Loa Bluetooth JBL Go 3",
+          "anomaly_type": "DEAD_STOCK",
+          "description": "Sản phẩm Loa Bluetooth JBL Go 3 không phát sinh xuất kho trong 30 ngày qua với lượng tồn kho là 46.",
+          "details": {
+            "current_stock": 46,
+            "days_inactive": 30
+          },
+          "suggested_action": "Tổ chức chương trình giảm giá đặc biệt hoặc khuyến mãi theo mùa du lịch."
+        }
+      ],
+      "executive_summary": "Hệ thống ghi nhận tổng cộng 46 mặt hàng nằm trong nhóm DEAD_STOCK (tồn ứ đọng không phát sinh xuất kho từ 30 đến 48 ngày). Không ghi nhận trường hợp SURGE_EXPORT nào trong giai đoạn này. Các mặt hàng tồn kho bao gồm thiết bị di động, linh kiện máy tính, phụ kiện và thiết bị ngoại vi, gây đọng vốn và chiếm dụng không gian lưu kho.",
       "is_cached": false
     }
   }
