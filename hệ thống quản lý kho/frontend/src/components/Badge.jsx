@@ -29,21 +29,23 @@ export const Badge = ({ children, variant = 'gray', className = '' }) => {
     inactive: 'bg-[var(--semantic-inactive-bg)] text-[var(--semantic-inactive)] border-[var(--semantic-inactive-border)] font-medium',
     taupe: 'bg-[var(--semantic-inactive-bg)] text-[var(--semantic-inactive)] border-[var(--semantic-inactive-border)] font-medium',
 
-    // 5. Trợ lý AI = Vàng hổ phách mật ong
-    ai: 'bg-[var(--semantic-ai-bg)] text-[var(--semantic-ai)] border-[var(--semantic-ai-border)] font-bold',
-    amber: 'bg-[var(--semantic-ai-bg)] text-[var(--semantic-ai)] border-[var(--semantic-ai-border)] font-bold',
+    // 5. Trợ lý AI = Tím Indigo dịu mắt
+    ai: 'bg-[var(--semantic-ai-bg)] text-[var(--semantic-ai)] border-[var(--semantic-ai-border)] font-semibold',
 
-    // 6. Tông gỗ mộc truyền thống (Timber Natural)
-    wood: 'bg-[var(--wood-100)] text-[var(--wood-900)] border-[var(--border-medium)] font-semibold',
-    blue: 'bg-[var(--bg-surface-warm)] text-[var(--wood-700)] border-[var(--border-medium)] font-medium',
-    purple: 'bg-[var(--bg-surface-warm)] text-[var(--wood-800)] border-[var(--border-medium)] font-semibold',
+    // 6. Cảnh báo vừa / Chờ xử lý = Xanh lam dịu (thay cho vàng chữ nâu)
+    amber: 'bg-[var(--semantic-warning-bg)] text-[var(--semantic-warning)] border-[var(--semantic-warning-border)] font-semibold',
+
+    // 7. Các nhãn trung tính & phân loại
+    wood: 'bg-[var(--bg-surface-warm)] text-[var(--text-primary)] border-[var(--border-medium)] font-semibold',
+    blue: 'bg-[var(--semantic-warning-bg)] text-[var(--semantic-warning)] border-[var(--semantic-warning-border)] font-medium',
+    purple: 'bg-[var(--semantic-ai-bg)] text-[var(--semantic-ai)] border-[var(--semantic-ai-border)] font-semibold',
   };
 
   const selected = variants[variant] || variants.gray;
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs border tracking-tight ${selected} ${className}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs border tracking-tight whitespace-nowrap ${selected} ${className}`}
     >
       {children}
     </span>

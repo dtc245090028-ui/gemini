@@ -14,17 +14,28 @@ TEST_DB_FILE = os.path.abspath(
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
 
 import pytest
+from app.api.deps import rate_limiter
 from app.core.database import Base, engine
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Đặt lại bộ đếm Rate Limiter trước mỗi test case để các test không ảnh hưởng lẫn nhau."""
+    rate_limiter.reset()
+    yield
+    rate_limiter.reset()
 
 
 @pytest.fixture(scope="session", autouse=True)
 def isolate_test_database():
-    """Tự động dọn dẹp file test_warehouse.db sau khi hoàn tất phiên kiểm thử."""
+    """Tự động dọn dẹp file test_warehouse.db (kèm -wal, -shm) sau khi hoàn tất phiên kiểm thử."""
     yield
     # Đóng kết nối engine và xóa file test database
     engine.dispose()
-    if os.path.exists(TEST_DB_FILE):
-        try:
-            os.remove(TEST_DB_FILE)
-        except Exception:
-            pass
+    for suffix in ("", "-wal", "-shm"):
+        path = f"{TEST_DB_FILE}{suffix}"
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass

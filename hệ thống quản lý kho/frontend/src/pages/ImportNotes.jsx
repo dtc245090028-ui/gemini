@@ -385,7 +385,7 @@ export const ImportNotes = () => {
         )}
 
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Nhà cung cấp đối tác</label>
               <select
@@ -414,8 +414,8 @@ export const ImportNotes = () => {
           </div>
 
           {/* Chi tiết mặt hàng */}
-          <div className="border border-[var(--border-medium)] rounded-card p-3.5 bg-[var(--bg-surface-warm)]">
-            <div className="flex items-center justify-between mb-2.5">
+          <div className="border border-[var(--border-medium)] rounded-card p-3 sm:p-3.5 bg-[var(--bg-surface-warm)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
               <h4 className="text-xs font-bold text-[var(--text-primary)]">Danh mục sản phẩm nhập kho</h4>
               <button
                 type="button"
@@ -427,6 +427,7 @@ export const ImportNotes = () => {
               </button>
             </div>
 
+            <div className="space-y-2.5">
               {items.map((row, idx) => {
                 const availableProducts = row.category_id
                   ? products.filter((p) => p.category_id === Number(row.category_id))
@@ -436,10 +437,10 @@ export const ImportNotes = () => {
                   <div
                     key={idx}
                     style={{ zIndex: items.length - idx }}
-                    className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-[var(--bg-surface)] p-2.5 rounded-input border border-[var(--border-medium)] relative"
+                    className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center bg-[var(--bg-surface)] p-2.5 sm:p-3 rounded-input border border-[var(--border-medium)] relative"
                   >
                     {/* Chọn nhóm hàng */}
-                    <div className="w-36 shrink-0">
+                    <div className="md:col-span-3 min-w-0">
                       <select
                         value={row.category_id || ''}
                         onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
@@ -456,54 +457,62 @@ export const ImportNotes = () => {
                     </div>
 
                     {/* Chọn tên hàng hóa hỗ trợ gõ tìm kiếm & gõ tắt chữ cái đầu */}
-                    <ProductSelect
-                      products={availableProducts}
-                      value={row.product_id}
-                      onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
-                      placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
-                      className="min-w-[170px]"
-                    />
+                    <div className="md:col-span-4 min-w-0">
+                      <ProductSelect
+                        products={availableProducts}
+                        value={row.product_id}
+                        onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
+                        placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
+                        className="w-full min-w-0"
+                      />
+                    </div>
 
-                    <div className="w-24">
-                      <input
-                        type="number"
-                        min="1"
-                        value={row.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                        placeholder="Số lượng"
-                        className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input p-2 text-center font-mono font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)]"
-                        required
-                      />
+                    {/* Cụm Số lượng + Đơn giá + Thành tiền + Xóa */}
+                    <div className="md:col-span-5 grid grid-cols-12 gap-2 items-center min-w-0">
+                      <div className="col-span-3 min-w-0">
+                        <input
+                          type="number"
+                          min="1"
+                          value={row.quantity}
+                          onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                          placeholder="SL"
+                          className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input p-2 text-center font-mono font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)]"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-4 min-w-0">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={row.unit_price}
+                          onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                          placeholder="Giá nhập"
+                          className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input p-2 text-right font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)]"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-4 text-right font-mono font-bold text-xs text-[var(--text-primary)] truncate">
+                        {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemRow(idx)}
+                          disabled={items.length <= 1}
+                          className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn p-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="w-32">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={row.unit_price}
-                        onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
-                        placeholder="Giá nhập"
-                        className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input p-2 text-right font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)]"
-                        required
-                      />
-                    </div>
-                    <div className="w-28 text-right font-mono font-bold text-xs text-[var(--text-primary)] pr-1">
-                      {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItemRow(idx)}
-                      disabled={items.length <= 1}
-                      className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn p-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 );
               })}
+            </div>
 
             {/* Total Footer */}
-            <div className="mt-3 pt-3 border-t border-[var(--border-medium)] flex items-center justify-between text-xs">
+            <div className="mt-3 pt-3 border-t border-[var(--border-medium)] flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="font-semibold text-[var(--text-secondary)]">Tổng giá trị đơn nhập dự tính:</span>
               <span className="font-bold font-mono text-base text-[var(--text-primary)]">{totalCalculated.toLocaleString()} đ</span>
             </div>
@@ -533,7 +542,7 @@ export const ImportNotes = () => {
       <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Chi tiết phiếu nhập: ${selectedNote?.code}`}>
         {selectedNote && (
           <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3.5 bg-[var(--bg-surface-warm)] rounded-card border border-[var(--border-medium)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[var(--bg-surface-warm)] rounded-card border border-[var(--border-medium)]">
               <div>
                 <span className="text-[var(--text-muted)] block">Nhà cung cấp:</span>
                 <span className="font-semibold text-[var(--text-primary)]">{selectedNote.supplier?.name || 'N/A'}</span>

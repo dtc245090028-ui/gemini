@@ -16,12 +16,14 @@ engine = create_engine(
     echo=False,
 )
 
-# Kích hoạt kiểm tra khóa ngoại (Foreign Keys) cho SQLite
+# Kích hoạt kiểm tra khóa ngoại (Foreign Keys), chế độ WAL và busy_timeout cho SQLite
 if settings.DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

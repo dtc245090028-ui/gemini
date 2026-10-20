@@ -1,15 +1,49 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiClient } from '../api/client';
+import { apiClient, invalidateCache } from '../api/client';
 import { draftStorage } from '../utils/draftStorage';
 
 const AuthContext = createContext(null);
 
+/**
+ * Giải mã payload JWT bằng atob để kiểm tra thời hạn exp.
+ * Trả về true nếu token không hợp lệ hoặc đã hết hạn.
+ */
+const isTokenExpired = (jwtToken) => {
+  if (!jwtToken || typeof jwtToken !== 'string') return true;
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const payload = JSON.parse(atob(padded));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(() => {
+    const savedToken = localStorage.getItem('token');
+    if (!savedToken) return null;
+    if (isTokenExpired(savedToken)) {
+      invalidateCache();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+    return savedToken;
+  });
+
   const [user, setUser] = useState(() => {
+    const savedToken = localStorage.getItem('token');
+    if (!savedToken || isTokenExpired(savedToken)) {
+      return null;
+    }
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -17,7 +51,18 @@ export const AuthProvider = ({ children }) => {
     // Tự động dọn dẹp các bản nháp đã quá 24h khi khởi động ứng dụng
     draftStorage.cleanupExpired();
 
+    // Kiểm tra lại hạn JWT khi mở web
+    const currentToken = localStorage.getItem('token');
+    if (currentToken && isTokenExpired(currentToken)) {
+      invalidateCache();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setToken(null);
+    }
+
     const handleLogout = () => {
+      invalidateCache();
       setUser(null);
       setToken(null);
     };
@@ -29,6 +74,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
+      invalidateCache();
       const res = await apiClient.auth.login(username, password);
       const accessToken = res.data.access_token;
       setToken(accessToken);
@@ -63,6 +109,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    invalidateCache();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

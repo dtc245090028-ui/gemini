@@ -530,3 +530,110 @@ def test_ask_ai_rbac_and_unauthorized(client, ketoan_headers):
         assert res2.status_code == 200
 
 
+def test_ai_range_cache_fingerprint_single_day_and_fallback(client, admin_headers, ai_test_data):
+    """Kiểm tra lưu & tái sử dụng báo cáo AI theo khoảng ngày:
+    - Chế độ dự phòng (is_fallback=True) không khóa bản lưu cho lần gọi AI thật kế tiếp.
+    - Khoảng nhiều ngày chỉ có 1 ngày biến động tái sử dụng nhận xét của ngày đó.
+    - Khi dữ liệu stock_ledger trong khoảng thay đổi (dấu vết dữ liệu đổi), bản lưu cũ tự hết hạn.
+    """
+    db = SessionLocal()
+    try:
+        p1 = db.query(Product).filter(Product.code == "AI_SP01_FAST").first()
+        admin_user = db.query(User).filter(User.username == "admin").first()
+
+        # Tạo 1 biến động duy nhất vào ngày 2025-05-14 (nằm trong tuần 2025-05-12 -> 2025-05-18)
+        db.query(StockLedger).filter(
+            StockLedger.reference_code.like("TEST_RANGE_%")
+        ).delete(synchronize_session=False)
+        db.commit()
+
+        ledger1 = StockLedger(
+            product_id=p1.id,
+            transaction_type="IMPORT",
+            reference_code="TEST_RANGE_01",
+            quantity_change=10,
+            balance_after=p1.current_stock + 10,
+            created_by=admin_user.id,
+            note="Test range cache 1",
+            transaction_date=datetime(2025, 5, 14, 10, 0, 0),
+        )
+        db.add(ledger1)
+        db.commit()
+
+        # 1. Gọi ở chế độ Fallback (không có GEMINI_API_KEY)
+        with patch.object(settings, "GEMINI_API_KEY", ""):
+            res_fb = client.get(
+                "/api/v1/ai/monthly-report?period_type=day&target_date=2025-05-14",
+                headers=admin_headers,
+            )
+            assert res_fb.status_code == 200
+            data_fb = res_fb.json()
+            assert data_fb["is_fallback"] is True
+            assert data_fb["is_cached"] is False
+            assert data_fb["start_date"] == "2025-05-14"
+            assert data_fb["end_date"] == "2025-05-14"
+
+        # 2. Khi có GEMINI_API_KEY trở lại, bản fallback trước đó không được chặn -> Gọi AI thật
+        mock_response = MagicMock()
+        mock_response.text = (
+            '{"executive_summary": "Nhận xét AI ngày 14/05/2025.", "recommendations": ["Khuyến nghị ngày 14/05"]}'
+        )
+        mock_model = MagicMock()
+        mock_model.generate_content.return_value = mock_response
+
+        with patch.object(settings, "GEMINI_API_KEY", "dummy_test_api_key"):
+            with patch("google.generativeai.GenerativeModel", return_value=mock_model):
+                res_ai_day = client.get(
+                    "/api/v1/ai/monthly-report?period_type=day&target_date=2025-05-14",
+                    headers=admin_headers,
+                )
+                assert res_ai_day.status_code == 200
+                data_ai_day = res_ai_day.json()
+                assert data_ai_day["is_fallback"] is False
+                assert data_ai_day["is_cached"] is False
+                assert data_ai_day["cached_at"] is not None
+                assert mock_model.generate_content.call_count == 1
+
+                # 3. Gọi theo tuần chứa ngày 2025-05-14 (tuần 2025-05-12 -> 2025-05-18 chỉ có 1 ngày biến động)
+                # Hệ thống phải tái sử dụng nhận xét của ngày 2025-05-14 mà KHÔNG gọi thêm Gemini AI
+                res_week = client.get(
+                    "/api/v1/ai/monthly-report?period_type=week&target_date=2025-05-14",
+                    headers=admin_headers,
+                )
+                assert res_week.status_code == 200
+                data_week = res_week.json()
+                assert data_week["is_cached"] is True
+                assert data_week["start_date"] == "2025-05-12"
+                assert data_week["end_date"] == "2025-05-18"
+                assert data_week["executive_summary"] == "Nhận xét AI ngày 14/05/2025."
+                assert mock_model.generate_content.call_count == 1
+
+                # 4. Thêm 1 dòng biến động mới vào ngày 2025-05-14 -> Dấu vết dữ liệu (fingerprint) thay đổi
+                ledger2 = StockLedger(
+                    product_id=p1.id,
+                    transaction_type="EXPORT",
+                    reference_code="TEST_RANGE_02",
+                    quantity_change=-4,
+                    balance_after=p1.current_stock + 6,
+                    created_by=admin_user.id,
+                    note="Test range cache 2",
+                    transaction_date=datetime(2025, 5, 14, 15, 0, 0),
+                )
+                db.add(ledger2)
+                db.commit()
+
+                # Gọi lại ngày 2025-05-14 -> Bản lưu cũ tự hết hạn do fingerprint đổi, gọi lại Gemini AI
+                res_after_change = client.get(
+                    "/api/v1/ai/monthly-report?period_type=day&target_date=2025-05-14",
+                    headers=admin_headers,
+                )
+                assert res_after_change.status_code == 200
+                data_after = res_after_change.json()
+                assert data_after["is_cached"] is False
+                assert mock_model.generate_content.call_count == 2
+    finally:
+        db.query(StockLedger).filter(
+            StockLedger.reference_code.like("TEST_RANGE_%")
+        ).delete(synchronize_session=False)
+        db.commit()
+        db.close()

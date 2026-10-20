@@ -8,19 +8,19 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['var(--font-serif)', 'Fraunces', 'Georgia', 'serif'],
+        serif: ['var(--font-serif)', 'Be Vietnam Pro', '-apple-system', 'sans-serif'],
         sans: ['var(--font-sans)', 'Be Vietnam Pro', '-apple-system', 'sans-serif'],
-        mono: ['var(--font-mono)', 'Space Mono', 'Courier New', 'monospace'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'Be Vietnam Pro', 'monospace'],
       },
       fontSize: {
-        'xs': ['var(--text-xs)', { lineHeight: '1.4' }],     // 12px min
-        'sm': ['var(--text-sm)', { lineHeight: '1.45' }],    // 13px
-        'base': ['var(--text-base)', { lineHeight: '1.5' }],  // 14px
-        'md': ['var(--text-md)', { lineHeight: '1.5' }],      // 15px
-        'lg': ['var(--text-lg)', { lineHeight: '1.4' }],      // 17px
-        'xl': ['var(--text-xl)', { lineHeight: '1.3' }],      // 20px
-        '2xl': ['var(--text-2xl)', { lineHeight: '1.25' }],   // 24px
-        '3xl': ['var(--text-3xl)', { lineHeight: '1.2' }],    // 30px
+        'xs': ['var(--text-xs)', { lineHeight: '1.45' }],     // 12px min
+        'sm': ['var(--text-sm)', { lineHeight: '1.5' }],     // 13px
+        'base': ['var(--text-base)', { lineHeight: '1.5' }],   // 14px
+        'md': ['var(--text-md)', { lineHeight: '1.5' }],       // 15px
+        'lg': ['var(--text-lg)', { lineHeight: '1.4' }],       // 17px
+        'xl': ['var(--text-xl)', { lineHeight: '1.35' }],      // 20px
+        '2xl': ['var(--text-2xl)', { lineHeight: '1.3' }],     // 24px
+        '3xl': ['var(--text-3xl)', { lineHeight: '1.25' }],    // 30px
       },
       colors: {
         canvas: {
@@ -86,6 +86,7 @@ export default {
           500: 'var(--semantic-success)',
           600: 'var(--semantic-success)',
           700: 'var(--semantic-success-hover)',
+          800: 'var(--semantic-success)',
         },
         rust: {
           50: 'var(--semantic-alert-bg)',
@@ -94,6 +95,7 @@ export default {
           500: 'var(--semantic-alert)',
           600: 'var(--semantic-alert)',
           700: 'var(--semantic-alert-hover)',
+          800: 'var(--semantic-alert)',
         },
         sage: {
           50: 'var(--semantic-success-bg)',
@@ -117,6 +119,7 @@ export default {
         'input': 'var(--radius-input)',
         'card': 'var(--radius-card)',
         'modal': 'var(--radius-modal)',
+        'pill': 'var(--radius-full)',
         '2xl': 'var(--radius-card)',
         'xl': 'var(--radius-input)',
       },

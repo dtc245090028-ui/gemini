@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, require_roles
+from app.api.deps import get_current_user, get_db, rate_limit_login, require_roles
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/auth", tags=["Xác thực & Người dùng"])
 @router.post(
     "/login",
     response_model=TokenResponse,
+    dependencies=[Depends(rate_limit_login)],
     summary="Đăng nhập bằng JSON (dùng cho Frontend React)",
 )
 def login_json(
@@ -48,6 +49,7 @@ def login_json(
 
 @router.post(
     "/login-form",
+    dependencies=[Depends(rate_limit_login)],
     summary="Đăng nhập chuẩn OAuth2 Form (dùng cho Swagger UI Authorize)",
 )
 def login_oauth2_form(

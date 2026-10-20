@@ -627,7 +627,7 @@ export const ExportNotes = () => {
         )}
 
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Người nhận / Đơn vị nhận hàng</label>
               <input
@@ -652,8 +652,8 @@ export const ExportNotes = () => {
           </div>
 
           {/* Chi tiết mặt hàng xuất */}
-          <div className="border border-[var(--border-subtle)] rounded-card p-3 bg-[var(--bg-linen)]">
-            <div className="flex items-center justify-between mb-2">
+          <div className="border border-[var(--border-subtle)] rounded-card p-3 sm:p-3.5 bg-[var(--bg-linen)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Danh mục sản phẩm xuất kho</h4>
               <button
                 type="button"
@@ -665,7 +665,7 @@ export const ExportNotes = () => {
               </button>
             </div>
 
-            <div className="space-y-2 pr-1">
+            <div className="space-y-2.5">
               {items.map((row, idx) => {
                 const availableProducts = row.category_id
                   ? products.filter((p) => p.category_id === Number(row.category_id))
@@ -678,16 +678,16 @@ export const ExportNotes = () => {
                   <div
                     key={idx}
                     style={{ zIndex: items.length - idx }}
-                    className={`flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-card border transition-colors relative ${
-                      isOverStock ? 'bg-[var(--semantic-alert)]/10 border-[var(--semantic-alert)]' : 'bg-[var(--bg-card)] border-[var(--border-subtle)]'
+                    className={`grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center p-2.5 sm:p-3 rounded-card border transition-colors relative ${
+                      isOverStock ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)]' : 'bg-[var(--bg-card)] border-[var(--border-subtle)]'
                     }`}
                   >
                     {/* Chọn nhóm hàng */}
-                    <div className="w-36 shrink-0">
+                    <div className="md:col-span-3 min-w-0">
                       <select
                         value={row.category_id || ''}
                         onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
-                        className="w-full text-xs input-wood p-1.5"
+                        className="w-full text-xs input-wood p-2"
                         title="Lọc danh sách theo nhóm hàng"
                       >
                         <option value="">-- Tất cả nhóm --</option>
@@ -700,71 +700,76 @@ export const ExportNotes = () => {
                     </div>
 
                     {/* Chọn tên hàng hóa hỗ trợ gõ tìm kiếm & gõ tắt chữ cái đầu */}
-                    <ProductSelect
-                      products={availableProducts}
-                      value={row.product_id}
-                      onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
-                      placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
-                      className="min-w-[170px]"
-                    />
+                    <div className="md:col-span-4 min-w-0">
+                      <ProductSelect
+                        products={availableProducts}
+                        value={row.product_id}
+                        onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
+                        placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
+                        className="w-full min-w-0"
+                      />
+                    </div>
 
-                    <div className="w-28 text-center">
-                      <div className="relative">
+                    {/* Cụm Số lượng + Đơn giá + Thành tiền + Xóa */}
+                    <div className="md:col-span-5 grid grid-cols-12 gap-2 items-center min-w-0">
+                      <div className="col-span-3 text-center min-w-0">
                         <input
                           type="number"
                           min="1"
                           value={row.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
                           placeholder="SL"
-                          className={`w-full text-xs rounded-btn p-1.5 text-center focus:outline-none border ${
+                          className={`w-full text-xs rounded-btn p-1.5 text-center font-mono focus:outline-none border ${
                             isOverStock
-                              ? 'bg-[var(--semantic-alert)]/10 border-[var(--semantic-alert)] text-[var(--semantic-alert)] font-bold'
+                              ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert)] text-[var(--semantic-alert)] font-bold'
                               : 'input-wood'
                           }`}
                           required
                         />
+                        <span className="text-[11px] text-[var(--text-muted)] block mt-0.5 truncate">Tồn: {availableStock}</span>
                       </div>
-                      <span className="text-xs text-[var(--text-muted)] block mt-0.5">Tồn: {availableStock}</span>
-                    </div>
 
-                    <div className="w-32">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={row.unit_price}
-                        onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
-                        placeholder="Giá bán"
-                        className="w-full text-xs input-wood p-1.5 text-right font-mono"
-                        required
-                      />
-                    </div>
+                      <div className="col-span-4 min-w-0">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={row.unit_price}
+                          onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                          placeholder="Giá bán"
+                          className="w-full text-xs input-wood p-1.5 text-right font-mono"
+                          required
+                        />
+                      </div>
 
-                    <div className="w-28 text-right font-mono font-medium text-xs text-[var(--text-primary)] pr-1">
-                      {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
-                    </div>
+                      <div className="col-span-4 text-right font-mono font-bold text-xs text-[var(--text-primary)] truncate">
+                        {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItemRow(idx)}
-                      disabled={items.length <= 1}
-                      className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] disabled:opacity-30 p-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <div className="col-span-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemRow(idx)}
+                          disabled={items.length <= 1}
+                          className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] disabled:opacity-30 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
 
             {/* Total Footer */}
-            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="font-semibold text-[var(--text-secondary)]">Tổng giá trị đơn xuất dự tính:</span>
-              <span className="font-serif font-bold text-base text-[var(--text-primary)]">{totalCalculated.toLocaleString()} đ</span>
+              <span className="font-mono font-bold text-base text-[var(--text-primary)]">{totalCalculated.toLocaleString()} đ</span>
             </div>
           </div>
 
-          <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card text-xs text-[var(--text-secondary)] flex items-start sm:items-center gap-2">
+          <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card text-xs text-[var(--text-secondary)] flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
             <span className="font-bold text-[var(--text-primary)] shrink-0">Quy trình xuất kho:</span>
             <span>Phiếu mới lập sẽ ở trạng thái <strong>Chờ xuất kho</strong> (chưa trừ tồn kho). Tồn kho và Thẻ kho chỉ được ghi nhận khi bạn bấm <strong>Giao hàng</strong>.</span>
           </div>
@@ -793,7 +798,7 @@ export const ExportNotes = () => {
       <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Chi tiết phiếu xuất: ${selectedNote?.code}`}>
         {selectedNote && (
           <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3 bg-[var(--bg-linen)] rounded-card border border-[var(--border-subtle)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-[var(--bg-linen)] rounded-card border border-[var(--border-subtle)]">
               <div>
                 <span className="text-[var(--text-muted)] block text-xs">Người nhận / Đơn vị:</span>
                 <span className="font-semibold text-[var(--text-primary)]">{selectedNote.recipient_name}</span>
