@@ -27,7 +27,7 @@ class ExportNoteDetailResponse(ExportNoteDetailBase):
 
 class ExportNoteBase(BaseModel):
     recipient_name: str = Field(..., min_length=1, max_length=100, description="Tên người hoặc đơn vị nhận hàng")
-    note: Optional[str] = Field(None, description="Ghi chú phiếu xuất")
+    note: Optional[str] = Field(None, max_length=500, description="Ghi chú phiếu xuất (tối đa 500 ký tự)")
 
 
 class ExportNoteCreate(ExportNoteBase):

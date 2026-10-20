@@ -1,5 +1,5 @@
 Thứ tự: PREP, E, D, A, B, C, CLEANUP
-Trạng thái: PREP [x] E [x] D [ ] A [ ] B [ ] C [ ] CLEANUP [ ]
+Trạng thái: PREP [x] E [x] D [x] A [ ] B [ ] C [ ] CLEANUP [ ]
 
 ## Baseline
 
@@ -46,7 +46,15 @@ Trạng thái: PREP [x] E [x] D [ ] A [ ] B [ ] C [ ] CLEANUP [ ]
 - **Pytest**: 66 passed (không đổi so với baseline).
 - **Commit**: `[E] Điều tra và khép kín 4 điểm còn mở với nhãn bằng chứng rõ ràng`
 
+### [D] Validation `note` (Ràng buộc độ dài trường ghi chú)
+- **Hành động**:
+  1. Bổ sung `max_length=500` vào trường `note` của schema `ExportNoteCreate` và `ImportNoteCreate` (`Field(None, max_length=500)`).
+  2. Kịch bản Locust gửi payload ghi chú 5.000 ký tự sẽ được FastAPI validator từ chối chuẩn xác bằng mã HTTP 422 Unprocessable Content (khớp kỳ vọng 4xx).
+  3. Toàn bộ 66 Unit & Integration Tests đạt 100% (66 passed).
+- **Commit**: `[D] Ràng buộc max_length=500 cho note trong schemas phiếu xuất và nhập`
+
 ---
 
 ## Cần bạn quyết
-- Không có vướng mắc. Chuẩn bị bước sang hạng mục kế tiếp: **D. Validation note**.
+- **Xác nhận độ dài tối đa trường `note`**: Hiện đã cấu hình tạm thời `max_length=500` ký tự. Đề nghị bạn xác nhận con số này có phù hợp với quy tắc nghiệp vụ kho lâu dài hay không.
+- Chuẩn bị bước sang hạng mục kế tiếp: **A. Cập nhật tồn kho khi chạy đồng thời**.

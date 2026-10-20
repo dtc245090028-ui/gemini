@@ -27,7 +27,7 @@ class ImportNoteDetailResponse(ImportNoteDetailBase):
 
 class ImportNoteBase(BaseModel):
     supplier_id: int = Field(..., ge=1, description="ID nhà cung cấp")
-    note: Optional[str] = Field(None, description="Ghi chú phiếu nhập")
+    note: Optional[str] = Field(None, max_length=500, description="Ghi chú phiếu nhập (tối đa 500 ký tự)")
 
 
 class ImportNoteCreate(ImportNoteBase):
