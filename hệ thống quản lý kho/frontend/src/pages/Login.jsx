@@ -23,17 +23,17 @@ export const Login = () => {
   return (
     <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md bg-[var(--bg-card)] rounded-card shadow-modal overflow-hidden border border-[var(--border-subtle)]">
-        {/* Header Phong cách Gỗ Quý */}
-        <div className="card-wood p-8 text-center text-[var(--wood-light)] relative border-b border-[var(--border-subtle)]">
-          <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-card flex items-center justify-center mx-auto mb-3 shadow-card border border-white/10">
-            <Sparkles className="w-7 h-7 text-[var(--semantic-ai)]" />
+        {/* Header */}
+        <div className="bg-[var(--wood-900)] p-6 sm:p-8 text-center text-[var(--wood-light)] relative border-b border-[var(--wood-700)]">
+          <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-card flex items-center justify-center mx-auto mb-3 shadow-sm border border-white/15">
+            <Sparkles className="w-7 h-7 text-[var(--wood-300)]" />
           </div>
           <h1 className="font-serif text-2xl font-bold tracking-tight text-[var(--wood-light)]">SmartKho AI</h1>
           <p className="text-[var(--wood-muted)] text-xs mt-1">Đề tài 07 — Quản lý kho thông minh tích hợp AI</p>
         </div>
 
         {/* Body */}
-        <div className="p-8 bg-[var(--bg-card)]">
+        <div className="p-5 sm:p-8 bg-[var(--bg-card)]">
           {error && (
             <div className="mb-5 p-3.5 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card flex items-center gap-2.5 text-xs text-[var(--semantic-alert)] font-medium">
               <AlertCircle className="w-4 h-4 shrink-0" />

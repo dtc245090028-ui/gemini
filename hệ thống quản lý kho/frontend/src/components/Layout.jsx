@@ -14,12 +14,15 @@ import {
   Calculator,
   Moon,
   Sun,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Badge from './Badge';
 
 export const Layout = ({ activeTab, onTabChange, children }) => {
   const { user, logout, switchDemoRole, loading } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Quản lý trạng thái Giao diện Sáng / Tối (Theme Mode)
   const [theme, setTheme] = useState(() => {
@@ -73,24 +76,51 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
   const currentRole = roleMeta[user?.role] || { label: user?.role, variant: 'gray', icon: UserIcon };
   const RoleIcon = currentRole.icon;
 
+  const handleSelectNav = (tabId) => {
+    onTabChange(tabId);
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden font-sans">
-      {/* 1. SIDEBAR (Tầng 2: Gỗ óc chó mun trầm, tương phản cao đạt chuẩn WCAG AA >= 7:1) */}
-      <aside className="w-64 bg-[var(--sidebar-bg)] text-[var(--sidebar-text)] flex flex-col border-r border-[var(--sidebar-border)] shadow-lg shrink-0">
+    <div className="flex h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden font-sans relative">
+      {/* Backdrop cho Mobile/Tablet Drawer */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* 1. SIDEBAR (Ẩn tự động sang Drawer khi màn hình < 1024px để không chiếm chỗ gây tràn khung) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[var(--sidebar-bg)] text-[var(--sidebar-text)] flex flex-col border-r border-[var(--sidebar-border)] shadow-lg shrink-0 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         {/* Brand Logo & Title */}
-        <div className="p-5 border-b border-[var(--sidebar-border)] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--sidebar-logo-bg)] border border-[var(--sidebar-logo-border)] flex items-center justify-center text-[var(--sidebar-logo-icon)] shadow-xs">
-            <Sparkles className="w-5 h-5" />
+        <div className="p-4 sm:p-5 border-b border-[var(--sidebar-border)] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--sidebar-logo-bg)] border border-[var(--sidebar-logo-border)] flex items-center justify-center text-[var(--sidebar-logo-icon)] shadow-xs shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-serif font-bold text-[var(--sidebar-logo-text)] text-base tracking-tight flex items-center gap-1.5">
+                SmartKho <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-badge-bg)] text-[var(--sidebar-badge-text)] font-bold border border-[var(--sidebar-badge-border)]">AI</span>
+              </h1>
+              <p className="text-xs text-[var(--sidebar-logo-sub)] font-medium truncate">Hệ thống quản lý kho</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-serif font-bold text-[var(--sidebar-logo-text)] text-base tracking-tight flex items-center gap-1.5">
-              SmartKho <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-badge-bg)] text-[var(--sidebar-badge-text)] font-bold border border-[var(--sidebar-badge-border)]">AI</span>
-            </h1>
-            <p className="text-xs text-[var(--sidebar-logo-sub)] font-medium">Hệ thống quản lý kho</p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden p-1.5 rounded-btn text-[var(--sidebar-text)] hover:text-white hover:bg-[var(--sidebar-hover-bg)] cursor-pointer"
+            title="Đóng menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Navigation Links — Độ tương phản WCAG AA cao, Active sáng hơn Hover */}
+        {/* Navigation Links */}
         <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -98,14 +128,14 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleSelectNav(item.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-btn text-xs transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)] font-bold shadow-xs border-l-4 border-[var(--sidebar-active-border)] pl-3'
                     : 'text-[var(--sidebar-text)] hover:text-[var(--sidebar-hover-text)] hover:bg-[var(--sidebar-hover-bg)] font-medium'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
                       isActive
@@ -115,10 +145,10 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
                         : 'text-[var(--sidebar-icon)]'
                     }`}
                   />
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </div>
                 {item.highlight && !isActive && (
-                  <span className="w-2 h-2 rounded-full bg-[var(--sidebar-badge-text)] animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-[var(--sidebar-badge-text)] animate-pulse shrink-0"></span>
                 )}
               </button>
             );
@@ -127,7 +157,7 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
 
         {/* User Card */}
         <div className="p-3.5 border-t border-[var(--sidebar-border)] bg-[var(--sidebar-user-bg)]">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-[var(--sidebar-logo-bg)] border border-[var(--sidebar-logo-border)] flex items-center justify-center text-[var(--sidebar-logo-icon)] shrink-0">
                 <RoleIcon className="w-4 h-4" />
@@ -140,7 +170,7 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
             <button
               onClick={logout}
               title="Đăng xuất"
-              className="text-[var(--sidebar-text)] hover:text-[var(--semantic-alert)] p-1.5 rounded-btn hover:bg-[var(--sidebar-hover-bg)] transition-colors cursor-pointer"
+              className="text-[var(--sidebar-text)] hover:text-[var(--semantic-alert)] p-1.5 rounded-btn hover:bg-[var(--sidebar-hover-bg)] transition-colors cursor-pointer shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -148,26 +178,35 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
         </div>
       </aside>
 
-      {/* 2. MAIN CONTENT AREA (Tầng 1: Nền canvas chính) */}
+      {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-canvas)]">
-        {/* Top Header (Tầng 2: Bề mặt header) */}
-        <header className="h-16 bg-[var(--bg-header)] border-b border-[var(--border-subtle)] px-6 flex items-center justify-between shrink-0 shadow-xs">
-          <div className="flex items-center gap-3">
-            <h2 className="font-serif text-lg font-bold text-[var(--text-primary)] tracking-tight">
+        {/* Top Header co giãn linh hoạt trên màn hình nhỏ */}
+        <header className="min-h-14 sm:min-h-16 py-2 bg-[var(--bg-header)] border-b border-[var(--border-subtle)] px-3 sm:px-6 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-btn bg-[var(--bg-surface-warm)] border border-[var(--border-subtle)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer shrink-0"
+              title="Mở danh mục điều hướng"
+              aria-label="Mở menu"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+            <h2 className="font-serif text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight truncate">
               {navItems.find((i) => i.id === activeTab)?.label}
             </h2>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 ml-auto">
             {/* Quick Demo Role Switcher */}
             <div className="flex items-center gap-1 bg-[var(--bg-linen)] p-1 rounded-btn border border-[var(--border-subtle)]">
-              <span className="text-xs font-semibold text-[var(--text-secondary)] pl-2 pr-1 hidden sm:inline">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] pl-2 pr-1 hidden md:inline">
                 Chuyển vai trò:
               </span>
               <button
                 disabled={loading}
                 onClick={() => switchDemoRole('ADMIN')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`text-xs px-2 sm:px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
                   user?.role === 'ADMIN'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -178,7 +217,7 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
               <button
                 disabled={loading}
                 onClick={() => switchDemoRole('WAREHOUSE_KEEPER')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`text-xs px-2 sm:px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
                   user?.role === 'WAREHOUSE_KEEPER'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -189,7 +228,7 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
               <button
                 disabled={loading}
                 onClick={() => switchDemoRole('ACCOUNTANT')}
-                className={`text-xs px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`text-xs px-2 sm:px-2.5 py-1 rounded-btn font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
                   user?.role === 'ACCOUNTANT'
                     ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-xs border border-[var(--border-medium)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -199,19 +238,19 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
               </button>
             </div>
 
-            {/* Nút chuyển đổi Giao diện Tối / Sáng theo yêu cầu */}
+            {/* Nút chuyển đổi Giao diện Tối / Sáng */}
             <button
               onClick={toggleTheme}
-              className="px-2.5 py-1.5 rounded-btn bg-[var(--bg-card)] hover:bg-[var(--bg-surface-hover)] active:bg-[var(--bg-surface-active)] border border-[var(--border-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+              className="px-2.5 py-1.5 rounded-btn bg-[var(--bg-card)] hover:bg-[var(--bg-surface-hover)] active:bg-[var(--bg-surface-active)] border border-[var(--border-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0"
               title={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'}
               aria-label="Đổi giao diện sáng tối"
             >
               {theme === 'light' ? (
-                <Moon className="w-4 h-4 text-[var(--wood-600)] shrink-0" />
+                <Moon className="w-4 h-4 text-[var(--wood-500)] shrink-0" />
               ) : (
                 <Sun className="w-4 h-4 text-[var(--wood-300)] shrink-0" />
               )}
-              <span className="text-xs font-semibold hidden md:inline">
+              <span className="text-xs font-semibold hidden sm:inline whitespace-nowrap">
                 {theme === 'light' ? 'Giao diện tối' : 'Giao diện sáng'}
               </span>
             </button>
@@ -219,8 +258,8 @@ export const Layout = ({ activeTab, onTabChange, children }) => {
         </header>
 
         {/* Scrollable Page Body */}
-        <main className="flex-1 overflow-y-auto p-6 bg-[var(--bg-canvas)]">
-          <div className="max-w-7xl mx-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 bg-[var(--bg-canvas)]">
+          <div className="max-w-7xl mx-auto w-full">{children}</div>
         </main>
       </div>
     </div>

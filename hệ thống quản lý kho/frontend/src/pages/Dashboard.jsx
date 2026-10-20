@@ -50,24 +50,24 @@ export const Dashboard = ({ onNavigate }) => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Phong cách Timber & Grain (Bìa sổ xưởng mộc sang trọng) */}
-      <div className="bg-[var(--wood-900)] border border-[var(--wood-700)] rounded-card p-6 text-[var(--wood-50)] shadow-md relative overflow-hidden">
+      {/* Top Banner */}
+      <div className="bg-[var(--wood-900)] border border-[var(--wood-700)] rounded-card p-4 sm:p-6 text-[var(--wood-50)] shadow-md relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <span className="text-xs font-semibold text-[var(--wood-300)] tracking-wider uppercase">
               Bảng điều khiển trung tâm
             </span>
-            <h2 className="font-serif text-2xl font-bold tracking-tight text-[var(--wood-50)] mt-0.5">
+            <h2 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[var(--wood-50)] mt-0.5">
               Hệ thống quản lý kho thông minh
             </h2>
             <p className="text-[var(--wood-200)] text-xs mt-1 max-w-2xl leading-relaxed">
               Theo dõi tồn kho thời gian thực, giao dịch kho ACID và dự toán tái nhập hàng thông minh bằng Trợ lý AI.
             </p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               onClick={loadData}
-              className="px-3.5 py-2 bg-[var(--wood-800)] hover:bg-[var(--wood-700)] border border-[var(--wood-600)] rounded-btn text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer text-[var(--wood-100)]"
+              className="px-3.5 py-2 bg-[var(--wood-800)] hover:bg-[var(--wood-700)] border border-[var(--wood-700)] rounded-btn text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer text-[var(--wood-50)]"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Làm mới số liệu</span>

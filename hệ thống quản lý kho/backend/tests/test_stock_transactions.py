@@ -451,3 +451,46 @@ def test_notes_without_idempotency_key_are_backward_compatible(client, thukho_he
     )
     assert res.status_code == 201
     assert res.json()["idempotency_key"] is None
+
+
+def test_export_stock_ledger_excel_day_week_month_and_empty(client, thukho_headers):
+    """Kiểm tra xuất file Excel (.xlsx) từ Sổ cái Thẻ kho theo Ngày, Tuần, Tháng và khi rỗng."""
+    import io
+    from openpyxl import load_workbook
+
+    for period in ("day", "week", "month"):
+        res = client.get(
+            f"/api/v1/stock-ledger/export-excel?period={period}",
+            headers=thukho_headers,
+        )
+        assert res.status_code == 200
+        assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in res.headers["content-type"]
+        assert ".xlsx" in res.headers.get("content-disposition", "")
+
+        wb = load_workbook(io.BytesIO(res.content))
+        assert wb.sheetnames == ["Nhập kho", "Xuất kho"]
+
+        for sheet_name in ("Nhập kho", "Xuất kho"):
+            ws = wb[sheet_name]
+            headers_row = [ws.cell(row=4, column=c).value for c in range(1, 8)]
+            assert headers_row == [
+                "Thời gian",
+                "Tên hàng hóa",
+                "Mã chứng từ",
+                "Số lượng",
+                "Tồn sau giao dịch",
+                "Người thực hiện",
+                "Ghi chú",
+            ]
+
+    # Kiểm tra phạm vi ngày quá khứ không có dữ liệu vẫn xuất file 2 sheet rỗng hợp lệ
+    res_empty = client.get(
+        "/api/v1/stock-ledger/export-excel?period=day&target_date=2020-01-01",
+        headers=thukho_headers,
+    )
+    assert res_empty.status_code == 200
+    wb_empty = load_workbook(io.BytesIO(res_empty.content))
+    assert wb_empty.sheetnames == ["Nhập kho", "Xuất kho"]
+    assert wb_empty["Nhập kho"].max_row == 4
+    assert wb_empty["Xuất kho"].max_row == 4
+

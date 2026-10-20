@@ -357,7 +357,7 @@ export const Suppliers = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Số điện thoại</label>
               <input

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   AlertCircle,
+  Calendar,
+  Download,
+  FileSpreadsheet,
   RefreshCw,
   SlidersHorizontal,
   Sparkles,
@@ -14,6 +17,42 @@ import ProductSelect from '../components/ProductSelect';
 import Loader from '../components/Loader';
 import useDelayedLoading from '../hooks/useDelayedLoading';
 
+const getTodayLocalStr = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const formatRangePreview = (period, dateStr) => {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return '';
+
+  const fmt = (dt) =>
+    `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+
+  if (period === 'day') {
+    const cur = new Date(y, m - 1, d);
+    return `Ngày ${fmt(cur)} (00:00 – 23:59)`;
+  }
+  if (period === 'week') {
+    const cur = new Date(y, m - 1, d);
+    const dayOfWeek = cur.getDay(); // 0 (CN) -> 6 (T7)
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(y, m - 1, d + diffToMonday);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    return `Tuần từ ${fmt(monday)} đến ${fmt(sunday)} (Thứ Hai – Chủ Nhật)`;
+  }
+  if (period === 'month') {
+    const firstDay = new Date(y, m - 1, 1);
+    const lastDay = new Date(y, m, 0);
+    return `Tháng ${String(m).padStart(2, '0')}/${y} (${fmt(firstDay)} – ${fmt(lastDay)})`;
+  }
+  return '';
+};
+
 export const StockLedger = ({ defaultProductId }) => {
   const { user } = useAuth();
   const [ledgerEntries, setLedgerEntries] = useState([]);
@@ -22,6 +61,13 @@ export const StockLedger = ({ defaultProductId }) => {
   const showTableLoader = useDelayedLoading(loading);
   const [selectedProductId, setSelectedProductId] = useState(defaultProductId || '');
   const [transactionType, setTransactionType] = useState('');
+
+  // Excel Export Modal
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportPeriod, setExportPeriod] = useState('day');
+  const [exportDate, setExportDate] = useState(getTodayLocalStr);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
 
   // Adjustment Modal
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -34,6 +80,56 @@ export const StockLedger = ({ defaultProductId }) => {
   const [draftSavedTime, setDraftSavedTime] = useState('');
 
   const canAdjust = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_KEEPER';
+
+  const handleOpenExportModal = () => {
+    setExportPeriod('day');
+    setExportDate(getTodayLocalStr());
+    setExportError(null);
+    setIsExportOpen(true);
+  };
+
+  const handleExportExcel = async (e) => {
+    e.preventDefault();
+    setExportError(null);
+    setIsExporting(true);
+    try {
+      const params = {
+        period: exportPeriod,
+        target_date: exportDate || getTodayLocalStr(),
+      };
+      if (selectedProductId) {
+        params.product_id = Number(selectedProductId);
+      }
+
+      const res = await apiClient.stockLedger.exportExcel(params);
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      let filename = `the_kho_${exportPeriod}_${(exportDate || getTodayLocalStr()).replace(/-/g, '')}.xlsx`;
+      const disposition = res.headers?.['content-disposition'];
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/i);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setIsExportOpen(false);
+    } catch (err) {
+      setExportError('Không thể xuất file Excel. Vui lòng kiểm tra lại thời gian chọn hoặc thử lại.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -153,24 +249,35 @@ export const StockLedger = ({ defaultProductId }) => {
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">Nhật ký kiểm toán bất biến theo từng giây, truy vết biến động và số dư tức thời sau mỗi giao dịch</p>
         </div>
 
-        {canAdjust && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleOpenAdjust}
-            className="btn-secondary flex items-center gap-2 text-xs"
+            type="button"
+            onClick={handleOpenExportModal}
+            className="btn-outline flex items-center gap-2 text-xs"
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            <span>Điều chỉnh kiểm kê kho</span>
+            <FileSpreadsheet className="w-4 h-4 text-[var(--semantic-success)]" />
+            <span>Xuất Excel</span>
           </button>
-        )}
+
+          {canAdjust && (
+            <button
+              onClick={handleOpenAdjust}
+              className="btn-secondary flex items-center gap-2 text-xs"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Điều chỉnh kiểm kê kho</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="card-warm p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+      <div className="card-warm p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
           <select
             value={selectedProductId}
             onChange={(e) => setSelectedProductId(e.target.value)}
-            className="input-wood text-xs flex-1 max-w-sm"
+            className="input-wood text-xs flex-1 sm:max-w-sm min-w-0"
           >
             <option value="">Tất cả mặt hàng</option>
             {products.map((p) => (
@@ -183,7 +290,7 @@ export const StockLedger = ({ defaultProductId }) => {
           <select
             value={transactionType}
             onChange={(e) => setTransactionType(e.target.value)}
-            className="input-wood text-xs"
+            className="input-wood text-xs sm:w-auto min-w-0"
           >
             <option value="">Tất cả loại giao dịch</option>
             <option value="IMPORT">Nhập kho (IMPORT)</option>
@@ -194,7 +301,7 @@ export const StockLedger = ({ defaultProductId }) => {
 
         <button
           onClick={fetchLedger}
-          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-linen)] rounded-btn transition-colors cursor-pointer"
+          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-linen)] rounded-btn transition-colors cursor-pointer shrink-0"
           title="Làm mới sổ cái"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -375,6 +482,102 @@ export const StockLedger = ({ defaultProductId }) => {
             >
               {isSubmitting && <Loader variant="inline" />}
               <span>{isSubmitting ? 'Đang cập nhật...' : 'Cập nhật tồn kho'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Xuất Excel Sổ Cái Thẻ Kho */}
+      <Modal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Xuất Excel Sổ cái Thẻ kho (.xlsx)"
+        maxWidth="max-w-md"
+      >
+        {exportError && (
+          <div className="mb-4 p-3 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card flex items-center gap-2 text-xs text-[var(--semantic-alert)] font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{exportError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleExportExcel} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              Chọn phạm vi thời gian
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'day', label: 'Theo ngày' },
+                { id: 'week', label: 'Theo tuần' },
+                { id: 'month', label: 'Theo tháng' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setExportPeriod(opt.id)}
+                  className={`py-2 px-3 rounded-btn text-xs font-medium border transition-colors cursor-pointer ${
+                    exportPeriod === opt.id
+                      ? 'bg-[var(--wood-900)] text-white border-[var(--wood-900)]'
+                      : 'bg-[var(--bg-linen)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              {exportPeriod === 'day'
+                ? 'Chọn ngày xuất'
+                : exportPeriod === 'week'
+                ? 'Chọn một ngày bất kỳ trong tuần cần xuất'
+                : 'Chọn ngày/tháng cần xuất'}
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={exportDate}
+                onChange={(e) => setExportDate(e.target.value)}
+                className="w-full input-wood text-xs font-mono"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="p-3 bg-[var(--bg-linen)] border border-[var(--border-subtle)] rounded-card text-xs space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[var(--wood-500)]" />
+                <span>Phạm vi dữ liệu:</span>
+              </span>
+              <strong className="font-mono text-[var(--text-primary)] text-right">
+                {formatRangePreview(exportPeriod, exportDate)}
+              </strong>
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
+              File <span className="font-mono">.xlsx</span> gồm 2 bảng (sheet): <strong>Nhập kho</strong> và <strong>Xuất kho</strong>.
+              {selectedProductId ? ' (Đang lọc theo mặt hàng đã chọn trên bảng)' : ' (Bao gồm tất cả mặt hàng)'}
+            </p>
+          </div>
+
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-[var(--border-subtle)]">
+            <button
+              type="button"
+              onClick={() => setIsExportOpen(false)}
+              className="btn-outline text-xs"
+            >
+              Đóng
+            </button>
+            <button
+              type="submit"
+              disabled={isExporting}
+              className="btn-primary text-xs flex items-center justify-center gap-2 min-w-[140px]"
+            >
+              {isExporting ? <Loader variant="inline" /> : <Download className="w-4 h-4" />}
+              <span>{isExporting ? 'Đang tạo file...' : 'Tải file .xlsx'}</span>
             </button>
           </div>
         </form>

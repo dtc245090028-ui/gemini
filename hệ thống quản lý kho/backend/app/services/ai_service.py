@@ -7,7 +7,7 @@
 4. Structured Output: Định dạng JSON đồng nhất giữa AI và Fallback.
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 import logging
 from pathlib import Path
@@ -66,16 +66,12 @@ class AIService:
     # =========================================================================
 
     @staticmethod
-    def get_monthly_aggregated_data(
-        db: Session, month: int, year: int
+    def get_period_aggregated_data(
+        db: Session, start_d: date, end_d: date
     ) -> MonthlyReportMetrics:
-        """SQL Pipeline tổng hợp số liệu tháng. Tuyệt đối KHÔNG trả về giá mua."""
-        # Xác định khoảng thời gian đầu tháng - cuối tháng
-        start_date = datetime(year, month, 1, 0, 0, 0)
-        if month == 12:
-            end_date = datetime(year + 1, 1, 1, 0, 0, 0)
-        else:
-            end_date = datetime(year, month + 1, 1, 0, 0, 0)
+        """SQL Pipeline tổng hợp số liệu theo khoảng ngày [start_d, end_d]. Tuyệt đối KHÔNG trả về giá mua."""
+        start_dt = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0)
+        end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
 
         # 1. Tổng số mặt hàng đang quản lý
         total_products = db.query(func.count(Product.id)).scalar() or 0
@@ -88,33 +84,33 @@ class AIService:
             or 0
         )
 
-        # 3. Tổng lượng nhập trong tháng (chỉ lấy tổng quantity của phiếu COMPLETED)
+        # 3. Tổng lượng nhập trong kỳ (chỉ lấy tổng quantity của phiếu COMPLETED)
         total_imports_qty = (
             db.query(func.coalesce(func.sum(ImportNoteDetail.quantity), 0))
             .join(ImportNote, ImportNoteDetail.import_note_id == ImportNote.id)
             .filter(
                 ImportNote.status == "COMPLETED",
-                ImportNote.note_date >= start_date,
-                ImportNote.note_date < end_date,
+                ImportNote.note_date >= start_dt,
+                ImportNote.note_date <= end_dt,
             )
             .scalar()
             or 0
         )
 
-        # 4. Tổng lượng xuất trong tháng (chỉ lấy tổng quantity của phiếu COMPLETED)
+        # 4. Tổng lượng xuất trong kỳ (chỉ lấy tổng quantity của phiếu COMPLETED)
         total_exports_qty = (
             db.query(func.coalesce(func.sum(ExportNoteDetail.quantity), 0))
             .join(ExportNote, ExportNoteDetail.export_note_id == ExportNote.id)
             .filter(
                 ExportNote.status == "COMPLETED",
-                ExportNote.note_date >= start_date,
-                ExportNote.note_date < end_date,
+                ExportNote.note_date >= start_dt,
+                ExportNote.note_date <= end_dt,
             )
             .scalar()
             or 0
         )
 
-        # 5. Top 5 mặt hàng xuất nhiều nhất trong tháng (chỉ lấy ID, Code, Name, Quantity)
+        # 5. Top 5 mặt hàng xuất nhiều nhất trong kỳ (chỉ lấy ID, Code, Name, Quantity)
         top_export_rows = (
             db.query(
                 Product.id,
@@ -126,8 +122,8 @@ class AIService:
             .join(ExportNote, ExportNoteDetail.export_note_id == ExportNote.id)
             .filter(
                 ExportNote.status == "COMPLETED",
-                ExportNote.note_date >= start_date,
-                ExportNote.note_date < end_date,
+                ExportNote.note_date >= start_dt,
+                ExportNote.note_date <= end_dt,
             )
             .group_by(Product.id, Product.code, Product.name)
             .order_by(func.sum(ExportNoteDetail.quantity).desc())
@@ -149,8 +145,8 @@ class AIService:
         active_products = (
             db.query(func.count(func.distinct(StockLedger.product_id)))
             .filter(
-                StockLedger.transaction_date >= start_date,
-                StockLedger.transaction_date < end_date,
+                StockLedger.transaction_date >= start_dt,
+                StockLedger.transaction_date <= end_dt,
             )
             .scalar()
             or 0
@@ -165,32 +161,50 @@ class AIService:
             top_exported_products=top_exported_products,
         )
 
+    @classmethod
+    def get_monthly_aggregated_data(
+        cls, db: Session, month: int, year: int
+    ) -> MonthlyReportMetrics:
+        """SQL Pipeline tổng hợp số liệu tháng. Tuyệt đối KHÔNG trả về giá mua."""
+        start_d, end_d, _, _ = AICacheManager.resolve_period_range(month=month, year=year)
+        return cls.get_period_aggregated_data(db, start_d, end_d)
+
     @staticmethod
     def get_restock_candidates_data(
-        db: Session, lookback_days: int = 30
+        db: Session,
+        lookback_days: int = 30,
+        start_d: Optional[date] = None,
+        end_d: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
         """Lọc danh sách các mặt hàng có nguy cơ thiếu tồn kho hoặc dưới tồn tối thiểu."""
-        cutoff_date = datetime.now() - timedelta(days=lookback_days)
+        if start_d and end_d:
+            start_dt = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0)
+            end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
+            effective_days = max((end_d - start_d).days + 1, 1)
+        else:
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(days=lookback_days)
+            effective_days = max(lookback_days, 1)
 
         # Lấy toàn bộ sản phẩm đang hoạt động
         products = db.query(Product).filter(Product.status != "DISCONTINUED").all()
         candidates: List[Dict[str, Any]] = []
 
         for p in products:
-            # Tính tổng lượng xuất 30 ngày qua
             total_exported = (
                 db.query(func.coalesce(func.sum(ExportNoteDetail.quantity), 0))
                 .join(ExportNote, ExportNoteDetail.export_note_id == ExportNote.id)
                 .filter(
                     ExportNoteDetail.product_id == p.id,
                     ExportNote.status == "COMPLETED",
-                    ExportNote.note_date >= cutoff_date,
+                    ExportNote.note_date >= start_dt,
+                    ExportNote.note_date <= end_dt,
                 )
                 .scalar()
                 or 0
             )
 
-            daily_velocity = float(total_exported) / max(float(lookback_days), 1.0)
+            daily_velocity = float(total_exported) / max(float(effective_days), 1.0)
             days_left = (
                 (p.current_stock / daily_velocity)
                 if daily_velocity > 0
@@ -215,19 +229,29 @@ class AIService:
 
     @staticmethod
     def get_anomalies_candidates_data(
-        db: Session, lookback_days: int = 30
+        db: Session,
+        lookback_days: int = 30,
+        start_d: Optional[date] = None,
+        end_d: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
         """Nhận diện 2 nhóm bất thường: Xuất tăng đột biến (>200%) và Hàng tồn lâu ngày (>30 ngày)."""
-        now = datetime.now()
-        recent_7d_cutoff = now - timedelta(days=7)
-        previous_cutoff = now - timedelta(days=lookback_days)
+        if start_d and end_d:
+            end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
+            previous_cutoff = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0)
+            effective_days = max((end_d - start_d).days + 1, 1)
+            recent_window_days = min(7, max(1, effective_days // 2)) if effective_days > 7 else effective_days
+            recent_7d_cutoff = end_dt - timedelta(days=recent_window_days)
+        else:
+            end_dt = datetime.now()
+            recent_7d_cutoff = end_dt - timedelta(days=7)
+            previous_cutoff = end_dt - timedelta(days=lookback_days)
+            effective_days = max(lookback_days, 1)
 
         products = db.query(Product).filter(Product.status != "DISCONTINUED").all()
         anomalies: List[Dict[str, Any]] = []
 
         for p in products:
             # 1. Kiểm tra xuất tăng đột biến:
-            # Lượng xuất 7 ngày gần nhất
             recent_7d_qty = (
                 db.query(func.coalesce(func.sum(ExportNoteDetail.quantity), 0))
                 .join(ExportNote, ExportNoteDetail.export_note_id == ExportNote.id)
@@ -235,12 +259,12 @@ class AIService:
                     ExportNoteDetail.product_id == p.id,
                     ExportNote.status == "COMPLETED",
                     ExportNote.note_date >= recent_7d_cutoff,
+                    ExportNote.note_date <= end_dt,
                 )
                 .scalar()
                 or 0
             )
 
-            # Lượng xuất trong toàn bộ lookback period (30 ngày)
             total_lookback_qty = (
                 db.query(func.coalesce(func.sum(ExportNoteDetail.quantity), 0))
                 .join(ExportNote, ExportNoteDetail.export_note_id == ExportNote.id)
@@ -248,17 +272,16 @@ class AIService:
                     ExportNoteDetail.product_id == p.id,
                     ExportNote.status == "COMPLETED",
                     ExportNote.note_date >= previous_cutoff,
+                    ExportNote.note_date <= end_dt,
                 )
                 .scalar()
                 or 0
             )
 
-            # Tính mức bình quân tuần của khoảng thời gian trước đó
             earlier_qty = total_lookback_qty - recent_7d_qty
-            earlier_weeks = max((lookback_days - 7) / 7.0, 1.0)
+            earlier_weeks = max((effective_days - 7) / 7.0, 1.0)
             baseline_weekly = earlier_qty / earlier_weeks
 
-            # Nếu 7 ngày qua xuất >= 5 đơn vị và gấp > 2.0 lần (200%) mức bình quân tuần trước
             if recent_7d_qty >= 5 and (baseline_weekly == 0 or (recent_7d_qty >= baseline_weekly * 2.0)):
                 ratio = (recent_7d_qty / baseline_weekly) if baseline_weekly > 0 else 3.0
                 anomalies.append(
@@ -274,9 +297,7 @@ class AIService:
                 )
 
             # 2. Kiểm tra hàng tồn lâu ngày (Dead Stock / Slow Moving):
-            # Tồn kho > 0 nhưng trong 30 ngày qua không có bất kỳ phiếu xuất nào
             if p.current_stock > 0 and total_lookback_qty == 0:
-                # Kiểm tra ngày giao dịch xuất cuối cùng nếu có
                 last_export_date = (
                     db.query(func.max(ExportNote.note_date))
                     .join(ExportNoteDetail, ExportNote.id == ExportNoteDetail.export_note_id)
@@ -287,9 +308,9 @@ class AIService:
                     .scalar()
                 )
                 days_inactive = (
-                    (now - last_export_date).days
+                    (end_dt - last_export_date).days
                     if last_export_date
-                    else lookback_days
+                    else effective_days
                 )
                 anomalies.append(
                     {
@@ -298,7 +319,7 @@ class AIService:
                         "product_name": p.name,
                         "anomaly_type": "DEAD_STOCK",
                         "current_stock": p.current_stock,
-                        "days_inactive": max(days_inactive, lookback_days),
+                        "days_inactive": max(days_inactive, effective_days),
                     }
                 )
 
@@ -357,32 +378,73 @@ class AIService:
         raise RuntimeError("Không có model nào khả dụng")
 
     # =========================================================================
-    # 3. GỌI GEMINI API VỚI HEURISTIC FALLBACK DỰ PHÒNG
+    # 3. GỌI GEMINI API VỚI LƯU TRỮ KHOẢNG NGÀY, DẤU VẾT DỮ LIỆU & FALLBACK
     # =========================================================================
 
     @classmethod
     def generate_monthly_report(
-        cls, db: Session, month: Optional[int] = None, year: Optional[int] = None, force_refresh: bool = False
+        cls,
+        db: Session,
+        month: Optional[int] = None,
+        year: Optional[int] = None,
+        force_refresh: bool = False,
+        period_type: Optional[str] = None,
+        target_date: Optional[date] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> MonthlyReportResponse:
-        """Sinh Báo cáo Nhập-Xuất-Tồn tháng: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
-        now = datetime.now()
-        target_month = month or now.month
-        target_year = year or now.year
-        period_str = f"{target_month:02d}/{target_year}"
-        cache_key = f"{target_year}_{target_month:02d}"
+        """Sinh Báo cáo Nhập-Xuất-Tồn theo khoảng thời gian:
+        - Luôn tính lại số liệu thực tế từ DB.
+        - Kiểm tra bản lưu nhận xét AI theo khoảng ngày + dấu vết dữ liệu (hoặc ngày biến động duy nhất).
+        - Khoảng ngày không có biến động thẻ kho (khi lọc theo ngày/tuần/khoảng ngày) thì dùng ngay mẫu nội bộ không gọi AI.
+        """
+        start_d, end_d, period_str, is_subperiod = AICacheManager.resolve_period_range(
+            period_type=period_type,
+            target_date=target_date,
+            start_date=start_date,
+            end_date=end_date,
+            month=month,
+            year=year,
+        )
 
-        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
+        # 1. Luôn tính toán mới số liệu từ CSDL và lấy dấu vết dữ liệu (fingerprint)
+        metrics = cls.get_period_aggregated_data(db, start_d, end_d)
+        fingerprint, single_active_date = AICacheManager.compute_fingerprint(
+            db, start_d, end_d, include_stock_state=False
+        )
+
+        # 2. Kiểm tra bản lưu nhận xét AI nếu không ép buộc Tạo lại (force_refresh=False)
         if not force_refresh:
-            cached = AICacheManager.get("monthly_report", cache_key)
+            cached = AICacheManager.get_range_commentary(
+                "monthly_report",
+                start_d,
+                end_d,
+                fingerprint,
+                single_active_date=single_active_date,
+            )
             if cached:
-                cached["is_cached"] = True
-                return MonthlyReportResponse(**cached)
+                comm = cached["commentary"]
+                return MonthlyReportResponse(
+                    period=period_str,
+                    is_fallback=False,
+                    provider="gemini",
+                    metrics=metrics,
+                    executive_summary=comm.get("executive_summary", ""),
+                    recommendations=comm.get("recommendations", []),
+                    is_cached=True,
+                    cached_at=cached.get("cached_at"),
+                    start_date=start_d.isoformat(),
+                    end_date=end_d.isoformat(),
+                )
 
-        # 1. SQL tiền xử lý số liệu
-        metrics = cls.get_monthly_aggregated_data(db, target_month, target_year)
-
-        # 2. Kiểm tra nếu chưa cấu hình GEMINI_API_KEY -> Dùng ngay Fallback Engine
-        if not settings.GEMINI_API_KEY:
+        # 3. Nếu chưa có GEMINI_API_KEY hoặc khoảng lọc không có biến động -> Dùng nội dung mẫu ngay, không gọi AI
+        no_activity_in_range = (
+            is_subperiod
+            and fingerprint.get("ledger_count", 0) == 0
+            and metrics.total_imports_qty == 0
+            and metrics.total_exports_qty == 0
+        )
+        if not settings.GEMINI_API_KEY or metrics.total_products == 0 or no_activity_in_range:
             summary, recs = FallbackService.generate_monthly_report_fallback(metrics, period_str)
             return MonthlyReportResponse(
                 period=period_str,
@@ -392,9 +454,12 @@ class AIService:
                 executive_summary=summary,
                 recommendations=recs,
                 is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
             )
 
-        # 3. Cố gắng gọi Gemini API nếu đã có key
+        # 4. Gọi Gemini API và chỉ lưu phần nhận xét của AI kèm dấu vết dữ liệu
         try:
             top_products_text = "\n".join(
                 [f"- {p.product_code}: {p.product_name} (xuất {p.quantity} đơn vị)" for p in metrics.top_exported_products]
@@ -402,7 +467,7 @@ class AIService:
 
             template = cls._read_prompt_template("inventory_report_prompt.txt")
             user_prompt = (
-                f"Kỳ báo cáo: {period_str}\n"
+                f"Kỳ báo cáo: {period_str} ({start_d.isoformat()} đến {end_d.isoformat()})\n"
                 f"- Tổng số mặt hàng quản lý: {metrics.total_products}\n"
                 f"- Số mặt hàng có giao dịch: {metrics.active_products}\n"
                 f"- Tổng lượng nhập kho: {metrics.total_imports_qty}\n"
@@ -416,18 +481,34 @@ class AIService:
             prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
             raw_text = cls._call_gemini_with_models(prompt_content)
             parsed = json.loads(raw_text)
-            response_obj = MonthlyReportResponse(
+            ai_summary = parsed.get("executive_summary", "")
+            ai_recs = parsed.get("recommendations", [])
+
+            cached_at = AICacheManager.set_range_commentary(
+                "monthly_report",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={
+                    "executive_summary": ai_summary,
+                    "recommendations": ai_recs,
+                },
+                is_fallback=False,
+                single_active_date=single_active_date,
+            )
+
+            return MonthlyReportResponse(
                 period=period_str,
                 is_fallback=False,
                 provider="gemini",
                 metrics=metrics,
-                executive_summary=parsed.get("executive_summary", ""),
-                recommendations=parsed.get("recommendations", []),
+                executive_summary=ai_summary,
+                recommendations=ai_recs,
                 is_cached=False,
+                cached_at=cached_at,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
             )
-            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
-            AICacheManager.set("monthly_report", cache_key, response_obj.model_dump())
-            return response_obj
 
         except Exception as e:
             logger.error(
@@ -435,6 +516,14 @@ class AIService:
                 exc_info=True,
             )
             summary, recs = FallbackService.generate_monthly_report_fallback(metrics, period_str)
+            AICacheManager.set_range_commentary(
+                "monthly_report",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={"executive_summary": summary, "recommendations": recs},
+                is_fallback=True,
+            )
             return MonthlyReportResponse(
                 period=period_str,
                 is_fallback=True,
@@ -443,66 +532,48 @@ class AIService:
                 executive_summary=summary,
                 recommendations=recs,
                 is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
             )
 
     @classmethod
     def generate_restock_suggestions(
-        cls, db: Session, lookback_days: int = 30, force_refresh: bool = False
+        cls,
+        db: Session,
+        lookback_days: int = 30,
+        force_refresh: bool = False,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> RestockSuggestionsResponse:
-        """Gợi ý nhập hàng: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
-        cache_key = f"{lookback_days}"
+        """Gợi ý nhập hàng theo khoảng thời gian:
+        - Số liệu tồn kho, tốc độ xuất luôn tính mới từ CSDL.
+        - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
+        """
+        today_d = datetime.now().date()
+        if start_date and end_date:
+            start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
+            effective_days = max((end_d - start_d).days + 1, 1)
+        else:
+            end_d = today_d
+            start_d = end_d - timedelta(days=max(lookback_days - 1, 0))
+            effective_days = lookback_days
 
-        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
-        if not force_refresh:
-            cached = AICacheManager.get("restock_suggestions", cache_key)
-            if cached:
-                cached["is_cached"] = True
-                return RestockSuggestionsResponse(**cached)
-
-        candidates = cls.get_restock_candidates_data(db, lookback_days=lookback_days)
-
-        # Mặc định tạo kết quả chuẩn qua Fallback Engine trước
+        # 1. Luôn tính mới số liệu ứng viên nhập hàng từ DB
+        candidates = cls.get_restock_candidates_data(
+            db, lookback_days=effective_days, start_d=start_d, end_d=end_d
+        )
         fallback_items, fallback_summary = FallbackService.generate_restock_suggestions_fallback(candidates)
+        fingerprint, single_active_date = AICacheManager.compute_fingerprint(
+            db, start_d, end_d, include_stock_state=True
+        )
 
-        if not settings.GEMINI_API_KEY or not candidates:
-            return RestockSuggestionsResponse(
-                lookback_days=lookback_days,
-                is_fallback=True,
-                provider="heuristic_fallback",
-                total_suggested_items=len(fallback_items),
-                items=fallback_items,
-                executive_summary=fallback_summary,
-                is_cached=False,
-            )
-
-        # Cố gắng tối ưu nhận xét qua Gemini API
-        try:
-            template = cls._read_prompt_template("reorder_suggestion_prompt.txt")
-            user_prompt = (
-                f"Danh sách mặt hàng cần xem xét bổ sung (phân tích {lookback_days} ngày qua):\n"
-                f"{json.dumps(candidates, ensure_ascii=False, indent=2)}\n"
-                "Hãy trả về JSON theo schema: "
-                '{"executive_summary": "...", "item_suggestions": [{"product_code": "...", "suggested_quantity": 0, "priority": "HIGH", "reason": "..."}]}'
-            )
-
-            prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
-            raw_text = cls._call_gemini_with_models(prompt_content)
-
-            parsed = json.loads(raw_text)
-            ai_summary = parsed.get("executive_summary", fallback_summary)
-
-            # Cập nhật lý do và số lượng từ AI nếu khớp mã sản phẩm
-            ai_item_map = {
-                it.get("product_code"): it
-                for it in parsed.get("item_suggestions", [])
-                if isinstance(it, dict) and "product_code" in it
-            }
-
-            final_items: List[RestockSuggestionItem] = []
+        def _apply_ai_item_map(ai_item_map: Dict[str, Any]) -> List[RestockSuggestionItem]:
+            merged: List[RestockSuggestionItem] = []
             for item in fallback_items:
                 if item.product_code in ai_item_map:
                     ai_rec = ai_item_map[item.product_code]
-                    final_items.append(
+                    merged.append(
                         RestockSuggestionItem(
                             product_id=item.product_id,
                             product_code=item.product_code,
@@ -517,72 +588,57 @@ class AIService:
                         )
                     )
                 else:
-                    final_items.append(item)
+                    merged.append(item)
+            return merged
 
-            response_obj = RestockSuggestionsResponse(
-                lookback_days=lookback_days,
-                is_fallback=False,
-                provider="gemini",
-                total_suggested_items=len(final_items),
-                items=final_items,
-                executive_summary=ai_summary,
-                is_cached=False,
+        # 2. Kiểm tra bản lưu nhận xét AI nếu không ép buộc Tạo lại
+        if not force_refresh:
+            cached = AICacheManager.get_range_commentary(
+                "restock_suggestions",
+                start_d,
+                end_d,
+                fingerprint,
+                single_active_date=single_active_date,
             )
-            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
-            AICacheManager.set("restock_suggestions", cache_key, response_obj.model_dump())
-            return response_obj
+            if cached:
+                comm = cached["commentary"]
+                merged_items = _apply_ai_item_map(comm.get("ai_item_map", {}))
+                return RestockSuggestionsResponse(
+                    lookback_days=effective_days,
+                    is_fallback=False,
+                    provider="gemini",
+                    total_suggested_items=len(merged_items),
+                    items=merged_items,
+                    executive_summary=comm.get("executive_summary", fallback_summary),
+                    is_cached=True,
+                    cached_at=cached.get("cached_at"),
+                    start_date=start_d.isoformat(),
+                    end_date=end_d.isoformat(),
+                )
 
-        except Exception as e:
-            logger.error(
-                f"Lỗi khi gọi Gemini API cho restock-suggestions: {e}. Dùng Fallback.",
-                exc_info=True,
-            )
+        # 3. Không có biến động cần nhập hoặc thiếu API key -> Dùng mẫu nội bộ, không gọi AI
+        if not settings.GEMINI_API_KEY or not candidates:
             return RestockSuggestionsResponse(
-                lookback_days=lookback_days,
+                lookback_days=effective_days,
                 is_fallback=True,
                 provider="heuristic_fallback",
                 total_suggested_items=len(fallback_items),
                 items=fallback_items,
                 executive_summary=fallback_summary,
                 is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
             )
 
-    @classmethod
-    def generate_anomaly_detection(
-        cls, db: Session, lookback_days: int = 30, force_refresh: bool = False
-    ) -> AnomalyDetectionResponse:
-        """Tóm tắt biến động bất thường: Có Cache trong ngày, ưu tiên Gemini LLM, tự động fallback nếu offline."""
-        cache_key = f"{lookback_days}"
-
-        # 0. Kiểm tra Cache trong ngày nếu không ép buộc làm mới
-        if not force_refresh:
-            cached = AICacheManager.get("anomaly_detection", cache_key)
-            if cached:
-                cached["is_cached"] = True
-                return AnomalyDetectionResponse(**cached)
-
-        candidates = cls.get_anomalies_candidates_data(db, lookback_days=lookback_days)
-
-        fallback_anomalies, fallback_summary = FallbackService.generate_anomaly_detection_fallback(candidates)
-
-        if not settings.GEMINI_API_KEY or not candidates:
-            return AnomalyDetectionResponse(
-                lookback_days=lookback_days,
-                is_fallback=True,
-                provider="heuristic_fallback",
-                total_anomalies=len(fallback_anomalies),
-                anomalies=fallback_anomalies,
-                executive_summary=fallback_summary,
-                is_cached=False,
-            )
-
+        # 4. Gọi Gemini API và chỉ lưu phần nhận xét của AI
         try:
-            template = cls._read_prompt_template("anomaly_detection_prompt.txt")
+            template = cls._read_prompt_template("reorder_suggestion_prompt.txt")
             user_prompt = (
-                f"Danh sách bất thường phát hiện được ({lookback_days} ngày qua):\n"
+                f"Danh sách mặt hàng cần xem xét bổ sung (phân tích {effective_days} ngày từ {start_d.isoformat()} đến {end_d.isoformat()}):\n"
                 f"{json.dumps(candidates, ensure_ascii=False, indent=2)}\n"
-                "Hãy phân tích và trả về JSON theo schema: "
-                '{"executive_summary": "...", "anomaly_actions": [{"product_code": "...", "anomaly_type": "SURGE_EXPORT", "analysis": "...", "suggested_action": "..."}]}'
+                "Hãy trả về JSON theo schema: "
+                '{"executive_summary": "...", "item_suggestions": [{"product_code": "...", "suggested_quantity": 0, "priority": "HIGH", "reason": "..."}]}'
             )
 
             prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
@@ -590,18 +646,102 @@ class AIService:
 
             parsed = json.loads(raw_text)
             ai_summary = parsed.get("executive_summary", fallback_summary)
-
-            ai_action_map = {
+            ai_item_map = {
                 it.get("product_code"): it
-                for it in parsed.get("anomaly_actions", [])
+                for it in parsed.get("item_suggestions", [])
                 if isinstance(it, dict) and "product_code" in it
             }
+            final_items = _apply_ai_item_map(ai_item_map)
 
-            final_anomalies: List[AnomalyItem] = []
+            cached_at = AICacheManager.set_range_commentary(
+                "restock_suggestions",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={
+                    "executive_summary": ai_summary,
+                    "ai_item_map": ai_item_map,
+                },
+                is_fallback=False,
+                single_active_date=single_active_date,
+            )
+
+            return RestockSuggestionsResponse(
+                lookback_days=effective_days,
+                is_fallback=False,
+                provider="gemini",
+                total_suggested_items=len(final_items),
+                items=final_items,
+                executive_summary=ai_summary,
+                is_cached=False,
+                cached_at=cached_at,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Lỗi khi gọi Gemini API cho restock-suggestions: {e}. Dùng Fallback.",
+                exc_info=True,
+            )
+            AICacheManager.set_range_commentary(
+                "restock_suggestions",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={"executive_summary": fallback_summary, "ai_item_map": {}},
+                is_fallback=True,
+            )
+            return RestockSuggestionsResponse(
+                lookback_days=effective_days,
+                is_fallback=True,
+                provider="heuristic_fallback",
+                total_suggested_items=len(fallback_items),
+                items=fallback_items,
+                executive_summary=fallback_summary,
+                is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
+            )
+
+    @classmethod
+    def generate_anomaly_detection(
+        cls,
+        db: Session,
+        lookback_days: int = 30,
+        force_refresh: bool = False,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> AnomalyDetectionResponse:
+        """Tóm tắt biến động bất thường theo khoảng thời gian:
+        - Số liệu bất thường luôn tính mới từ CSDL.
+        - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
+        """
+        today_d = datetime.now().date()
+        if start_date and end_date:
+            start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
+            effective_days = max((end_d - start_d).days + 1, 1)
+        else:
+            end_d = today_d
+            start_d = end_d - timedelta(days=max(lookback_days - 1, 0))
+            effective_days = lookback_days
+
+        # 1. Luôn tính mới danh sách bất thường từ DB
+        candidates = cls.get_anomalies_candidates_data(
+            db, lookback_days=effective_days, start_d=start_d, end_d=end_d
+        )
+        fallback_anomalies, fallback_summary = FallbackService.generate_anomaly_detection_fallback(candidates)
+        fingerprint, single_active_date = AICacheManager.compute_fingerprint(
+            db, start_d, end_d, include_stock_state=True
+        )
+
+        def _apply_ai_action_map(ai_action_map: Dict[str, Any]) -> List[AnomalyItem]:
+            merged: List[AnomalyItem] = []
             for item in fallback_anomalies:
                 if item.product_code in ai_action_map:
                     ai_act = ai_action_map[item.product_code]
-                    final_anomalies.append(
+                    merged.append(
                         AnomalyItem(
                             product_id=item.product_id,
                             product_code=item.product_code,
@@ -613,34 +753,121 @@ class AIService:
                         )
                     )
                 else:
-                    final_anomalies.append(item)
+                    merged.append(item)
+            return merged
 
-            response_obj = AnomalyDetectionResponse(
-                lookback_days=lookback_days,
-                is_fallback=False,
-                provider="gemini",
-                total_anomalies=len(final_anomalies),
-                anomalies=final_anomalies,
-                executive_summary=ai_summary,
-                is_cached=False,
+        # 2. Kiểm tra bản lưu nhận xét AI nếu không ép buộc Tạo lại
+        if not force_refresh:
+            cached = AICacheManager.get_range_commentary(
+                "anomaly_detection",
+                start_d,
+                end_d,
+                fingerprint,
+                single_active_date=single_active_date,
             )
-            # Lưu vào cache trong ngày để các lần xem tiếp theo không tốn quota
-            AICacheManager.set("anomaly_detection", cache_key, response_obj.model_dump())
-            return response_obj
+            if cached:
+                comm = cached["commentary"]
+                merged_anomalies = _apply_ai_action_map(comm.get("ai_action_map", {}))
+                return AnomalyDetectionResponse(
+                    lookback_days=effective_days,
+                    is_fallback=False,
+                    provider="gemini",
+                    total_anomalies=len(merged_anomalies),
+                    anomalies=merged_anomalies,
+                    executive_summary=comm.get("executive_summary", fallback_summary),
+                    is_cached=True,
+                    cached_at=cached.get("cached_at"),
+                    start_date=start_d.isoformat(),
+                    end_date=end_d.isoformat(),
+                )
 
-        except Exception as e:
-            logger.error(
-                f"Lỗi khi gọi Gemini API cho anomalies: {e}. Dùng Fallback.",
-                exc_info=True,
-            )
+        # 3. Không có bất thường hoặc thiếu API key -> Dùng mẫu nội bộ, không gọi AI
+        if not settings.GEMINI_API_KEY or not candidates:
             return AnomalyDetectionResponse(
-                lookback_days=lookback_days,
+                lookback_days=effective_days,
                 is_fallback=True,
                 provider="heuristic_fallback",
                 total_anomalies=len(fallback_anomalies),
                 anomalies=fallback_anomalies,
                 executive_summary=fallback_summary,
                 is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
+            )
+
+        # 4. Gọi Gemini API và chỉ lưu phần nhận xét của AI
+        try:
+            template = cls._read_prompt_template("anomaly_detection_prompt.txt")
+            user_prompt = (
+                f"Danh sách bất thường phát hiện được ({effective_days} ngày từ {start_d.isoformat()} đến {end_d.isoformat()}):\n"
+                f"{json.dumps(candidates, ensure_ascii=False, indent=2)}\n"
+                "Hãy phân tích và trả về JSON theo schema: "
+                '{"executive_summary": "...", "anomaly_actions": [{"product_code": "...", "anomaly_type": "SURGE_EXPORT", "analysis": "...", "suggested_action": "..."}]}'
+            )
+
+            prompt_content = f"{template}\n\nUser Input:\n{user_prompt}" if template else user_prompt
+            raw_text = cls._call_gemini_with_models(prompt_content)
+
+            parsed = json.loads(raw_text)
+            ai_summary = parsed.get("executive_summary", fallback_summary)
+            ai_action_map = {
+                it.get("product_code"): it
+                for it in parsed.get("anomaly_actions", [])
+                if isinstance(it, dict) and "product_code" in it
+            }
+            final_anomalies = _apply_ai_action_map(ai_action_map)
+
+            cached_at = AICacheManager.set_range_commentary(
+                "anomaly_detection",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={
+                    "executive_summary": ai_summary,
+                    "ai_action_map": ai_action_map,
+                },
+                is_fallback=False,
+                single_active_date=single_active_date,
+            )
+
+            return AnomalyDetectionResponse(
+                lookback_days=effective_days,
+                is_fallback=False,
+                provider="gemini",
+                total_anomalies=len(final_anomalies),
+                anomalies=final_anomalies,
+                executive_summary=ai_summary,
+                is_cached=False,
+                cached_at=cached_at,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Lỗi khi gọi Gemini API cho anomalies: {e}. Dùng Fallback.",
+                exc_info=True,
+            )
+            AICacheManager.set_range_commentary(
+                "anomaly_detection",
+                start_d,
+                end_d,
+                fingerprint,
+                commentary={"executive_summary": fallback_summary, "ai_action_map": {}},
+                is_fallback=True,
+            )
+            return AnomalyDetectionResponse(
+                lookback_days=effective_days,
+                is_fallback=True,
+                provider="heuristic_fallback",
+                total_anomalies=len(fallback_anomalies),
+                anomalies=fallback_anomalies,
+                executive_summary=fallback_summary,
+                is_cached=False,
+                cached_at=None,
+                start_date=start_d.isoformat(),
+                end_date=end_d.isoformat(),
             )
 
     @classmethod

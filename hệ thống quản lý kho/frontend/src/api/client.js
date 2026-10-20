@@ -20,11 +20,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: Xử lý lỗi 401 tự động
+// Response interceptor: Xử lý lỗi 401 tự động và xóa cache phiên cũ
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      invalidateCache();
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.dispatchEvent(new Event('auth-logout'));
@@ -82,6 +83,7 @@ const getCacheKey = (url, params) => {
 export const invalidateCache = (pattern) => {
   if (!pattern) {
     cache.clear();
+    inFlightRequests.clear();
     return;
   }
   for (const key of cache.keys()) {
@@ -246,6 +248,12 @@ export const apiClient = {
   stockLedger: {
     getAll: (params) => api.get('/stock-ledger/', { params }),
     adjust: (data) => api.post('/stock-ledger/adjust', data),
+    exportExcel: (params) =>
+      api.get('/stock-ledger/export-excel', {
+        params,
+        responseType: 'blob',
+        skipCache: true,
+      }),
   },
 
   // 8. Báo cáo Nhập - Xuất - Tồn
@@ -258,12 +266,18 @@ export const apiClient = {
 
   // 9. Trợ lý AI
   ai: {
-    getMonthlyReport: (month, year, forceRefresh = false) =>
-      api.get('/ai/monthly-report', { params: { month, year, force_refresh: forceRefresh } }),
-    getRestockSuggestions: (lookbackDays = 30, forceRefresh = false) =>
-      api.get('/ai/restock-suggestions', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
-    getAnomalies: (lookbackDays = 30, forceRefresh = false) =>
-      api.get('/ai/anomalies', { params: { lookback_days: lookbackDays, force_refresh: forceRefresh } }),
+    getMonthlyReport: (month, year, forceRefresh = false, extraParams = {}) =>
+      api.get('/ai/monthly-report', {
+        params: { month, year, force_refresh: forceRefresh, ...extraParams },
+      }),
+    getRestockSuggestions: (lookbackDays = 30, forceRefresh = false, extraParams = {}) =>
+      api.get('/ai/restock-suggestions', {
+        params: { lookback_days: lookbackDays, force_refresh: forceRefresh, ...extraParams },
+      }),
+    getAnomalies: (lookbackDays = 30, forceRefresh = false, extraParams = {}) =>
+      api.get('/ai/anomalies', {
+        params: { lookback_days: lookbackDays, force_refresh: forceRefresh, ...extraParams },
+      }),
     generateOrder: (forceRefresh = false) =>
       api.post('/ai/generate-order', null, { params: { force_refresh: forceRefresh } }),
     ask: (question, month, year, includeSmartKho = false) =>

@@ -69,22 +69,36 @@ const renderFormattedAnswer = (text) => {
   });
 };
 
+const getTodayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const AIAssistant = ({ onNavigateToImport }) => {
   const [activeSubTab, setActiveSubTab] = useState('monthly'); // 'monthly' | 'restock' | 'anomalies'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Data Báo cáo tháng
+  // 1. Data Báo cáo Nhập - Xuất - Tồn theo kỳ / khoảng ngày
   const [monthlyData, setMonthlyData] = useState(null);
   const now = new Date();
+  const [periodType, setPeriodType] = useState('month'); // 'month' | 'week' | 'day' | 'custom'
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const [targetDate, setTargetDate] = useState(getTodayStr);
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    return `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [customEndDate, setCustomEndDate] = useState(getTodayStr);
 
   // 2. Data Gợi ý nhập hàng
   const [restockData, setRestockData] = useState(null);
+  const [restockDays, setRestockDays] = useState(30);
 
   // 3. Data Biến động bất thường
   const [anomalyData, setAnomalyData] = useState(null);
+  const [anomalyDays, setAnomalyDays] = useState(30);
 
   // 4. Interactive Q&A State
   const [questionInput, setQuestionInput] = useState('');
@@ -119,12 +133,19 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Fetch Báo cáo tháng
+  // Fetch Báo cáo kỳ / khoảng ngày
   const handleFetchMonthlyReport = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getMonthlyReport(month, year, forceRefresh);
+      const extra = { period_type: periodType };
+      if (periodType === 'day' || periodType === 'week') {
+        extra.target_date = targetDate;
+      } else if (periodType === 'custom') {
+        extra.start_date = customStartDate;
+        extra.end_date = customEndDate;
+      }
+      const res = await apiClient.ai.getMonthlyReport(month, year, forceRefresh, extra);
       setMonthlyData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể sinh báo cáo AI');
@@ -134,11 +155,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   };
 
   // Fetch Gợi ý nhập hàng
-  const handleFetchRestock = async (forceRefresh = false) => {
+  const handleFetchRestock = async (forceRefresh = false, customLookback = restockDays) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getRestockSuggestions(30, forceRefresh);
+      const res = await apiClient.ai.getRestockSuggestions(customLookback, forceRefresh);
       setRestockData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể lấy gợi ý nhập hàng');
@@ -148,11 +169,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   };
 
   // Fetch Bất thường
-  const handleFetchAnomalies = async (forceRefresh = false) => {
+  const handleFetchAnomalies = async (forceRefresh = false, customLookback = anomalyDays) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.ai.getAnomalies(30, forceRefresh);
+      const res = await apiClient.ai.getAnomalies(customLookback, forceRefresh);
       setAnomalyData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Không thể quét bất thường');
@@ -161,7 +182,7 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     }
   };
 
-  // Tự động tải dữ liệu ban đầu cho tab đang chọn (dùng cache nếu có)
+  // Tự động tải dữ liệu ban đầu cho tab đang chọn (dùng bản lưu nếu có)
   useEffect(() => {
     if (activeSubTab === 'monthly' && !monthlyData) handleFetchMonthlyReport(false);
     if (activeSubTab === 'restock' && !restockData) handleFetchRestock(false);
@@ -171,24 +192,24 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner AI */}
-      <div className="card-wood p-6 text-[var(--wood-light)] shadow-card relative overflow-hidden border border-[var(--border-subtle)]">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-white/10 text-[var(--wood-muted)] text-xs font-medium border border-white/10 mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-[var(--semantic-ai)]" />
-              <span>Google Gemini & Heuristic Fallback Engine</span>
+      <div className="bg-[var(--wood-900)] rounded-card p-4 sm:p-6 text-[var(--wood-light)] shadow-md relative overflow-hidden border border-[var(--wood-700)]">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="max-w-2xl min-w-0">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-white/10 text-[var(--wood-muted)] text-xs font-medium border border-white/15 mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--wood-300)] shrink-0" />
+              <span className="truncate">Google Gemini & Heuristic Fallback Engine</span>
             </div>
-            <h2 className="text-2xl font-bold font-serif tracking-tight text-[var(--wood-light)]">Trung tâm trợ lý kho thông minh</h2>
+            <h2 className="text-xl sm:text-2xl font-bold font-serif tracking-tight text-[var(--wood-light)]">Trung tâm trợ lý kho thông minh</h2>
             <p className="text-[var(--wood-muted)] text-xs mt-1 leading-relaxed font-sans">
               Giải quyết 3 bài toán lớn của Đề tài 07: Tự động tổng hợp báo cáo tháng, gợi ý bổ sung hàng theo tốc độ tiêu thụ thực tế và nhận diện các rủi ro kho bãi bất thường.
             </p>
           </div>
 
           {/* Sub Navigation Buttons */}
-          <div className="flex flex-wrap md:flex-nowrap gap-2 bg-black/20 p-1.5 rounded-btn border border-white/10 backdrop-blur-md">
+          <div className="flex flex-wrap gap-1.5 bg-black/25 p-1.5 rounded-btn border border-white/10 backdrop-blur-md self-start lg:self-auto shrink-0">
             <button
               onClick={() => setActiveSubTab('monthly')}
-              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeSubTab === 'monthly'
                   ? 'bg-[var(--wood-accent)] text-white shadow-xs'
                   : 'text-[var(--wood-muted)] hover:text-white hover:bg-white/10'
@@ -198,7 +219,7 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </button>
             <button
               onClick={() => setActiveSubTab('restock')}
-              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeSubTab === 'restock'
                   ? 'bg-[var(--wood-accent)] text-white shadow-xs'
                   : 'text-[var(--wood-muted)] hover:text-white hover:bg-white/10'
@@ -208,7 +229,7 @@ export const AIAssistant = ({ onNavigateToImport }) => {
             </button>
             <button
               onClick={() => setActiveSubTab('anomalies')}
-              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-btn text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeSubTab === 'anomalies'
                   ? 'bg-[var(--wood-accent)] text-white shadow-xs'
                   : 'text-[var(--wood-muted)] hover:text-white hover:bg-white/10'
@@ -221,65 +242,115 @@ export const AIAssistant = ({ onNavigateToImport }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-[var(--semantic-alert)]/10 border border-[var(--semantic-alert)]/30 rounded-card flex items-center gap-2.5 text-xs text-[var(--semantic-alert)] font-medium">
+        <div className="p-4 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] rounded-card flex items-center gap-2.5 text-xs text-[var(--semantic-alert)] font-medium">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* ==================================================================== */}
-      {/* PHÂN HỆ 1: BÁO CÁO THÁNG */}
+      {/* PHÂN HỆ 1: BÁO CÁO THÁNG / KHOẢNG THỜI GIAN */}
       {/* ==================================================================== */}
       {activeSubTab === 'monthly' && (
         <div className="space-y-6">
           {/* Controls Bar */}
-          <div className="card-warm p-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-[var(--wood-accent)]" />
-              <span className="text-xs font-semibold text-[var(--text-secondary)]">Chọn kỳ báo cáo:</span>
+          <div className="card-warm p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Calendar className="w-4 h-4 text-[var(--wood-accent)] shrink-0" />
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Mốc phân tích:</span>
               <select
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="input-wood text-xs"
+                value={periodType}
+                onChange={(e) => setPeriodType(e.target.value)}
+                className="input-wood text-xs w-auto"
               >
-                {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    Tháng {i + 1}
-                  </option>
-                ))}
+                <option value="month">Theo tháng</option>
+                <option value="week">Theo tuần</option>
+                <option value="day">Theo ngày</option>
+                <option value="custom">Khoảng ngày</option>
               </select>
-              <select
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="input-wood text-xs"
-              >
-                {[2024, 2025, 2026, 2027].map((y) => (
-                  <option key={y} value={y}>
-                    Năm {y}
-                  </option>
-                ))}
-              </select>
+
+              {periodType === 'month' && (
+                <>
+                  <select
+                    value={month}
+                    onChange={(e) => setMonth(Number(e.target.value))}
+                    className="input-wood text-xs w-auto"
+                  >
+                    {[...Array(12)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        Tháng {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    className="input-wood text-xs w-auto"
+                  >
+                    {[2024, 2025, 2026, 2027].map((y) => (
+                      <option key={y} value={y}>
+                        Năm {y}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {(periodType === 'day' || periodType === 'week') && (
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  className="input-wood text-xs font-mono w-auto"
+                />
+              )}
+
+              {periodType === 'custom' && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="input-wood text-xs font-mono w-auto"
+                  />
+                  <span className="text-xs text-[var(--text-muted)]">→</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="input-wood text-xs font-mono w-auto"
+                  />
+                </div>
+              )}
             </div>
 
-            <button
-              onClick={() => handleFetchMonthlyReport(true)}
-              disabled={loading}
-              className="btn-ai text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[200px]"
-            >
-              {loading ? (
-                <Loader variant="inline" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              <span>{loading ? 'AI đang phân tích...' : 'Yêu cầu AI phân tích kỳ này'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleFetchMonthlyReport(false)}
+                disabled={loading}
+                className="btn-ai text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer flex-1 sm:flex-initial"
+              >
+                {loading ? <Loader variant="inline" /> : <Sparkles className="w-4 h-4" />}
+                <span>{loading ? 'Đang tải...' : 'Xem / Phân tích kỳ này'}</span>
+              </button>
+
+              <button
+                onClick={() => handleFetchMonthlyReport(true)}
+                disabled={loading}
+                className="btn-outline text-xs flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shrink-0"
+                title="Bỏ qua bản lưu và yêu cầu AI phân tích lại từ đầu"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Tạo lại</span>
+              </button>
+            </div>
           </div>
 
           {loading && !monthlyData && (
             <div className="card-warm p-8">
               <Loader
                 variant="page"
-                message="Trợ lý AI đang phân tích dữ liệu nhập - xuất - tồn và lập báo cáo tháng..."
+                message="Trợ lý AI đang phân tích dữ liệu nhập - xuất - tồn và lập báo cáo..."
                 isAi={true}
               />
             </div>
@@ -293,16 +364,20 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                   <span className="font-semibold text-[var(--text-secondary)]">Động cơ tính toán:</span>
                   <Badge variant={monthlyData.is_fallback ? 'amber' : 'forest'}>
                     {monthlyData.is_fallback
-                      ? 'Heuristic Fallback Engine (Offline Safe < 50ms)'
+                      ? 'Heuristic Fallback Engine (Dự phòng / Không biến động)'
                       : 'Google Gemini 3.5 Flash-Lite (Online LLM)'}
                   </Badge>
                   {monthlyData.is_cached && (
                     <Badge variant="wood">
-                      Đã lưu đệm trong ngày (0 Quota)
+                      <Clock className="w-3 h-3 mr-1 inline-block" />
+                      Đã lưu lúc {monthlyData.cached_at || 'hôm nay'}
                     </Badge>
                   )}
                 </div>
-                <span className="text-[var(--text-muted)] font-mono">Kỳ: {monthlyData.period}</span>
+                <span className="text-[var(--text-muted)] font-mono">
+                  Kỳ: {monthlyData.period}
+                  {monthlyData.start_date && monthlyData.end_date ? ` (${monthlyData.start_date} → ${monthlyData.end_date})` : ''}
+                </span>
               </div>
 
               {/* Metrics Cards */}
@@ -544,25 +619,46 @@ export const AIAssistant = ({ onNavigateToImport }) => {
       {/* ==================================================================== */}
       {activeSubTab === 'restock' && (
         <div className="space-y-6">
-          <div className="card-warm p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[var(--wood-accent)]" />
+          <div className="card-warm p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <TrendingUp className="w-4 h-4 text-[var(--wood-accent)] shrink-0" />
               <span className="text-xs font-semibold text-[var(--text-secondary)]">
-                Thuật toán phân tích dựa trên: Tồn kho hiện có, Tồn an toàn và Vận tốc xuất 30 ngày qua
+                Tồn hiện có, Tồn an toàn &amp; Vận tốc xuất trong:
               </span>
+              <select
+                value={restockDays}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setRestockDays(val);
+                  handleFetchRestock(false, val);
+                }}
+                className="input-warm py-1.5 px-2.5 text-xs w-auto min-w-[120px] font-medium"
+              >
+                <option value={7}>7 ngày qua</option>
+                <option value={14}>14 ngày qua</option>
+                <option value={30}>30 ngày qua</option>
+                <option value={60}>60 ngày qua</option>
+              </select>
             </div>
-            <button
-              onClick={() => handleFetchRestock(true)}
-              disabled={loading}
-              className="btn-secondary text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[140px]"
-            >
-              {loading ? (
-                <Loader variant="inline" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              <span>{loading ? 'Đang tính...' : 'Tính toán lại'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => handleFetchRestock(false)}
+                disabled={loading}
+                className="btn-primary text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer flex-1 sm:flex-initial shrink-0"
+              >
+                {loading ? <Loader variant="inline" /> : <Sparkles className="w-4 h-4" />}
+                <span>{loading ? 'Đang tải...' : 'Xem gợi ý'}</span>
+              </button>
+              <button
+                onClick={() => handleFetchRestock(true)}
+                disabled={loading}
+                title="Bỏ qua bản lưu và yêu cầu AI phân tích lại"
+                className="btn-secondary text-xs flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shrink-0"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Tạo lại</span>
+              </button>
+            </div>
           </div>
 
           {loading && !restockData && (
@@ -588,11 +684,16 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                   </Badge>
                   {restockData.is_cached && (
                     <Badge variant="wood">
-                      Đã lưu đệm trong ngày (0 Quota)
+                      {restockData.cached_at
+                        ? `Đã lưu lúc ${restockData.cached_at}`
+                        : 'Đã lưu theo khoảng dữ liệu'}
                     </Badge>
                   )}
                 </div>
-                <span className="text-[var(--text-muted)] font-mono">Phạm vi: {restockData.lookback_days || 30} ngày qua</span>
+                <span className="text-[var(--text-muted)] font-mono">
+                  Phạm vi: {restockData.lookback_days || 30} ngày qua
+                  {restockData.start_date && restockData.end_date ? ` (${restockData.start_date} → ${restockData.end_date})` : ''}
+                </span>
               </div>
 
               {/* Executive Summary */}
@@ -668,25 +769,46 @@ export const AIAssistant = ({ onNavigateToImport }) => {
       {/* ==================================================================== */}
       {activeSubTab === 'anomalies' && (
         <div className="space-y-6">
-          <div className="card-warm p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-[var(--semantic-alert)]" />
+          <div className="card-warm p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-[var(--semantic-alert)] shrink-0" />
               <span className="text-xs font-semibold text-[var(--text-secondary)]">
-                Thuật toán quét 2 biến động rủi ro chính: Xuất tăng vọt (&gt;200%) và Hàng tồn kho chết (&gt;30 ngày)
+                Quét xuất tăng vọt (&gt;200%) &amp; Hàng tồn kho chết trong:
               </span>
+              <select
+                value={anomalyDays}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setAnomalyDays(val);
+                  handleFetchAnomalies(false, val);
+                }}
+                className="input-warm py-1.5 px-2.5 text-xs w-auto min-w-[120px] font-medium"
+              >
+                <option value={7}>7 ngày qua</option>
+                <option value={14}>14 ngày qua</option>
+                <option value={30}>30 ngày qua</option>
+                <option value={60}>60 ngày qua</option>
+              </select>
             </div>
-            <button
-              onClick={() => handleFetchAnomalies(true)}
-              disabled={loading}
-              className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert)]/40 hover:bg-[var(--semantic-alert)]/10 text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-w-[140px]"
-            >
-              {loading ? (
-                <Loader variant="inline" />
-              ) : (
-                <Zap className="w-4 h-4" />
-              )}
-              <span>{loading ? 'Đang quét...' : 'Quét lại rủi ro'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => handleFetchAnomalies(false)}
+                disabled={loading}
+                className="btn-primary text-xs flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer flex-1 sm:flex-initial shrink-0"
+              >
+                {loading ? <Loader variant="inline" /> : <Zap className="w-4 h-4" />}
+                <span>{loading ? 'Đang tải...' : 'Xem cảnh báo'}</span>
+              </button>
+              <button
+                onClick={() => handleFetchAnomalies(true)}
+                disabled={loading}
+                title="Bỏ qua bản lưu và quét lại bằng AI"
+                className="btn-outline text-[var(--semantic-alert)] border-[var(--semantic-alert-border)] hover:bg-[var(--semantic-alert-bg)] text-xs flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shrink-0"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Tạo lại</span>
+              </button>
+            </div>
           </div>
 
           {loading && !anomalyData && (
@@ -712,21 +834,26 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                   </Badge>
                   {anomalyData.is_cached && (
                     <Badge variant="wood">
-                      Đã lưu đệm trong ngày (0 Quota)
+                      {anomalyData.cached_at
+                        ? `Đã lưu lúc ${anomalyData.cached_at}`
+                        : 'Đã lưu theo khoảng dữ liệu'}
                     </Badge>
                   )}
                 </div>
-                <span className="text-[var(--text-muted)] font-mono">Phạm vi: {anomalyData.lookback_days || 30} ngày qua</span>
+                <span className="text-[var(--text-muted)] font-mono">
+                  Phạm vi: {anomalyData.lookback_days || 30} ngày qua
+                  {anomalyData.start_date && anomalyData.end_date ? ` (${anomalyData.start_date} → ${anomalyData.end_date})` : ''}
+                </span>
               </div>
 
-              <div className="p-4 rounded-card border border-[var(--semantic-alert)]/30 bg-[var(--semantic-alert)]/10 text-xs text-[var(--semantic-alert)] leading-relaxed font-medium flex items-center gap-3">
+              <div className="p-4 rounded-card border border-[var(--semantic-alert-border)] bg-[var(--semantic-alert-bg)] text-xs text-[var(--semantic-alert)] leading-relaxed font-medium flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <span>{anomalyData.executive_summary}</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {anomalyData.anomalies.length === 0 ? (
-                  <div className="col-span-2 card-warm p-12 text-center text-[var(--text-muted)] text-xs">
+                  <div className="md:col-span-2 card-warm p-12 text-center text-[var(--text-muted)] text-xs">
                     Kho vận đang vận hành ổn định! Không ghi nhận đột biến hay hàng ứ đọng bất thường.
                   </div>
                 ) : (

@@ -9,8 +9,9 @@
     border-color: var(--border-subtle);
   }
 
-  body {
+  html, body {
     margin: 0;
+    overflow-x: hidden;
     font-family: var(--font-sans);
     background-color: var(--bg-canvas);
     color: var(--text-primary);
@@ -22,8 +23,7 @@
 
   h1, h2, h3, h4, h5, h6, .font-serif {
     font-family: var(--font-serif);
-    letter-spacing: -0.015em;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.01em;
   }
 
   code, kbd, samp, pre, .font-mono {
@@ -160,7 +160,7 @@
     outline: none;
     background-color: var(--bg-surface);
     border-color: var(--wood-500);
-    box-shadow: 0 0 0 3px rgba(243, 178, 79, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
   }
   .input-wood::placeholder {
     color: var(--text-muted);

@@ -27,13 +27,16 @@ class MonthlyReportMetrics(BaseModel):
 
 
 class MonthlyReportResponse(BaseModel):
-    period: str = Field(..., description="Kỳ báo cáo định dạng MM/YYYY")
+    period: str = Field(..., description="Kỳ báo cáo định dạng MM/YYYY hoặc khoảng ngày")
     is_fallback: bool = Field(..., description="True nếu báo cáo được sinh bởi Heuristic Fallback")
     provider: str = Field(..., description="gemini | heuristic_fallback")
     metrics: MonthlyReportMetrics
     executive_summary: str = Field(..., description="Tóm tắt nhận xét điều hành từ AI hoặc Fallback")
     recommendations: List[str] = Field(default_factory=list, description="Các khuyến nghị quản lý kho")
-    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bản lưu hợp lệ")
+    cached_at: Optional[str] = Field(default=None, description="Thời điểm lưu bản phân tích AI")
+    start_date: Optional[str] = Field(default=None, description="Ngày bắt đầu khoảng phân tích (YYYY-MM-DD)")
+    end_date: Optional[str] = Field(default=None, description="Ngày kết thúc khoảng phân tích (YYYY-MM-DD)")
 
 
 # ==========================================
@@ -62,7 +65,10 @@ class RestockSuggestionsResponse(BaseModel):
     total_suggested_items: int = Field(..., description="Tổng số mặt hàng được gợi ý nhập")
     items: List[RestockSuggestionItem] = Field(default_factory=list)
     executive_summary: str = Field(..., description="Tóm tắt tình hình bổ sung kho")
-    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bản lưu hợp lệ")
+    cached_at: Optional[str] = Field(default=None, description="Thời điểm lưu bản phân tích AI")
+    start_date: Optional[str] = Field(default=None, description="Ngày bắt đầu khoảng phân tích (YYYY-MM-DD)")
+    end_date: Optional[str] = Field(default=None, description="Ngày kết thúc khoảng phân tích (YYYY-MM-DD)")
 
 
 # ==========================================
@@ -88,7 +94,10 @@ class AnomalyDetectionResponse(BaseModel):
     total_anomalies: int = Field(..., description="Tổng số trường hợp bất thường phát hiện")
     anomalies: List[AnomalyItem] = Field(default_factory=list)
     executive_summary: str = Field(..., description="Tóm tắt nhận định các bất thường")
-    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
+    is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bản lưu hợp lệ")
+    cached_at: Optional[str] = Field(default=None, description="Thời điểm lưu bản phân tích AI")
+    start_date: Optional[str] = Field(default=None, description="Ngày bắt đầu khoảng phân tích (YYYY-MM-DD)")
+    end_date: Optional[str] = Field(default=None, description="Ngày kết thúc khoảng phân tích (YYYY-MM-DD)")
 
 
 # ==========================================
@@ -112,6 +121,7 @@ class GenerateOrderResponse(BaseModel):
     is_fallback: bool = Field(default=False, description="True nếu được sinh bởi fallback nội bộ")
     provider: str = Field(default="gemini", description="gemini | heuristic_fallback")
     is_cached: bool = Field(default=False, description="True nếu kết quả lấy từ bộ nhớ đệm trong ngày")
+    cached_at: Optional[str] = Field(default=None, description="Thời điểm lưu bản phân tích AI")
 
 
 # ==========================================

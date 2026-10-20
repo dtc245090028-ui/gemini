@@ -201,3 +201,34 @@ def test_sqlite_foreign_key_enforcement():
         db.rollback()
     finally:
         db.close()
+
+
+def test_login_rate_limit_per_ip_with_x_forwarded_for(client):
+    """Kiểm tra Rate Limit đăng nhập: Tối đa 10 lần/phút/IP (đọc X-Forwarded-For), lần 11 trả về 429 kèm Retry-After."""
+    headers = {"X-Forwarded-For": "203.0.113.55"}
+    for _ in range(10):
+        res = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "sai_mat_khau"},
+            headers=headers,
+        )
+        assert res.status_code == 401
+
+    # Lần thứ 11 từ cùng IP -> HTTP 429
+    res_blocked = client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "admin123"},
+        headers=headers,
+    )
+    assert res_blocked.status_code == 429
+    assert "Retry-After" in res_blocked.headers
+    assert "10 lần/phút" in res_blocked.json()["detail"]
+
+    # IP khác vẫn đăng nhập bình thường
+    res_other_ip = client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "admin123"},
+        headers={"X-Forwarded-For": "203.0.113.99"},
+    )
+    assert res_other_ip.status_code == 200
+

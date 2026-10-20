@@ -287,15 +287,15 @@ Hệ thống thiết kế cơ chế bảo vệ 2 lớp (Two-Tier Defense) loại
 
 ## CHƯƠNG 9: CHIẾN LƯỢC KIỂM THỬ TỰ ĐỘNG & ĐẢM BẢO CHẤT LƯỢNG
 
-- **Công cụ:** Pytest, SQLite in-memory, TestClient FastAPI.
-- **Quy mô:** Toàn bộ hệ thống được bảo vệ bởi 60 bài kiểm thử tự động toàn diện:
+- **Công cụ:** Pytest, SQLite in-memory, TestClient FastAPI, Coverage.
+- **Quy mô:** Toàn bộ hệ thống được bảo vệ bởi 63 bài kiểm thử tự động toàn diện (Độ bao phủ code đạt 83%):
   - `test_auth.py`: Xác thực JWT, hash bcrypt, RBAC 3 vai trò (11 tests).
   - `test_master_data.py`: CRUD Hàng hóa, Nhóm hàng, Nhà cung cấp (5 tests).
-  - `test_stock_transactions.py`: Transaction ACID, Chặn tồn âm, Hủy phiếu, Thẻ kho, Báo cáo (6 tests lớn).
+  - `test_stock_transactions.py`: Transaction ACID, Chặn tồn âm, Hủy phiếu, Thẻ kho, Báo cáo, Idempotency Key chống ghi trùng (11 tests).
   - `test_ai.py`: Bảo mật giá vốn, Mock Gemini, Fallback Heuristic, RBAC (13 tests).
   - `test_foundation.py`: Kết nối CSDL, Healthcheck (3 tests).
-  - `test_agent_comprehensive_blackbox.py`: Luồng kiểm thử hộp đen toàn diện (22 tests).
-- **Kết quả nghiệm thu:** **60/60 tests PASS 100%**, tỷ lệ lỗi 0%.
+  - `test_agent_comprehensive_blackbox.py`: Luồng kiểm thử hộp đen toàn diện, SQL injection, Boundary (20 tests).
+- **Kết quả nghiệm thu:** **63/63 tests PASS 100%**, tỷ lệ lỗi 0%.
 
 ---
 

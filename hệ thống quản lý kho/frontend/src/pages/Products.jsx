@@ -484,9 +484,9 @@ export const Products = ({ onSelectProductLedger }) => {
       </div>
 
       {/* Filters Bar */}
-      <div className="card-wood p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1">
+      <div className="card-wood p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -500,7 +500,7 @@ export const Products = ({ onSelectProductLedger }) => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer"
+            className="w-full sm:w-auto py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shrink-0"
           >
             <option value="">Tất cả nhóm hàng</option>
             {categories.map((c) => (
@@ -512,14 +512,14 @@ export const Products = ({ onSelectProductLedger }) => {
         </div>
 
         {/* Low Stock Toggle */}
-        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer select-none bg-[var(--bg-surface-warm)] px-3 py-2 rounded-input border border-[var(--border-medium)]">
+        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer select-none bg-[var(--bg-surface-warm)] px-3 py-2 rounded-input border border-[var(--border-medium)] shrink-0">
           <input
             type="checkbox"
             checked={filterLowStock}
             onChange={(e) => setFilterLowStock(e.target.checked)}
-            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)]"
+            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
           />
-          <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)]" />
+          <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
           <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
         </label>
       </div>
@@ -720,7 +720,7 @@ export const Products = ({ onSelectProductLedger }) => {
                   onClick={() => setCurrentPage(pageNum)}
                   className={`w-7 h-7 rounded-btn text-xs font-semibold transition-colors cursor-pointer ${
                     pageNum === safeCurrentPage
-                      ? 'bg-[var(--wood-800)] text-white shadow-xs'
+                      ? 'bg-[var(--wood-500)] text-white shadow-xs'
                       : 'bg-[var(--bg-surface)] border border-[var(--border-medium)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
@@ -775,7 +775,7 @@ export const Products = ({ onSelectProductLedger }) => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Mã hàng hóa</label>
               <input
@@ -818,7 +818,7 @@ export const Products = ({ onSelectProductLedger }) => {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Đơn vị tính</label>
               <input
