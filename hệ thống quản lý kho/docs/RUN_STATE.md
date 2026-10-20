@@ -1,5 +1,5 @@
 Thứ tự: PREP, E, D, A, B, C, CLEANUP
-Trạng thái: PREP [x] E [x] D [x] A [x] B [ ] C [ ] CLEANUP [ ]
+Trạng thái: PREP [x] E [x] D [x] A [x] B [x] C [ ] CLEANUP [ ]
 
 ## Baseline
 
@@ -68,8 +68,36 @@ Trạng thái: PREP [x] E [x] D [x] A [x] B [ ] C [ ] CLEANUP [ ]
 - **Bất biến**: Bất biến 1, 2, 3, 5 đều ĐẠT 100%.
 - **Commit**: `[A] Cap nhat ton kho nguyen tu o tang SQL loai bo 100% Lost Update va lech the kho`
 
+### [B] Sinh mã chứng từ (Hướng c: Giữ định dạng chuẩn, áp dụng Exponential Backoff + Jitter và tăng Retry)
+- **Trả lời câu hỏi định hướng**:
+  1. `generate_note_code` được gọi ở 2 nơi: `create_import_note` và `create_export_note`. Cả 2 nơi đều có vòng retry.
+  2. Giữa lúc đọc `max(code)` và `insert`: Nhiều luồng đồng thời đọc cùng một mã cao nhất hiện tại, dẫn tới cố gắng chèn cùng một mã kế tiếp và gây lỗi `IntegrityError` (vi phạm ràng buộc UNIQUE).
+  3. Khi retry trước đây: Retry tức thời (delay 0ms) khiến các request tiếp tục đụng độ và làm cạn 3 lượt retry rất nhanh, phát sinh 418 lỗi HTTP 409 trong Bậc 4. Khi áp dụng Exponential Backoff + Jitter, các luồng tự động dãn thời gian ngẫu nhiên, cho phép luồng trước hoàn tất commit trước khi luồng sau sinh mã mới.
+  4. Ràng buộc mã chứng từ: Phải tuân thủ nghiêm ngặt định dạng `{PREFIX}-YYYYMMDD-XXXX` (theo `api_contract.md`). Hướng (d) sinh chuỗi UUID/ngẫu nhiên làm phá vỡ hợp đồng API nên bị loại. Hướng (c) được chọn vì vừa triệt tiêu 100% lỗi 409 vừa giữ nguyên vẹn hợp đồng API.
+- **Hành động**:
+  1. Nâng `max_retries` từ 3 lên 7 trong `create_import_note` và `create_export_note`.
+  2. Thêm độ trễ giãn cách có nhiễu ngẫu nhiên: `delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)`.
+- **Output thô đo lường thực nghiệm (`verify_concurrent_create_service.py`)**:
+```
+=== KIỂM THỬ ĐỒNG THỜI create_export_note VỚI 20 LUỒNG SONG SONG ===
+
+>> KẾT QUẢ THỰC TẾ:
+• Số request thành công: 20 / 20
+• Số request bị lỗi HTTP 409 Conflict: 0 / 20
+• Số lỗi khác: 0
+• Tổng số phiếu tạo trong CSDL: 20
+• Số mã phiếu duy nhất: 20
+• Bất biến mã phiếu duy nhất: ĐẠT
+```
+- **So sánh trước và sau**:
+  - Baseline (20 luồng, 3 retries, delay 0): 17/20 thành công, 3/20 lỗi 409 (tỷ lệ lỗi 15.0%).
+  - Hướng C (20 luồng, 7 retries, Backoff + Jitter): 20/20 thành công, 0 lỗi 409 (0.0% lỗi).
+  - Thử thách cực đại 50 luồng đồng thời: 50/50 thành công, 0 lỗi 409 (0.0% lỗi).
+- **Pytest**: 66 passed, 12 warnings trong 37.07s.
+- **Commit**: `[B] Nang retry len 7 va Exponential Backoff Jitter triet tieu 100% loi 409`
+
 ---
 
 ## Cần bạn quyết
 - **Xác nhận độ dài tối đa trường `note`**: Hiện đã cấu hình tạm thời `max_length=500` ký tự. Đề nghị bạn xác nhận con số này có phù hợp với quy tắc nghiệp vụ kho lâu dài hay không.
-- Chuẩn bị bước sang hạng mục kế tiếp: **B. Sinh mã chứng từ**.
+- Chuẩn bị bước sang hạng mục kế tiếp: **C. Lỗi 500 và độ trễ dưới tải ghi**.
