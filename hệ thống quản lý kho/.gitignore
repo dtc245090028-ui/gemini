@@ -27,6 +27,15 @@ wheels/
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Temporary backups
+*.bak
+
+# Quarantine folder
+_quarantine/
 
 # Environment
 .env

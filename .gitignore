@@ -1,0 +1,10 @@
+# Quarantine folder
+_quarantine/
+
+# SQLite Runtime & Journals
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Temporary backups
+*.bak
