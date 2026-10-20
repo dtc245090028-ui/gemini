@@ -1,5 +1,5 @@
 Thứ tự: PREP, E, D, A, B, C, CLEANUP
-Trạng thái: PREP [x] E [x] D [x] A [x] B [x] C [ ] CLEANUP [ ]
+Trạng thái: PREP [x] E [x] D [x] A [x] B [x] C [x] CLEANUP [ ]
 
 ## Baseline
 
@@ -96,8 +96,55 @@ Trạng thái: PREP [x] E [x] D [x] A [x] B [x] C [ ] CLEANUP [ ]
 - **Pytest**: 66 passed, 12 warnings trong 37.07s.
 - **Commit**: `[B] Nang retry len 7 va Exponential Backoff Jitter triet tieu 100% loi 409`
 
+### [C] Lỗi 500 và độ trễ dưới tải ghi (Hướng b + c: Tối ưu SQLite PRAGMA và bổ sung Logging Traceback)
+- **Trả lời câu hỏi định hướng**:
+  1. *Kiểm tra PRAGMA trực tiếp*: [đã đo]
+     - `journal_mode = wal`
+     - `busy_timeout = 5000` (ms)
+     - `synchronous = 1` (NORMAL)
+     - `cache_size = -64000` (64 MB bộ nhớ đệm trang)
+     - `temp_store = 2` (MEMORY)
+  2. *Log traceback khi lỗi 500*: [suy ra từ code]
+     - Trước đây: `sqlalchemy_exception_handler` chỉ trả JSON 500 mà không có câu lệnh `logger.error()`, khiến Uvicorn chỉ ghi một dòng HTTP 500 không có traceback.
+     - Sau khi sửa: Ghi đầy đủ `exc_info=True` vào logger `app.database`, đồng thời phân loại lỗi `database is locked` sang mã `DATABASE_BUSY` để client nhận biết trạng thái bận.
+  3. *Thời gian giữ khóa ghi và đo lường*: [đã đo]
+     - Đo qua kịch bản `verify_fix_item_c.py` (20 luồng x 50 ghi dồn dập = 1.000 transactions ghi):
+       - PRAGMA synchronous = FULL (2): Thời gian giữ khóa trung bình 98.91 ms/trans, max 4.090.61 ms. Gặp 1 lỗi `database is locked` (HTTP 500) do nghẽn I/O fsync.
+       - PRAGMA synchronous = NORMAL (1): Thời gian giữ khóa trung bình 80.29 ms/trans (-18.8%), max 3.927.27 ms. 0 lỗi `database is locked` (0%).
+  4. *Cơ chế xử lý khi quá tải*:
+     - Kết hợp chờ tối đa 5 giây (`busy_timeout=5000`) và trả mã `DATABASE_BUSY` khi hết hạn để client retry.
+- **Hành động**:
+  1. Trong `database.py`: Bổ sung cấu hình `PRAGMA synchronous=NORMAL`, `PRAGMA cache_size=-64000`, `PRAGMA temp_store=MEMORY`.
+  2. Trong `main.py`: Bổ sung `logger.error(..., exc_info=True)` và phân tách mã lỗi `DATABASE_BUSY`.
+- **Output thô đo lường thực nghiệm (`verify_fix_item_c.py`)**:
+```
+=========================================================================
+ SO SÁNH HIỆU NĂNG GHI & KHÓA: PRAGMA synchronous FULL (2) VS NORMAL (1)
+=========================================================================
+
+[PRAGMA synchronous = FULL] (20 users x 50 ghi dồn dập = 1.000 ops ghi):
+  • Tổng số ghi thành công: 999 / 1000
+  • Số lỗi database is locked (HTTP 500 tương đương): 1
+  • Tổng thời gian: 7.74 s
+  • Thông lượng ghi (Write Throughput): 129.1 ops/giây
+  • Độ trễ ghi trung bình: 98.91 ms | Lớn nhất: 4090.61 ms
+
+[PRAGMA synchronous = NORMAL] (20 users x 50 ghi dồn dập = 1.000 ops ghi):
+  • Tổng số ghi thành công: 1000 / 1000
+  • Số lỗi database is locked (HTTP 500 tương đương): 0
+  • Tổng thời gian: 6.31 s
+  • Thông lượng ghi (Write Throughput): 158.6 ops/giây
+  • Độ trễ ghi trung bình: 80.29 ms | Lớn nhất: 3927.27 ms
+```
+- **So sánh trước và sau**:
+  - Tỷ lệ lỗi 500 do khóa SQLite: Giảm từ 1/1.000 (0.1%) xuống 0/1.000 (0.0%).
+  - Thông lượng ghi: Tăng +22.8% (từ 129.1 lên 158.6 ops/s).
+  - Độ trễ ghi trung bình: Giảm -18.8% (từ 98.91 ms xuống 80.29 ms).
+- **Pytest**: 66 passed, 12 warnings trong 37.55s.
+- **Commit**: `[C] Toi uu SQLite PRAGMA synchronous NORMAL va bo sung logging traceback`
+
 ---
 
 ## Cần bạn quyết
 - **Xác nhận độ dài tối đa trường `note`**: Hiện đã cấu hình tạm thời `max_length=500` ký tự. Đề nghị bạn xác nhận con số này có phù hợp với quy tắc nghiệp vụ kho lâu dài hay không.
-- Chuẩn bị bước sang hạng mục kế tiếp: **C. Lỗi 500 và độ trễ dưới tải ghi**.
+- Chuẩn bị bước sang hạng mục kế tiếp: **CLEANUP (Dọn file phát sinh và cập nhật .gitignore)**.
