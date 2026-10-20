@@ -1,5 +1,5 @@
 Thứ tự: PREP, E, D, A, B, C, CLEANUP
-Trạng thái: PREP [x] E [x] D [x] A [ ] B [ ] C [ ] CLEANUP [ ]
+Trạng thái: PREP [x] E [x] D [x] A [x] B [ ] C [ ] CLEANUP [ ]
 
 ## Baseline
 
@@ -53,8 +53,23 @@ Trạng thái: PREP [x] E [x] D [x] A [ ] B [ ] C [ ] CLEANUP [ ]
   3. Toàn bộ 66 Unit & Integration Tests đạt 100% (66 passed).
 - **Commit**: `[D] Ràng buộc max_length=500 cho note trong schemas phiếu xuất và nhập`
 
+### [A] Cập nhật tồn kho khi chạy đồng thời (Hướng a: Biểu thức tương đối SQL + RETURNING)
+- **Hành động**:
+  1. Chuyển đổi toàn bộ logic trừ/cộng tồn kho trong `inventory_service.py` (`ship_export_note`, `create_import_note`, `cancel_import_note`, `cancel_export_note`) sang câu lệnh nguyên tử ở tầng SQLite engine:
+     `UPDATE products SET current_stock = current_stock - :qty WHERE id = :prod_id AND current_stock >= :qty RETURNING current_stock`
+  2. Đồng bộ `StockLedger.balance_after` trực tiếp từ giá trị thực tế do `RETURNING` trả về.
+  3. Bổ sung `db.expire(product, ["current_stock"])` tránh Dirty Overwrite từ SQLAlchemy cache.
+- **Kết quả đo lường thực nghiệm cô lập (30 luồng song song)**:
+  - 30/30 lượt ship thành công. Tồn kho từ 50 trừ chính xác về 20 (kỳ vọng 20).
+  - Thất thoát tồn kho: 0 đơn vị (trước đây Bậc 4 mất 3.860 đơn vị).
+  - Vi phạm lũy kế Thẻ kho: 0 dòng (trước đây 2.249 dòng).
+  - Số dư `balance_after` lặp lại: 0 giá trị (trước đây 1.236 giá trị).
+  - Tồn kho âm: 0.
+- **Bất biến**: Bất biến 1, 2, 3, 5 đều ĐẠT 100%.
+- **Commit**: `[A] Cap nhat ton kho nguyen tu o tang SQL loai bo 100% Lost Update va lech the kho`
+
 ---
 
 ## Cần bạn quyết
 - **Xác nhận độ dài tối đa trường `note`**: Hiện đã cấu hình tạm thời `max_length=500` ký tự. Đề nghị bạn xác nhận con số này có phù hợp với quy tắc nghiệp vụ kho lâu dài hay không.
-- Chuẩn bị bước sang hạng mục kế tiếp: **A. Cập nhật tồn kho khi chạy đồng thời**.
+- Chuẩn bị bước sang hạng mục kế tiếp: **B. Sinh mã chứng từ**.
