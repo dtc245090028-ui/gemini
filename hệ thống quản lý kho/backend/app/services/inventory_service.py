@@ -95,7 +95,7 @@ def create_import_note(
     now = datetime.now(timezone.utc)
 
     # 4. Thực thi Transaction với Retry Pattern (Optimistic Concurrency)
-    max_retries = 5
+    max_retries = 7
     for attempt in range(max_retries):
         try:
             if note_in.code:
@@ -177,7 +177,7 @@ def create_import_note(
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
-            delay = 0.015 * (2 ** attempt) + random.uniform(0.010, 0.035)
+            delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
             time.sleep(delay)
 
 
@@ -234,7 +234,7 @@ def create_export_note(
     now = datetime.now(timezone.utc)
 
     # 3. Thực thi Transaction với Retry Pattern
-    max_retries = 5
+    max_retries = 7
     for attempt in range(max_retries):
         try:
             if note_in.code:
@@ -291,7 +291,7 @@ def create_export_note(
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
-            delay = 0.015 * (2 ** attempt) + random.uniform(0.010, 0.035)
+            delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
             time.sleep(delay)
 
 
