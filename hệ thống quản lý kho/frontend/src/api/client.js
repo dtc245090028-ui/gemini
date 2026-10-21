@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { stockEvents } from '../utils/stockEvents';
 
 // Tạo axios instance
@@ -234,7 +234,7 @@ export const apiClient = {
     getAll: () => api.get('/import-notes/'),
     getById: (id) => api.get(`/import-notes/${id}`),
     create: (data, config = {}) => api.post('/import-notes/', data, config),
-    cancel: (id) => api.post(`/import-notes/${id}/cancel`),
+    cancel: (id, reason) => api.post(`/import-notes/${id}/cancel`, null, { params: reason ? { reason } : {} }),
   },
 
   // 6. Phiếu xuất kho
@@ -244,7 +244,7 @@ export const apiClient = {
     create: (data, config = {}) => api.post('/export-notes/', data, config),
     ship: (id) => api.post(`/export-notes/${id}/ship`),
     complete: (id) => api.post(`/export-notes/${id}/complete`),
-    cancel: (id) => api.post(`/export-notes/${id}/cancel`),
+    cancel: (id, reason) => api.post(`/export-notes/${id}/cancel`, null, { params: reason ? { reason } : {} }),
     delete: (id) => api.delete(`/export-notes/${id}`),
   },
 
