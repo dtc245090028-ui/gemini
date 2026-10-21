@@ -1,9 +1,11 @@
 """Dịch vụ nghiệp vụ Quản lý Kho: Nhập kho, Xuất kho, Thẻ kho và Giao dịch ACID."""
 
+import random
+import time
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -93,7 +95,7 @@ def create_import_note(
     now = datetime.now(timezone.utc)
 
     # 4. Thực thi Transaction với Retry Pattern (Optimistic Concurrency)
-    max_retries = 3
+    max_retries = 7
     for attempt in range(max_retries):
         try:
             if note_in.code:
@@ -131,9 +133,19 @@ def create_import_note(
                 )
                 db.add(detail)
 
-                # Cập nhật tồn kho
+                # Cập nhật tồn kho nguyên tử ở tầng SQL
                 product = product_map[item.product_id]
-                product.current_stock += item.quantity
+                row = db.execute(
+                    text("""
+                        UPDATE products
+                        SET current_stock = current_stock + :qty
+                        WHERE id = :prod_id
+                        RETURNING current_stock
+                    """),
+                    {"qty": item.quantity, "prod_id": item.product_id},
+                ).fetchone()
+                new_balance = row[0]
+                db.expire(product, ["current_stock"])
 
                 # Ghi Thẻ kho (StockLedger)
                 ledger_entry = StockLedger(
@@ -141,7 +153,7 @@ def create_import_note(
                     transaction_type="IMPORT",
                     reference_code=import_note.code,
                     quantity_change=item.quantity,
-                    balance_after=product.current_stock,
+                    balance_after=new_balance,
                     created_by=current_user_id,
                     transaction_date=now,
                     note=f"Nhập kho theo phiếu {import_note.code}",
@@ -164,6 +176,9 @@ def create_import_note(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
+            # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
+            delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
+            time.sleep(delay)
 
 
 def create_export_note(
@@ -219,7 +234,7 @@ def create_export_note(
     now = datetime.now(timezone.utc)
 
     # 3. Thực thi Transaction với Retry Pattern
-    max_retries = 3
+    max_retries = 7
     for attempt in range(max_retries):
         try:
             if note_in.code:
@@ -275,6 +290,9 @@ def create_export_note(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
+            # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
+            delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
+            time.sleep(delay)
 
 
 def cancel_import_note(
@@ -326,14 +344,32 @@ def cancel_import_note(
 
     for detail in import_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
-        product.current_stock -= detail.quantity
+        row = db.execute(
+            text("""
+                UPDATE products
+                SET current_stock = current_stock - :qty
+                WHERE id = :prod_id AND current_stock >= :qty
+                RETURNING current_stock
+            """),
+            {"qty": detail.quantity, "prod_id": detail.product_id},
+        ).fetchone()
+
+        if row is None:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Không thể hủy phiếu nhập: tồn kho hiện tại không đủ để hoàn tác cho sản phẩm '{product.name}'.",
+            )
+
+        new_balance = row[0]
+        db.expire(product, ["current_stock"])
 
         ledger_entry = StockLedger(
             product_id=product.id,
             transaction_type="ADJUSTMENT",
             reference_code=f"CANCEL-{import_note.code}",
             quantity_change=-detail.quantity,
-            balance_after=product.current_stock,
+            balance_after=new_balance,
             created_by=current_user_id,
             transaction_date=now,
             note=f"Hoàn tác do hủy phiếu nhập {import_note.code}",
@@ -398,14 +434,35 @@ def ship_export_note(
 
     for detail in export_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
-        product.current_stock -= detail.quantity
+        row = db.execute(
+            text("""
+                UPDATE products 
+                SET current_stock = current_stock - :qty 
+                WHERE id = :prod_id AND current_stock >= :qty 
+                RETURNING current_stock
+            """),
+            {"qty": detail.quantity, "prod_id": detail.product_id},
+        ).fetchone()
+
+        if row is None:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Không đủ hàng tồn kho cho sản phẩm '{product.name}' (Mã SKU: {product.code}) để giao hàng. "
+                    f"Số lượng tồn hiện có: {product.current_stock}, Yêu cầu xuất: {detail.quantity}. Không thể xuất kho."
+                ),
+            )
+
+        new_balance = row[0]
+        db.expire(product, ["current_stock"])
 
         ledger_entry = StockLedger(
             product_id=product.id,
             transaction_type="EXPORT",
             reference_code=export_note.code,
             quantity_change=-detail.quantity,
-            balance_after=product.current_stock,
+            balance_after=new_balance,
             created_by=current_user_id,
             transaction_date=now,
             note=f"Xuất kho giao cho {export_note.recipient_name} theo phiếu {export_note.code}",
@@ -491,14 +548,25 @@ def cancel_export_note(
 
     for detail in export_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
-        product.current_stock += detail.quantity
+        row = db.execute(
+            text("""
+                UPDATE products 
+                SET current_stock = current_stock + :qty 
+                WHERE id = :prod_id 
+                RETURNING current_stock
+            """),
+            {"qty": detail.quantity, "prod_id": detail.product_id},
+        ).fetchone()
+
+        new_balance = row[0]
+        db.expire(product, ["current_stock"])
 
         ledger_entry = StockLedger(
             product_id=product.id,
             transaction_type="ADJUSTMENT",
             reference_code=f"CANCEL-{export_note.code}",
             quantity_change=detail.quantity,
-            balance_after=product.current_stock,
+            balance_after=new_balance,
             created_by=current_user_id,
             transaction_date=now,
             note=f"Hoàn tác do hủy phiếu xuất {export_note.code}",

@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database & SQLite Runtime
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Temporary backups & quarantine
+*.bak
+_quarantine/
+test_write.txt
+
+# Testing & Linting
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*results.json
+*_results.json
+**/backend/tests/performance/results/*.csv
+**/backend/tests/performance/results/*.json
+
+# Logs
+*.log
+**/logs/
+
+# Node / Frontend
+node_modules/
+dist/
+.npm
+
+# Environment & Secrets
+.env
+!.env.example
+api_keys/
+api_secrets/
+secrets/
+*.key
+*.token

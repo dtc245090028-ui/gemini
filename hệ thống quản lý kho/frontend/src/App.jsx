@@ -59,27 +59,27 @@ function AppContent() {
       <ErrorBoundary>
         {visitedTabs.has('dashboard') && (
           <div className={activeTab === 'dashboard' ? '' : 'hidden'}>
-            <Dashboard onNavigate={handleTabChange} />
+            <Dashboard onNavigate={handleTabChange} isActive={activeTab === 'dashboard'} />
           </div>
         )}
         {visitedTabs.has('products') && (
           <div className={activeTab === 'products' ? '' : 'hidden'}>
-            <Products onSelectProductLedger={handleSelectProductLedger} />
+            <Products onSelectProductLedger={handleSelectProductLedger} isActive={activeTab === 'products'} />
           </div>
         )}
         {visitedTabs.has('suppliers') && (
           <div className={activeTab === 'suppliers' ? '' : 'hidden'}>
-            <Suppliers />
+            <Suppliers isActive={activeTab === 'suppliers'} />
           </div>
         )}
         {visitedTabs.has('imports') && (
           <div className={activeTab === 'imports' ? '' : 'hidden'}>
-            <ImportNotes />
+            <ImportNotes isActive={activeTab === 'imports'} />
           </div>
         )}
         {visitedTabs.has('exports') && (
           <div className={activeTab === 'exports' ? '' : 'hidden'}>
-            <ExportNotes />
+            <ExportNotes isActive={activeTab === 'exports'} />
           </div>
         )}
         {visitedTabs.has('stock_ledger') && (
@@ -87,12 +87,13 @@ function AppContent() {
             <StockLedger
               key={ledgerProductId || 'all'}
               defaultProductId={ledgerProductId}
+              isActive={activeTab === 'stock_ledger'}
             />
           </div>
         )}
         {visitedTabs.has('ai_assistant') && (
           <div className={activeTab === 'ai_assistant' ? '' : 'hidden'}>
-            <AIAssistant />
+            <AIAssistant isActive={activeTab === 'ai_assistant'} />
           </div>
         )}
       </ErrorBoundary>
