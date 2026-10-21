@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { stockEvents } from '../utils/stockEvents';
 import {
   Package,
   AlertTriangle,
@@ -14,16 +15,17 @@ import Badge from '../components/Badge';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
 
-export const Dashboard = ({ onNavigate }) => {
+export const Dashboard = ({ onNavigate, isActive = true }) => {
   const [loading, setLoading] = useState(true);
+  const isStaleRef = useRef(false);
   const showLoader = useDelayedLoading(loading);
   const [products, setProducts] = useState([]);
   const [importNotes, setImportNotes] = useState([]);
   const [exportNotes, setExportNotes] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [prodRes, impRes, expRes, lowRes] = await Promise.all([
         apiClient.products.getAll({ limit: 100 }),
@@ -38,13 +40,33 @@ export const Dashboard = ({ onNavigate }) => {
     } catch (err) {
       console.error('Lỗi khi tải dữ liệu dashboard:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Lắng nghe biến động kho để cập nhật dashboard ngầm (Keep-Alive Sync)
+  useEffect(() => {
+    const unsubscribe = stockEvents.subscribe(() => {
+      if (isActive) {
+        loadData(true);
+      } else {
+        isStaleRef.current = true;
+      }
+    });
+    return unsubscribe;
+  }, [isActive]);
+
+  // Khi quay lại dashboard sau khi có biến động kho -> cập nhật ngầm không nháy
+  useEffect(() => {
+    if (isActive && isStaleRef.current) {
+      isStaleRef.current = false;
+      loadData(true);
+    }
+  }, [isActive]);
 
   const totalStockCount = products.reduce((acc, p) => acc + (p.current_stock || 0), 0);
 

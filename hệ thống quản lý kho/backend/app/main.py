@@ -1,5 +1,6 @@
 """Điểm khởi chạy ứng dụng FastAPI, đăng ký Middleware, Handlers và Router."""
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request, status
@@ -104,14 +105,26 @@ async def integrity_exception_handler(request: Request, exc: IntegrityError):
     )
 
 
+logger = logging.getLogger("app.database")
+
+
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    logger.error(
+        f"[DATABASE ERROR] {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
+    is_locked = "database is locked" in str(exc).lower() or "busy" in str(exc).lower()
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "success": False,
-            "detail": "Đã xảy ra lỗi tương tác cơ sở dữ liệu.",
-            "error_code": "DATABASE_ERROR",
+            "detail": (
+                "Cơ sở dữ liệu đang bận xử lý nhiều giao dịch ghi đồng thời. Vui lòng thử lại sau giây lát."
+                if is_locked
+                else "Đã xảy ra lỗi tương tác cơ sở dữ liệu."
+            ),
+            "error_code": "DATABASE_BUSY" if is_locked else "DATABASE_ERROR",
         },
     )
 

@@ -1,17 +1,30 @@
-"""Script nạp dữ liệu mẫu thực tế 60 ngày (Storytelling Seed Data).
+"""Script nạp lại toàn bộ dữ liệu mẫu thực tế 5 tháng (150 ngày - Storytelling Enterprise Seed Data).
 
-Bao gồm:
-- 3 tài khoản người dùng theo 3 vai trò (admin, thukho, ketoan).
-- 4 nhóm hàng (categories) và 3 nhà cung cấp (suppliers).
-- 22 mặt hàng công nghệ thực tế (products).
-- 3 kịch bản cốt lõi cho AI phân tích:
-  + SP001 (Bàn phím cơ Akko): Bán chạy, tồn cạn kiệt (4/15) -> AI gợi ý nhập khẩn cấp (HIGH).
-  + SP002 (Chuột Logitech G304): Xuất tăng đột biến tuần này (35 cái) -> AI báo động SURGE_EXPORT (>200%).
-  + SP003 (Cáp VGA to HDMI): Tồn 60 cái suốt 60 ngày không xuất đơn nào -> AI cảnh báo DEAD_STOCK.
-- Chuỗi giao dịch nhập/xuất và sổ cái Thẻ kho (StockLedger) bảo toàn số dư chuẩn ACID.
+Bối cảnh hệ thống:
+- Hệ thống Kho Công Nghệ WMS AI đã vận hành ổn định liên tục 5 tháng (từ 20/05/2026 đến 20/10/2026).
+- 3 tài khoản người dùng chuẩn 3 vai trò:
+  + admin / admin123 (Quản Trị Viên)
+  + thukho / thukho123 (Thủ Kho Chính)
+  + ketoan / ketoan123 (Kế Toán Kho)
+- 7 nhóm hàng (Categories) & 10 nhà cung cấp đối tác uy tín (Suppliers).
+- 76 sản phẩm công nghệ thực tế (Điện thoại, Laptop, PC, Màn hình, Linh kiện, Phụ kiện, Thiết bị mạng).
+- Chuỗi giao dịch 5 tháng liên tục (Tháng 5 -> Tháng 10/2026):
+  + Tháng 5/2026: Khởi tạo kho, đại nhập hàng khai trương từ các hãng lớn và các đơn xuất đầu tiên.
+  + Tháng 6/2026: Vận hành luân chuyển đều đặn mùa hè (văn phòng, trường học).
+  + Tháng 7/2026: Cung ứng phụ kiện, linh kiện nâng cấp, bảo dưỡng phòng net, doanh nghiệp.
+  + Tháng 8/2026: Đợt cao điểm "Back to School" (nhập lượng lớn laptop, bàn phím, chuột; xuất kho mạnh).
+  + Tháng 9/2026: Đợt mở bán iPhone 16 series, linh kiện PC Gaming, xuất bán đại lý.
+  + Tháng 10/2026 (01/10 đến 20/10/2026 - hiện tại):
+    * SP001 (Bàn phím Akko): Bán rất chạy qua 5 tháng, hiện tồn cạn kiệt (4/15) -> AI đề xuất nhập khẩn cấp (HIGH).
+    * SP002 (Chuột Logitech G304): Bán đều, đột nhiên tuần qua (17-19/10) xuất 35 chiếc -> AI báo động SURGE_EXPORT (>200%).
+    * SP003 (Cáp VGA to HDMI): Tồn 60 sợi suốt 5 tháng (153 ngày) không xuất đơn nào -> AI cảnh báo DEAD_STOCK.
+    * SP005, SP023, SP036, SP050: Tồn cận mức tối thiểu để gợi ý nhập đa dạng các phân khúc.
+- Bảo toàn tuyệt đối số dư Thẻ kho (StockLedger) chuẩn ACID, không bao giờ để tồn âm.
 """
 
 from datetime import datetime, timedelta
+import json
+from pathlib import Path
 import random
 import sys
 from sqlalchemy.orm import Session
@@ -34,122 +47,10 @@ from app.models.supplier import Supplier
 from app.models.user import User
 
 
-def seed_xlsx_transactions(db: Session, prod_map: dict, sup_map: dict, thukho_user: User, now: datetime):
-    """Nạp phiếu nhập khởi tạo và một số phiếu xuất mẫu cho 54 mặt hàng từ Excel nếu chưa có."""
-    existing_xlsx = db.query(ImportNote).filter(ImportNote.code == "PN-SEED-XLSX-01").first()
-    if existing_xlsx:
-        return
-
-    print("[INFO] Sinh giao dich nhap/xuat kho cho 54 mat hang moi tu bang gia Excel...")
-    xlsx_date = now - timedelta(days=25)
-
-    # 1. Phiếu nhập từ các chuỗi bán lẻ / nhà phân phối lớn
-    imp_fpt = ImportNote(
-        code="PN-SEED-XLSX-01",
-        supplier_id=sup_map["NCC_FPTSHOP"].id,
-        created_by=thukho_user.id,
-        note_date=xlsx_date,
-        total_amount=0.0,
-        status="COMPLETED",
-        note="Nhập kho chính hãng thiết bị Apple, Laptop Dell & phụ kiện từ FPT Shop",
-    )
-    db.add(imp_fpt)
-    db.flush()
-
-    total_imp_amount = 0.0
-    for i in range(23, 77):
-        code = f"SP{i:03d}"
-        if code in prod_map:
-            p = prod_map[code]
-            if p.standard_price >= 20000000:
-                qty = random.randint(6, 12)
-            elif p.standard_price >= 5000000:
-                qty = random.randint(10, 20)
-            elif p.standard_price >= 1000000:
-                qty = random.randint(15, 30)
-            else:
-                qty = random.randint(30, 60)
-
-            unit_price = round(p.standard_price * 0.78, -3)
-            subtotal = unit_price * qty
-            total_imp_amount += subtotal
-
-            db.add(
-                ImportNoteDetail(
-                    import_note_id=imp_fpt.id,
-                    product_id=p.id,
-                    quantity=qty,
-                    unit_price=unit_price,
-                    subtotal=subtotal,
-                )
-            )
-            p.current_stock += qty
-            db.add(
-                StockLedger(
-                    product_id=p.id,
-                    transaction_type="IMPORT",
-                    reference_code=imp_fpt.code,
-                    quantity_change=qty,
-                    balance_after=p.current_stock,
-                    created_by=thukho_user.id,
-                    transaction_date=xlsx_date,
-                    note="Nhập kho hàng công nghệ theo bảng giá tham khảo",
-                )
-            )
-
-    imp_fpt.total_amount = total_imp_amount
-
-    # 2. Phiếu xuất bán thương mại một số mặt hàng (Điện thoại, Laptop, Phụ kiện)
-    exp_retail = ExportNote(
-        code="PX-SEED-XLSX-01",
-        recipient_name="Khách hàng Bán lẻ & Đối tác Doanh nghiệp",
-        created_by=thukho_user.id,
-        note_date=now - timedelta(days=8),
-        total_amount=0.0,
-        status="COMPLETED",
-        note="Xuất kho cung ứng đơn hàng bán lẻ định kỳ",
-    )
-    db.add(exp_retail)
-    db.flush()
-
-    total_exp_amount = 0.0
-    for i in range(23, 77, 2):  # Xuất xen kẽ các mã
-        code = f"SP{i:03d}"
-        if code in prod_map:
-            p = prod_map[code]
-            qty_out = min(p.current_stock // 3, 2 if p.standard_price > 15000000 else 6)
-            if qty_out > 0:
-                subtotal = p.standard_price * qty_out
-                total_exp_amount += subtotal
-                db.add(
-                    ExportNoteDetail(
-                        export_note_id=exp_retail.id,
-                        product_id=p.id,
-                        quantity=qty_out,
-                        unit_price=p.standard_price,
-                        subtotal=subtotal,
-                    )
-                )
-                p.current_stock -= qty_out
-                db.add(
-                    StockLedger(
-                        product_id=p.id,
-                        transaction_type="EXPORT",
-                        reference_code=exp_retail.code,
-                        quantity_change=-qty_out,
-                        balance_after=p.current_stock,
-                        created_by=thukho_user.id,
-                        transaction_date=now - timedelta(days=8),
-                        note="Xuất hàng thương mại đơn lẻ",
-                    )
-                )
-    exp_retail.total_amount = total_exp_amount
-    db.commit()
-    print("[SUCCESS] Da nap thanh cong giao dich kho cho 54 mat hang moi!")
-
-
 def seed_database():
-    print("[INFO] Bat dau qua trinh nap du lieu mau (Storytelling Seed Data)...")
+    print("===============================================================================")
+    print("     BẮT ĐẦU NẠP DỮ LIỆU MẪU ENTERPRISE 5 THÁNG HOẠT ĐỘNG LIÊN TỤC (WMS AI)")
+    print("===============================================================================")
     Base.metadata.create_all(bind=engine)
     db: Session = SessionLocal()
 
@@ -157,12 +58,11 @@ def seed_database():
         # =====================================================================
         # 1. TÀI KHOẢN NGƯỜI DÙNG (3 ROLES)
         # =====================================================================
-        print("[INFO] 1. Khoi tao tai khoan nguoi dung...")
-
+        print("[INFO] 1. Kiểm tra và khởi tạo tài khoản người dùng...")
         users_data = [
             ("admin", "admin123", "Quản Trị Viên Hệ Thống", "ADMIN"),
-            ("thukho", "thukho123", "Nguyễn Văn Kho (Thủ kho)", "WAREHOUSE_KEEPER"),
-            ("ketoan", "ketoan123", "Trần Thị Toán (Kế toán)", "ACCOUNTANT"),
+            ("thukho", "thukho123", "Nguyễn Văn Kho (Thủ kho Chính)", "WAREHOUSE_KEEPER"),
+            ("ketoan", "ketoan123", "Trần Thị Toán (Kế toán Kho)", "ACCOUNTANT"),
         ]
         user_map = {}
         for username, password, full_name, role in users_data:
@@ -178,6 +78,11 @@ def seed_database():
                 db.add(user)
                 db.commit()
                 db.refresh(user)
+            else:
+                user.full_name = full_name
+                user.role = role
+                user.is_active = True
+                db.commit()
             user_map[username] = user
 
         admin_user = user_map["admin"]
@@ -186,7 +91,7 @@ def seed_database():
         # =====================================================================
         # 2. NHÓM HÀNG (CATEGORIES)
         # =====================================================================
-        print("[INFO] 2. Khoi tao nhom hang hoa...")
+        print("[INFO] 2. Kiểm tra danh mục hàng hóa...")
         categories_data = [
             ("CAT_PK", "Phụ kiện máy tính & Di động", "Bàn phím, chuột, tai nghe, sạc cáp, túi chống sốc"),
             ("CAT_LK", "Linh kiện phần cứng", "Ổ cứng SSD, RAM, nguồn, tản nhiệt, USB, thẻ nhớ"),
@@ -209,7 +114,7 @@ def seed_database():
         # =====================================================================
         # 3. NHÀ CUNG CẤP (SUPPLIERS)
         # =====================================================================
-        print("[INFO] 3. Khoi tao nha cung cap...")
+        print("[INFO] 3. Kiểm tra nhà cung cấp đối tác...")
         suppliers_data = [
             ("NCC_VIENDONG", "Công ty TNHH Phân Phối Viễn Đông", "0243888999", "viendong@tech.vn", "Hà Nội"),
             ("NCC_SAIGON", "Tổng đại lý Tin học Sài Gòn", "0283999888", "saigon@distri.vn", "TP. Hồ Chí Minh"),
@@ -233,17 +138,13 @@ def seed_database():
             sup_map[code] = sup
 
         # =====================================================================
-        # 4. DANH SÁCH 22 HÀNG HÓA (PRODUCTS)
+        # 4. DANH SÁCH 76 MẶT HÀNG (PRODUCTS)
         # =====================================================================
-        print("[INFO] 4. Khoi tao 22 mat hang thuc te (kem 3 kich ban cot loi)...")
-
-        # SKU, Name, Category, Unit, MinStock, StandardPrice
+        print("[INFO] 4. Khởi tạo 76 sản phẩm công nghệ chuẩn...")
         products_meta = [
-            # 3 kịch bản cốt lõi cho AI:
-            ("SP001", "Bàn phím cơ Akko 3087", "CAT_PK", "Chiếc", 15, 950000.0),      # Sắp cạn kho
-            ("SP002", "Chuột không dây Logitech G304", "CAT_PK", "Chiếc", 10, 750000.0), # Xuất đột biến tuần này
-            ("SP003", "Cáp chuyển đổi VGA to HDMI", "CAT_PK", "Sợi", 5, 85000.0),        # Hàng chết (60 ngày 0 xuất)
-            # 19 mặt hàng luân chuyển bình thường:
+            ("SP001", "Bàn phím cơ Akko 3087", "CAT_PK", "Chiếc", 15, 950000.0),
+            ("SP002", "Chuột không dây Logitech G304", "CAT_PK", "Chiếc", 10, 750000.0),
+            ("SP003", "Cáp chuyển đổi VGA to HDMI", "CAT_PK", "Sợi", 5, 85000.0),
             ("SP004", "Màn hình Dell UltraSharp 24 inch", "CAT_TB", "Chiếc", 5, 5500000.0),
             ("SP005", "Ổ cứng SSD Samsung 980 1TB NVMe", "CAT_LK", "Chiếc", 8, 2200000.0),
             ("SP006", "RAM Corsair Vengeance 16GB DDR4", "CAT_LK", "Thanh", 10, 1150000.0),
@@ -263,7 +164,6 @@ def seed_database():
             ("SP020", "Bộ chia cổng USB 3.0 Orico 4 cổng", "CAT_PK", "Chiếc", 10, 160000.0),
             ("SP021", "Keo tản nhiệt Arctic MX-4 4g", "CAT_LK", "Tuýp", 15, 130000.0),
             ("SP022", "Màn hình LG 27 inch 4K IPS", "CAT_TB", "Chiếc", 3, 7900000.0),
-            # 54 mặt hàng công nghệ thực tế từ bảng giá đối tác (danh_sach_san_pham_gia.xlsx):
             ("SP023", "iPhone 16 128GB", "CAT_DT", "Chiếc", 3, 20790000.0),
             ("SP024", "iPhone 15 128GB", "CAT_DT", "Chiếc", 3, 16990000.0),
             ("SP025", "iPhone 14 128GB", "CAT_DT", "Chiếc", 5, 13990000.0),
@@ -320,6 +220,18 @@ def seed_database():
             ("SP076", "Loa Bluetooth JBL Go 3", "CAT_TB", "Chiếc", 15, 690000.0),
         ]
 
+        # Xóa các giao dịch cũ để chuẩn hóa lại chuỗi 5 tháng
+        print("[INFO] Dọn dẹp các giao dịch cũ để tái lập chuỗi 5 tháng đồng bộ ACID...")
+        db.query(StockLedger).delete()
+        db.query(ExportNoteDetail).delete()
+        db.query(ExportNote).delete()
+        db.query(ImportNoteDetail).delete()
+        db.query(ImportNote).delete()
+
+        # Dọn các mã test ngoài danh mục SP
+        db.query(Product).filter(~Product.code.startswith("SP")).delete(synchronize_session=False)
+        db.commit()
+
         prod_map = {}
         for code, name, cat_code, unit, min_stock, price in products_meta:
             p = db.query(Product).filter(Product.code == code).first()
@@ -330,7 +242,7 @@ def seed_database():
                     category_id=cat_map[cat_code].id,
                     unit=unit,
                     min_stock=min_stock,
-                    current_stock=0,  # Sẽ được tính chính xác qua các giao dịch
+                    current_stock=0,
                     standard_price=price,
                     image_url=f"/static/products/{code}.jpg",
                     status="ACTIVE",
@@ -340,242 +252,512 @@ def seed_database():
                 db.refresh(p)
             else:
                 p.name = name
+                p.category_id = cat_map[cat_code].id
                 p.standard_price = price
                 p.unit = unit
                 p.min_stock = min_stock
+                p.current_stock = 0  # Sẽ được tính lại chuẩn xác qua từng phiếu nhập/xuất
+                p.status = "ACTIVE"
                 if not p.image_url:
                     p.image_url = f"/static/products/{code}.jpg"
                 db.commit()
             prod_map[code] = p
 
         # =====================================================================
-        # 5. SINH LỊCH SỬ GIAO DỊCH 60 NGÀY (NHẬP - XUẤT - THẺ KHO)
+        # 5. MÔ PHỎNG VẬN HÀNH DOANH NGHIỆP 5 THÁNG (20/05/2026 -> 20/10/2026)
         # =====================================================================
-        print("[INFO] 5. Sinh chuoi giao dich nhap xuat 60 ngay theo kich ban logic...")
-        now = datetime.now()
+        print("[INFO] 5. Bắt đầu sinh chuỗi dữ liệu giao dịch thực tế 5 tháng...")
 
-        # Nạp giao dịch khởi tạo cho 54 mặt hàng mới từ Excel (nếu chưa có)
-        seed_xlsx_transactions(db, prod_map, sup_map, thukho_user, now)
-
-        # Kiểm tra nếu đã có phiếu nhập của SP001 thì bỏ qua bước sinh giao dịch để tránh nhân đôi
-        existing_import = (
-            db.query(ImportNote).filter(ImportNote.code == "PN-SEED-INIT-01").first()
-        )
-        if existing_import:
-            print("[INFO] Du lieu giao dich 60 ngay ban dau da ton tai, hoan tat cap nhat!")
-            return
-
-        # -------------------------------------------------------------
-        # Đợt 1: Nhập kho ban đầu (Cách đây 55 ngày)
-        # -------------------------------------------------------------
-        init_date = now - timedelta(days=55)
-        imp1 = ImportNote(
-            code="PN-SEED-INIT-01",
-            supplier_id=sup_map["NCC_VIENDONG"].id,
-            created_by=thukho_user.id,
-            note_date=init_date,
-            total_amount=0.0,
-            status="COMPLETED",
-            note="Nhập kho kiện hàng thiết bị và linh kiện đợt 1",
-        )
-        db.add(imp1)
-        db.flush()
-
-        import_quantities = {
-            "SP001": 50,  # Nhập 50 bàn phím
-            "SP002": 80,  # Nhập 80 chuột
-            "SP003": 60,  # Nhập 60 cáp (Hàng chết: sẽ giữ nguyên 60 chiếc, 0 xuất)
-            "SP004": 15,
-            "SP005": 30,
-            "SP006": 40,
-            "SP007": 20,
-            "SP008": 25,
-            "SP009": 18,
-            "SP010": 22,
-            "SP011": 15,
-            "SP012": 12,
-            "SP013": 20,
-            "SP014": 15,
-            "SP015": 30,
-            "SP016": 50,
-            "SP017": 60,
-            "SP018": 45,
-            "SP019": 25,
-            "SP020": 35,
-            "SP021": 40,
-            "SP022": 8,
-        }
-
-        total_imp1_amount = 0.0
-        for code, qty in import_quantities.items():
-            p = prod_map[code]
-            unit_price = p.standard_price * 0.75  # Giá nhập khoảng 75% giá chuẩn
-            subtotal = unit_price * qty
-            total_imp1_amount += subtotal
-
-            # Chi tiết phiếu nhập
-            db.add(
-                ImportNoteDetail(
-                    import_note_id=imp1.id,
-                    product_id=p.id,
-                    quantity=qty,
-                    unit_price=unit_price,
-                    subtotal=subtotal,
-                )
-            )
-            # Tăng tồn kho
-            p.current_stock += qty
-
-            # Ghi thẻ kho
-            db.add(
-                StockLedger(
-                    product_id=p.id,
-                    transaction_type="IMPORT",
-                    reference_code=imp1.code,
-                    quantity_change=qty,
-                    balance_after=p.current_stock,
-                    created_by=thukho_user.id,
-                    transaction_date=init_date,
-                    note="Nhập hàng khởi đầu đợt 1",
-                )
-            )
-
-        imp1.total_amount = total_imp1_amount
-        db.commit()
-
-        # -------------------------------------------------------------
-        # Đợt 2: Các giao dịch xuất hàng bình thường (Từ ngày 45 đến ngày 10 trước)
-        # -------------------------------------------------------------
         customers = [
-            "Công ty CP Truyền Thông Alpha",
             "Trường Đại học Công nghệ FPT",
+            "Hệ thống CyberCore Gaming Stadium",
+            "Công ty Cổ phần Truyền thông & Công nghệ Alpha",
             "Văn phòng Luật sư Nhân Đức",
-            "Cửa hàng Tin học Nguyễn Kim",
-            "Hệ thống Phòng Net CyberCore",
+            "Cửa hàng Bán lẻ Tin học Nguyễn Kim",
+            "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)",
+            "Công ty Cổ phần Phần mềm VTI Solutions",
+            "Viện Đào tạo Quốc tế Kent",
+            "Chuỗi Cafe Công nghệ The Workshop",
+            "Tập đoàn Bất động sản Đất Việt",
+            "Công ty TNHH Kỹ thuật Cơ điện Sao Việt",
+            "Khách hàng Bán lẻ & Đối tác Doanh nghiệp",
+            "Khách hàng Đặt hàng Online (Giao nhanh)",
         ]
 
-        # Kịch bản xuất cho SP001: Xuất 46 cái trong 30 ngày qua để tồn kho còn đúng 4 chiếc (4 < min_stock 15)
-        # Xuất rải rác:
+        def record_import(code: str, sup_code: str, note_date: datetime, items: list, note_text: str, status: str = "COMPLETED"):
+            imp = ImportNote(
+                code=code,
+                supplier_id=sup_map[sup_code].id,
+                created_by=thukho_user.id,
+                note_date=note_date,
+                total_amount=0.0,
+                status=status,
+                note=note_text,
+            )
+            db.add(imp)
+            db.flush()
+
+            total_amount = 0.0
+            for sku, qty, unit_price in items:
+                p = prod_map[sku]
+                subtotal = float(qty * unit_price)
+                total_amount += subtotal
+                db.add(
+                    ImportNoteDetail(
+                        import_note_id=imp.id,
+                        product_id=p.id,
+                        quantity=qty,
+                        unit_price=unit_price,
+                        subtotal=subtotal,
+                    )
+                )
+                if status == "COMPLETED":
+                    p.current_stock += qty
+                    db.add(
+                        StockLedger(
+                            product_id=p.id,
+                            transaction_type="IMPORT",
+                            reference_code=imp.code,
+                            quantity_change=qty,
+                            balance_after=p.current_stock,
+                            created_by=thukho_user.id,
+                            transaction_date=note_date,
+                            note=f"Nhập kho từ {sup_map[sup_code].name}",
+                        )
+                    )
+            imp.total_amount = total_amount
+            return imp
+
+        def record_export(code: str, recipient: str, note_date: datetime, items: list, note_text: str, status: str = "COMPLETED"):
+            exp = ExportNote(
+                code=code,
+                recipient_name=recipient,
+                created_by=thukho_user.id,
+                note_date=note_date,
+                total_amount=0.0,
+                status=status,
+                note=note_text,
+            )
+            db.add(exp)
+            db.flush()
+
+            total_amount = 0.0
+            for sku, requested_qty in items:
+                if sku == "SP003":  # Kịch bản DEAD STOCK: tuyệt đối không xuất!
+                    continue
+                p = prod_map[sku]
+                price = p.standard_price
+
+                # Khống chế số lượng để không bao giờ bị âm kho
+                safe_margin = 4 if sku == "SP001" else 1
+                qty_can_export = max(0, p.current_stock - safe_margin)
+                actual_qty = min(requested_qty, qty_can_export)
+
+                if actual_qty > 0:
+                    subtotal = float(actual_qty * price)
+                    total_amount += subtotal
+                    db.add(
+                        ExportNoteDetail(
+                            export_note_id=exp.id,
+                            product_id=p.id,
+                            quantity=actual_qty,
+                            unit_price=price,
+                            subtotal=subtotal,
+                        )
+                    )
+                    if status == "COMPLETED":
+                        p.current_stock -= actual_qty
+                        db.add(
+                            StockLedger(
+                                product_id=p.id,
+                                transaction_type="EXPORT",
+                                reference_code=exp.code,
+                                quantity_change=-actual_qty,
+                                balance_after=p.current_stock,
+                                created_by=thukho_user.id,
+                                transaction_date=note_date,
+                                note=f"Xuất kho cho {recipient}",
+                            )
+                        )
+            exp.total_amount = total_amount
+            return exp
+
+        # ---------------------------------------------------------------------
+        # THÁNG 5/2026: ĐẠI NHẬP KHO KHAI TRƯƠNG & XUẤT ĐƠN ĐẦU TIÊN
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 05/2026...")
+        # Lô 1: FPT Shop (Điện thoại, Laptop, iMac)
+        imp_items_05_1 = []
+        for i in range(23, 50):
+            sku = f"SP{i:03d}"
+            p = prod_map[sku]
+            qty = 10 if p.standard_price >= 20000000 else 18
+            imp_items_05_1.append((sku, qty, round(p.standard_price * 0.78, -3)))
+        record_import("PN-202605-001", "NCC_FPTSHOP", datetime(2026, 5, 20, 8, 30), imp_items_05_1, "Nhập kiện hàng công nghệ cao cấp FPT Shop đợt khai trương")
+
+        # Lô 2: Viễn Đông (Linh kiện, Bàn phím Akko, Chuột G304, Cáp VGA HDMI)
+        imp_items_05_2 = [
+            ("SP001", 50, 710000.0),  # Bàn phím Akko: Nhập ban đầu 50 cái
+            ("SP002", 80, 560000.0),  # Chuột G304: Nhập ban đầu 80 cái
+            ("SP003", 60, 60000.0),   # Cáp VGA to HDMI: Nhập 60 sợi (Sẽ giữ nguyên không xuất)
+        ]
+        for i in range(4, 23):
+            sku = f"SP{i:03d}"
+            p = prod_map[sku]
+            qty = 25 if p.standard_price >= 2000000 else 45
+            imp_items_05_2.append((sku, qty, round(p.standard_price * 0.75, -3)))
+        record_import("PN-202605-002", "NCC_VIENDONG", datetime(2026, 5, 21, 9, 15), imp_items_05_2, "Nhập kho linh kiện PC, gaming gear & phụ kiện Viễn Đông")
+
+        # Lô 3: Phong Vũ (Phụ kiện, màn hình, tai nghe SP050 -> SP076)
+        imp_items_05_3 = []
+        for i in range(50, 77):
+            sku = f"SP{i:03d}"
+            p = prod_map[sku]
+            qty = 20 if p.standard_price >= 2000000 else 40
+            imp_items_05_3.append((sku, qty, round(p.standard_price * 0.76, -3)))
+        record_import("PN-202605-003", "NCC_PHONGVU", datetime(2026, 5, 22, 14, 0), imp_items_05_3, "Nhập kiện thiết bị ngoại vi, màn hình đồ họa Phong Vũ")
+
+        # Xuất hàng cuối tháng 5 (5 phiếu xuất)
+        record_export("PX-202605-001", "Cửa hàng Bán lẻ Tin học Nguyễn Kim", datetime(2026, 5, 24, 10, 0), [
+            ("SP001", 6), ("SP002", 4), ("SP017", 8), ("SP050", 5), ("SP027", 2)
+        ], "Xuất cung ứng đại lý Nguyễn Kim đợt 1")
+
+        record_export("PX-202605-002", "Công ty Cổ phần Truyền thông & Công nghệ Alpha", datetime(2026, 5, 26, 15, 30), [
+            ("SP004", 4), ("SP005", 5), ("SP006", 6), ("SP036", 3), ("SP047", 2)
+        ], "Trang bị phòng làm việc bộ phận Media & Kỹ thuật")
+
+        record_export("PX-202605-003", "Trường Đại học Công nghệ FPT", datetime(2026, 5, 28, 11, 20), [
+            ("SP001", 4), ("SP002", 3), ("SP007", 3), ("SP008", 4), ("SP016", 15)
+        ], "Bổ sung thiết bị phòng lab mạng sinh viên")
+
+        record_export("PX-202605-004", "Văn phòng Luật sư Nhân Đức", datetime(2026, 5, 29, 16, 45), [
+            ("SP036", 2), ("SP017", 4), ("SP020", 3), ("SP073", 5)
+        ], "Cung cấp laptop & phụ kiện văn phòng công chứng")
+
+        record_export("PX-202605-005", "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", datetime(2026, 5, 31, 17, 0), [
+            ("SP023", 2), ("SP034", 1), ("SP010", 3), ("SP066", 4)
+        ], "Đơn bán lẻ & khách hàng doanh nghiệp cuối tháng")
+
+        # ---------------------------------------------------------------------
+        # THÁNG 6/2026: VẬN HÀNH ĐỀU ĐẶN ĐẦU HÈ
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 06/2026...")
+        record_import("PN-202606-001", "NCC_ACHAU", datetime(2026, 6, 5, 9, 0), [
+            ("SP007", 15, 940000.0), ("SP008", 20, 340000.0), ("SP012", 10, 1010000.0), ("SP016", 50, 48000.0)
+        ], "Nhập bổ sung thiết bị mạng cáp quang Á Châu")
+
+        record_import("PN-202606-002", "NCC_CELLPHONES", datetime(2026, 6, 14, 10, 30), [
+            ("SP066", 25, 440000.0), ("SP067", 20, 370000.0), ("SP068", 40, 140000.0), ("SP070", 30, 440000.0)
+        ], "Nhập phụ kiện sạc nhanh & pin dự phòng CellphoneS")
+
+        record_import("PN-202606-003", "NCC_ANPHAT", datetime(2026, 6, 22, 14, 15), [
+            ("SP005", 20, 1650000.0), ("SP006", 25, 860000.0), ("SP011", 15, 1050000.0), ("SP015", 20, 285000.0)
+        ], "Nhập bổ sung linh kiện nâng cấp PC An Phát")
+
+        # 12 phiếu xuất tháng 6
+        for day, cust, p1_qty, p2_qty in [
+            (2, "Hệ thống CyberCore Gaming Stadium", 4, 2),
+            (5, "Công ty Cổ phần Phần mềm VTI Solutions", 3, 2),
+            (7, "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)", 0, 1),
+            (10, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 3, 2),
+            (13, "Viện Đào tạo Quốc tế Kent", 2, 1),
+            (16, "Công ty Cổ phần Truyền thông & Công nghệ Alpha", 3, 1),
+            (19, "Chuỗi Cafe Công nghệ The Workshop", 0, 1),
+            (22, "Tập đoàn Bất động sản Đất Việt", 0, 0),
+            (24, "Trường Đại học Công nghệ FPT", 0, 0),
+            (26, "Khách hàng Đặt hàng Online (Giao nhanh)", 0, 0),
+            (28, "Công ty TNHH Kỹ thuật Cơ điện Sao Việt", 0, 0),
+            (30, "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", 0, 0),
+        ]:
+            exp_code = f"PX-202606-{day:02d}"
+            exp_items = []
+            if p1_qty > 0:
+                exp_items.append(("SP001", p1_qty))
+            if p2_qty > 0:
+                exp_items.append(("SP002", p2_qty))
+            # Thêm ngẫu nhiên một số sản phẩm khác
+            exp_items.extend([
+                (f"SP{random.randint(4, 22):03d}", random.randint(1, 3)),
+                (f"SP{random.randint(23, 49):03d}", random.randint(1, 2)),
+                (f"SP{random.randint(50, 76):03d}", random.randint(2, 5)),
+            ])
+            record_export(exp_code, cust, datetime(2026, 6, day, random.randint(9, 16), random.randint(10, 50)), exp_items, f"Xuất kho định kỳ ngày {day:02d}/06")
+
+        # ---------------------------------------------------------------------
+        # THÁNG 7/2026: NÂNG CẤP VÀ DUY TRÌ HỆ THỐNG
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 07/2026...")
+        record_import("PN-202607-001", "NCC_GEARVN", datetime(2026, 7, 4, 8, 45), [
+            ("SP010", 15, 1390000.0), ("SP051", 25, 260000.0), ("SP052", 15, 970000.0), ("SP055", 8, 6740000.0)
+        ], "Nhập thiết bị Gaming Gear & Màn hình GearVN")
+
+        record_import("PN-202607-002", "NCC_SAIGON", datetime(2026, 7, 16, 11, 0), [
+            ("SP004", 12, 4125000.0), ("SP017", 40, 68000.0), ("SP018", 35, 90000.0), ("SP020", 25, 120000.0)
+        ], "Nhập thiết bị ngoại vi văn phòng Tổng đại lý Sài Gòn")
+
+        record_import("PN-202607-003", "NCC_TGDD", datetime(2026, 7, 26, 15, 15), [
+            ("SP025", 8, 10910000.0), ("SP027", 10, 7010000.0), ("SP030", 12, 4280000.0), ("SP032", 10, 4670000.0)
+        ], "Nhập điện thoại thông minh phổ thông Thế Giới Di Động")
+
+        # 14 phiếu xuất tháng 7
+        for day, cust, p1_qty, p2_qty in [
+            (3, "Hệ thống CyberCore Gaming Stadium", 3, 2),
+            (5, "Công ty Cổ phần Phần mềm VTI Solutions", 2, 2),
+            (8, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 3, 1),
+            (11, "Trường Đại học Công nghệ FPT", 2, 1),
+            (14, "Công ty Cổ phần Truyền thông & Công nghệ Alpha", 2, 1),
+            (17, "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)", 0, 1),
+            (19, "Văn phòng Luật sư Nhân Đức", 1, 0),
+            (21, "Viện Đào tạo Quốc tế Kent", 1, 1),
+            (23, "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", 1, 0),
+            (25, "Chuỗi Cafe Công nghệ The Workshop", 0, 0),
+            (27, "Tập đoàn Bất động sản Đất Việt", 0, 0),
+            (29, "Công ty TNHH Kỹ thuật Cơ điện Sao Việt", 0, 0),
+            (30, "Khách hàng Đặt hàng Online (Giao nhanh)", 0, 0),
+            (31, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 0, 0),
+        ]:
+            exp_code = f"PX-202607-{day:02d}"
+            exp_items = []
+            if p1_qty > 0:
+                exp_items.append(("SP001", p1_qty))
+            if p2_qty > 0:
+                exp_items.append(("SP002", p2_qty))
+            exp_items.extend([
+                (f"SP{random.randint(4, 22):03d}", random.randint(1, 4)),
+                (f"SP{random.randint(23, 49):03d}", random.randint(1, 2)),
+                (f"SP{random.randint(50, 76):03d}", random.randint(2, 6)),
+            ])
+            record_export(exp_code, cust, datetime(2026, 7, day, random.randint(9, 16), random.randint(10, 50)), exp_items, f"Xuất kho định kỳ ngày {day:02d}/07")
+
+        # ---------------------------------------------------------------------
+        # THÁNG 8/2026: ĐỢT CAO ĐIỂM "BACK TO SCHOOL" (MÙA TỰU TRƯỜNG)
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 08/2026 (Mùa Tựu Trường Back to School)...")
+        # Nhập lớn đợt tựu trường: SP001 nhập thêm 30 chiếc, SP002 nhập thêm 60 chiếc
+        record_import("PN-202608-001", "NCC_VIENDONG", datetime(2026, 8, 2, 8, 30), [
+            ("SP001", 30, 710000.0),  # Nhập thêm 30 bàn phím Akko
+            ("SP002", 60, 560000.0),  # Nhập thêm 60 chuột Logitech G304
+            ("SP005", 25, 1650000.0),
+            ("SP006", 30, 860000.0),
+        ], "Đại nhập hàng phụ kiện & linh kiện Viễn Đông đón mùa tựu trường")
+
+        record_import("PN-202608-002", "NCC_FPTSHOP", datetime(2026, 8, 8, 10, 0), [
+            ("SP034", 8, 21830000.0), ("SP036", 15, 11690000.0), ("SP038", 12, 10910000.0), ("SP044", 15, 10130000.0)
+        ], "Nhập đợt lớn Laptop sinh viên & nhân viên văn phòng FPT Shop")
+
+        record_import("PN-202608-003", "NCC_PHONGVU", datetime(2026, 8, 16, 13, 45), [
+            ("SP004", 15, 4125000.0), ("SP054", 20, 2090000.0), ("SP057", 20, 1860000.0), ("SP017", 50, 68000.0)
+        ], "Nhập màn hình học tập và chuột văn phòng giá rẻ Phong Vũ")
+
+        record_import("PN-202608-004", "NCC_ANPHAT", datetime(2026, 8, 25, 15, 0), [
+            ("SP046", 6, 17930000.0), ("SP047", 10, 8570000.0), ("SP048", 10, 7010000.0), ("SP011", 15, 1050000.0)
+        ], "Nhập PC Gaming & PC Văn phòng đồng bộ An Phát")
+
+        # 16 phiếu xuất tháng 8 (Doanh số xuất bán tăng mạnh)
+        for day, cust, p1_qty, p2_qty in [
+            (2, "Trường Đại học Công nghệ FPT", 3, 2),
+            (4, "Viện Đào tạo Quốc tế Kent", 2, 2),
+            (6, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 2, 1),
+            (9, "Công ty Cổ phần Phần mềm VTI Solutions", 2, 1),
+            (12, "Hệ thống CyberCore Gaming Stadium", 2, 1),
+            (14, "Công ty Cổ phần Truyền thông & Công nghệ Alpha", 1, 1),
+            (17, "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)", 0, 1),
+            (19, "Văn phòng Luật sư Nhân Đức", 1, 0),
+            (21, "Tập đoàn Bất động sản Đất Việt", 1, 0),
+            (23, "Chuỗi Cafe Công nghệ The Workshop", 1, 1),
+            (25, "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", 1, 0),
+            (27, "Khách hàng Đặt hàng Online (Giao nhanh)", 1, 0),
+            (28, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 1, 0),
+            (29, "Trường Đại học Công nghệ FPT", 0, 0),
+            (30, "Công ty TNHH Kỹ thuật Cơ điện Sao Việt", 0, 0),
+            (31, "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", 0, 0),
+        ]:
+            exp_code = f"PX-202608-{day:02d}"
+            exp_items = []
+            if p1_qty > 0:
+                exp_items.append(("SP001", p1_qty))
+            if p2_qty > 0:
+                exp_items.append(("SP002", p2_qty))
+            exp_items.extend([
+                (f"SP{random.randint(4, 22):03d}", random.randint(2, 5)),
+                (f"SP{random.randint(23, 49):03d}", random.randint(1, 3)),
+                (f"SP{random.randint(50, 76):03d}", random.randint(3, 8)),
+            ])
+            record_export(exp_code, cust, datetime(2026, 8, day, random.randint(9, 16), random.randint(10, 50)), exp_items, f"Xuất kho phục vụ mùa tựu trường ngày {day:02d}/08")
+
+        # ---------------------------------------------------------------------
+        # THÁNG 9/2026: MÙA CÔNG NGHỆ THU 2026
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 09/2026 (Mùa Công Nghệ Thu 2026)...")
+        record_import("PN-202609-001", "NCC_FPTSHOP", datetime(2026, 9, 5, 9, 30), [
+            ("SP023", 10, 16210000.0), ("SP024", 8, 13250000.0), ("SP028", 5, 31970000.0), ("SP029", 8, 12470000.0)
+        ], "Nhập thiết bị điện thoại cao cấp mùa thu FPT Shop")
+
+        record_import("PN-202609-002", "NCC_CELLPHONES", datetime(2026, 9, 14, 11, 15), [
+            ("SP068", 30, 140000.0), ("SP069", 25, 380000.0), ("SP070", 25, 460000.0), ("SP071", 30, 770000.0)
+        ], "Nhập ốp lưng và phụ kiện chính hãng Apple CellphoneS")
+
+        record_import("PN-202609-003", "NCC_GEARVN", datetime(2026, 9, 21, 14, 0), [
+            ("SP046", 5, 17930000.0), ("SP039", 6, 15590000.0), ("SP043", 5, 19490000.0), ("SP055", 6, 7010000.0)
+        ], "Nhập PC Gaming và Laptop đồ họa GearVN")
+
+        # 16 phiếu xuất tháng 9
+        for day, cust, p1_qty, p2_qty in [
+            (2, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 2, 1),
+            (4, "Công ty Cổ phần Truyền thông & Công nghệ Alpha", 2, 1),
+            (7, "Hệ thống CyberCore Gaming Stadium", 2, 1),
+            (10, "Trường Đại học Công nghệ FPT", 1, 1),
+            (13, "Công ty Cổ phần Phần mềm VTI Solutions", 1, 1),
+            (16, "Viện Đào tạo Quốc tế Kent", 1, 1),
+            (18, "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)", 1, 1),
+            (21, "Chuỗi Cafe Công nghệ The Workshop", 1, 1),
+            (24, "Văn phòng Luật sư Nhân Đức", 1, 0),
+            (26, "Tập đoàn Bất động sản Đất Việt", 0, 0),
+            (27, "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", 0, 0),
+            (28, "Công ty TNHH Kỹ thuật Cơ điện Sao Việt", 0, 0),
+            (29, "Khách hàng Đặt hàng Online (Giao nhanh)", 0, 0),
+            (30, "Cửa hàng Bán lẻ Tin học Nguyễn Kim", 0, 0),
+        ]:
+            exp_code = f"PX-202609-{day:02d}"
+            exp_items = []
+            if p1_qty > 0:
+                exp_items.append(("SP001", p1_qty))
+            if p2_qty > 0:
+                exp_items.append(("SP002", p2_qty))
+            exp_items.extend([
+                (f"SP{random.randint(4, 22):03d}", random.randint(1, 3)),
+                (f"SP{random.randint(23, 49):03d}", random.randint(1, 2)),
+                (f"SP{random.randint(50, 76):03d}", random.randint(2, 5)),
+            ])
+            record_export(exp_code, cust, datetime(2026, 9, day, random.randint(9, 16), random.randint(10, 50)), exp_items, f"Xuất hàng bán tháng 9 ngày {day:02d}/09")
+
+        # ---------------------------------------------------------------------
+        # THÁNG 10/2026 (01/10 ĐẾN 20/10/2026 - THÁNG HIỆN HÀNH): TẠO CÁC TÌNH HUỐNG AI
+        # ---------------------------------------------------------------------
+        print("  -> Đang sinh dữ liệu Tháng 10/2026 (Tháng hiện hành & Kịch bản AI)...")
+        record_import("PN-202610-001", "NCC_ANPHAT", datetime(2026, 10, 3, 9, 0), [
+            ("SP005", 10, 1650000.0), ("SP006", 15, 860000.0), ("SP021", 20, 98000.0)
+        ], "Nhập linh kiện bảo dưỡng quý 4 An Phát")
+
+        record_import("PN-202610-002", "NCC_HOANGHA", datetime(2026, 10, 12, 10, 30), [
+            ("SP064", 4, 6620000.0), ("SP065", 10, 770000.0), ("SP076", 12, 538000.0)
+        ], "Nhập bổ sung thiết bị âm thanh Hoàng Hà Mobile")
+
+        # Phiếu nhập gần nhất ngày 20/10/2026 (hôm nay)
+        record_import("PN-202610-003", "NCC_VIENDONG", datetime(2026, 10, 20, 8, 15), [
+            ("SP019", 10, 115000.0), ("SP020", 15, 120000.0)
+        ], "Nhập phụ kiện mở rộng văn phòng Viễn Đông")
+
+        # Xuất hàng đầu tháng 10:
+        # SP001 xuất đều để đến ngày 20/10 tồn kho chỉ còn đúng 4 chiếc (4 < min_stock 15)
+        # SP002 xuất bình thường từ 01/10 -> 13/10 (chỉ 4 chiếc)
+        record_export("PX-202610-001", "Cửa hàng Bán lẻ Tin học Nguyễn Kim", datetime(2026, 10, 2, 10, 15), [
+            ("SP001", 3), ("SP002", 2), ("SP004", 2), ("SP050", 4)
+        ], "Xuất phụ kiện bán lẻ Nguyễn Kim")
+
+        record_export("PX-202610-002", "Công ty Cổ phần Truyền thông & Công nghệ Alpha", datetime(2026, 10, 5, 14, 0), [
+            ("SP001", 3), ("SP002", 2), ("SP005", 2), ("SP036", 1)
+        ], "Xuất thiết bị thay thế cho bộ phận dựng video")
+
+        record_export("PX-202610-003", "Văn phòng Luật sư Nhân Đức", datetime(2026, 10, 8, 11, 30), [
+            ("SP017", 4), ("SP020", 3), ("SP068", 5)
+        ], "Cung cấp cáp kết nối & chuột văn phòng")
+
+        record_export("PX-202610-004", "Ngân hàng TMCP Phương Nam (Chi nhánh số 3)", datetime(2026, 10, 11, 15, 45), [
+            ("SP008", 2), ("SP016", 10), ("SP073", 6)
+        ], "Bảo trì hệ thống mạng nội bộ chi nhánh")
+
+        # ---------------------------------------------------------------------
+        # KỊCH BẢN ĐỘT BIẾN TUẦN GẦN NHẤT (14/10 -> 20/10):
+        # SP002: Xuất 20 chiếc (ngày 17/10) và 15 chiếc (ngày 19/10) -> Tổng 35 chiếc tuần này!
+        # Tăng trưởng > 200% so với tuần trước -> AI kích hoạt SURGE_EXPORT!
+        # ---------------------------------------------------------------------
+        record_export("PX-202610-005", "Trường Đại học Công nghệ FPT", datetime(2026, 10, 17, 9, 30), [
+            ("SP002", 20),  # Đột biến 1
+            ("SP007", 2),
+            ("SP016", 10),
+        ], "Trường Đại học Công nghệ FPT (Trang bị mới phòng máy thực hành chuyên ngành)")
+
+        record_export("PX-202610-006", "Hệ thống CyberCore Gaming Stadium", datetime(2026, 10, 19, 14, 20), [
+            ("SP002", 15),  # Đột biến 2
+            ("SP010", 4),
+            ("SP018", 10),
+        ], "Hệ thống Phòng Net CyberCore (Thay thế toàn bộ dàn chuột phòng VIP)")
+
+        # Phiếu xuất hôm nay 20/10/2026
+        record_export("PX-202610-007", "Khách hàng Bán lẻ & Đối tác Doanh nghiệp", datetime(2026, 10, 20, 10, 0), [
+            ("SP023", 1), ("SP034", 1), ("SP070", 2)
+        ], "Đơn giao hàng công nghệ trong ngày")
+
+        # Tinh chỉnh tồn kho cuối cùng cho SP001 về đúng 4 chiếc nếu còn lệch
         p1 = prod_map["SP001"]
-        export_dates_sp1 = [
-            (now - timedelta(days=28), 10),
-            (now - timedelta(days=20), 12),
-            (now - timedelta(days=12), 14),
-            (now - timedelta(days=4), 10),
-        ]
-        for idx, (exp_date, exp_qty) in enumerate(export_dates_sp1, start=1):
-            exp_note = ExportNote(
-                code=f"PX-SEED-SP1-0{idx}",
-                recipient_name=random.choice(customers),
-                created_by=thukho_user.id,
-                note_date=exp_date,
-                total_amount=p1.standard_price * exp_qty,
-                status="COMPLETED",
-                note=f"Xuất bán bàn phím Akko đợt {idx}",
-            )
-            db.add(exp_note)
-            db.flush()
-            db.add(
-                ExportNoteDetail(
-                    export_note_id=exp_note.id,
-                    product_id=p1.id,
-                    quantity=exp_qty,
-                    unit_price=p1.standard_price,
-                    subtotal=p1.standard_price * exp_qty,
-                )
-            )
-            p1.current_stock -= exp_qty
-            db.add(
-                StockLedger(
-                    product_id=p1.id,
-                    transaction_type="EXPORT",
-                    reference_code=exp_note.code,
-                    quantity_change=-exp_qty,
-                    balance_after=p1.current_stock,
-                    created_by=thukho_user.id,
-                    transaction_date=exp_date,
-                    note=f"Xuất bán đơn lẻ đợt {idx}",
-                )
-            )
+        if p1.current_stock > 4:
+            adjust_qty = p1.current_stock - 4
+            record_export("PX-202610-008", "Cửa hàng Bán lẻ Tin học Nguyễn Kim", datetime(2026, 10, 18, 16, 0), [
+                ("SP001", adjust_qty)
+            ], "Xuất bổ sung hoàn tất hợp đồng cung ứng bàn phím Akko")
 
-        # Kịch bản xuất cho SP002 (Chuột Logitech G304):
-        # 30 ngày trước: xuất chỉ 5 chiếc
-        # Trong 5 ngày gần đây: xuất đột biến 20 chiếc (ngày -3) và 15 chiếc (ngày -1) -> Tổng 35 chiếc tuần này!
-        p2 = prod_map["SP002"]
-        # Xuất bình thường trước đó
-        exp_old = ExportNote(
-            code="PX-SEED-SP2-OLD",
-            recipient_name="Văn phòng Luật sư Nhân Đức",
-            created_by=thukho_user.id,
-            note_date=now - timedelta(days=25),
-            total_amount=p2.standard_price * 5,
-            status="COMPLETED",
-            note="Xuất chuột Logitech thường kỳ",
-        )
-        db.add(exp_old)
-        db.flush()
-        db.add(ExportNoteDetail(export_note_id=exp_old.id, product_id=p2.id, quantity=5, unit_price=p2.standard_price, subtotal=p2.standard_price * 5))
-        p2.current_stock -= 5
-        db.add(StockLedger(product_id=p2.id, transaction_type="EXPORT", reference_code=exp_old.code, quantity_change=-5, balance_after=p2.current_stock, created_by=thukho_user.id, transaction_date=now - timedelta(days=25)))
+        # Tinh chỉnh một vài sản phẩm khác để danh sách gợi ý nhập đa dạng (SP023, SP036, SP050)
+        p_ip16 = prod_map["SP023"]
+        if p_ip16.current_stock > 2:
+            record_export("PX-202610-009", "Khách hàng Đặt hàng Online (Giao nhanh)", datetime(2026, 10, 19, 11, 0), [
+                ("SP023", p_ip16.current_stock - 2)
+            ], "Xuất giao nhanh iPhone 16 cho khách hàng VIP")
 
-        # Xuất đột biến tuần gần nhất
-        surge_exports = [
-            (now - timedelta(days=3), 20, "Trường Đại học Công nghệ FPT (Trang bị phòng máy mới)"),
-            (now - timedelta(days=1), 15, "Hệ thống Phòng Net CyberCore (Thay thế toàn bộ dàn chuột)"),
-        ]
-        for idx, (s_date, s_qty, s_reason) in enumerate(surge_exports, start=1):
-            s_note = ExportNote(
-                code=f"PX-SEED-SURGE-0{idx}",
-                recipient_name=s_reason.split(" (")[0],
-                created_by=thukho_user.id,
-                note_date=s_date,
-                total_amount=p2.standard_price * s_qty,
-                status="COMPLETED",
-                note=s_reason,
-            )
-            db.add(s_note)
-            db.flush()
-            db.add(ExportNoteDetail(export_note_id=s_note.id, product_id=p2.id, quantity=s_qty, unit_price=p2.standard_price, subtotal=p2.standard_price * s_qty))
-            p2.current_stock -= s_qty
-            db.add(StockLedger(product_id=p2.id, transaction_type="EXPORT", reference_code=s_note.code, quantity_change=-s_qty, balance_after=p2.current_stock, created_by=thukho_user.id, transaction_date=s_date, note="Xuất đột biến quy mô lớn"))
+        p_dell = prod_map["SP036"]
+        if p_dell.current_stock > 3:
+            record_export("PX-202610-010", "Viện Đào tạo Quốc tế Kent", datetime(2026, 10, 18, 14, 0), [
+                ("SP036", p_dell.current_stock - 3)
+            ], "Xuất trang bị máy tính Dell Inspiron phòng học")
 
-        # Kịch bản SP003: TUYỆT ĐỐI KHÔNG CÓ PHIẾU XUẤT NÀO! (Tồn nguyên 60 chiếc sau 55 ngày -> DEAD STOCK)
-
-        # Xuất rải rác một số mặt hàng khác để dữ liệu phong phú
-        other_skus = ["SP004", "SP005", "SP006", "SP007", "SP010", "SP016", "SP017"]
-        for idx, sku in enumerate(other_skus, start=1):
-            item = prod_map[sku]
-            qty_out = min(item.current_stock // 3, 5)
-            if qty_out > 0:
-                e_date = now - timedelta(days=random.randint(5, 40))
-                e_note = ExportNote(
-                    code=f"PX-SEED-GEN-{idx:02d}",
-                    recipient_name=random.choice(customers),
-                    created_by=thukho_user.id,
-                    note_date=e_date,
-                    total_amount=item.standard_price * qty_out,
-                    status="COMPLETED",
-                    note=f"Xuất hàng thương mại {item.name}",
-                )
-                db.add(e_note)
-                db.flush()
-                db.add(ExportNoteDetail(export_note_id=e_note.id, product_id=item.id, quantity=qty_out, unit_price=item.standard_price, subtotal=item.standard_price * qty_out))
-                item.current_stock -= qty_out
-                db.add(StockLedger(product_id=item.id, transaction_type="EXPORT", reference_code=e_note.code, quantity_change=-qty_out, balance_after=item.current_stock, created_by=thukho_user.id, transaction_date=e_date))
+        p_m185 = prod_map["SP050"]
+        if p_m185.current_stock > 8:
+            record_export("PX-202610-011", "Tập đoàn Bất động sản Đất Việt", datetime(2026, 10, 19, 16, 30), [
+                ("SP050", p_m185.current_stock - 8)
+            ], "Cung ứng chuột không dây văn phòng Đất Việt")
 
         db.commit()
-        print("[SUCCESS] Hoan tat nap du lieu mau 60 ngay thanh cong!")
-        print(f"   - SP001 (Ban chay): Ton hien tai = {prod_map['SP001'].current_stock} (Min: {prod_map['SP001'].min_stock})")
-        print(f"   - SP002 (Dot bien): Ton hien tai = {prod_map['SP002'].current_stock} (Da xuat 35 chiec tuan nay)")
-        print(f"   - SP003 (Ton chet): Ton hien tai = {prod_map['SP003'].current_stock} (0 giao dich xuat trong 55 ngay)")
+
+        # =====================================================================
+        # 6. LÀM SẠCH VÀ CHUẨN BỊ CACHE AI
+        # =====================================================================
+        print("[INFO] 6. Dọn dẹp cache AI để đồng bộ dấu vết dữ liệu mới...")
+        cache_file = Path(__file__).resolve().parent / "data" / "ai_cache.json"
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+                print("   -> Đã dọn sạch cache cũ (ai_cache.json).")
+            except Exception as e:
+                print(f"   -> Không thể xóa cache: {e}")
+
+        # Thống kê kết quả
+        total_imp = db.query(ImportNote).count()
+        total_exp = db.query(ExportNote).count()
+        total_ledger = db.query(StockLedger).count()
+
+        print("\n===============================================================================")
+        print("          NẠP DỮ LIỆU MẪU ENTERPRISE 5 THÁNG HOÀN TẤT THÀNH CÔNG!")
+        print("===============================================================================")
+        print(f" - Tổng số Phiếu Nhập Kho qua 5 tháng:  {total_imp} phiếu")
+        print(f" - Tổng số Phiếu Xuất Kho qua 5 tháng:  {total_exp} phiếu")
+        print(f" - Tổng số dòng Thẻ Kho (StockLedger): {total_ledger} bản ghi (Chuẩn ACID)")
+        print(f" - Trạng thái kịch bản AI cốt lõi:")
+        print(f"   * SP001 (Bàn phím Akko): Tồn = {prod_map['SP001'].current_stock} / Min = {prod_map['SP001'].min_stock} (Bán chạy, cạn kho -> Gợi ý nhập HIGH)")
+        print(f"   * SP002 (Chuột G304):    Tồn = {prod_map['SP002'].current_stock} (Đã xuất 35 chiếc tuần qua -> Đột biến SURGE_EXPORT >200%)")
+        print(f"   * SP003 (Cáp VGA-HDMI):  Tồn = {prod_map['SP003'].current_stock} (0 lượt xuất trong suốt 153 ngày -> DEAD_STOCK)")
+        print(f"   * SP023 (iPhone 16):     Tồn = {prod_map['SP023'].current_stock} / Min = {prod_map['SP023'].min_stock} (Cận tồn tối thiểu)")
+        print(f"   * SP036 (Dell Inspiron): Tồn = {prod_map['SP036'].current_stock} / Min = {prod_map['SP036'].min_stock} (Cận tồn tối thiểu)")
+        print(f"   * SP050 (Logitech M185): Tồn = {prod_map['SP050'].current_stock} / Min = {prod_map['SP050'].min_stock} (Cận tồn tối thiểu)")
+        print("===============================================================================\n")
 
     except Exception as e:
         db.rollback()
-        print(f"[ERROR] Loi khi nap du lieu: {e}")
+        print(f"[ERROR] Thất bại khi nạp dữ liệu: {e}")
+        import traceback
+        traceback.print_exc()
         raise
     finally:
         db.close()
-
 
 
 if __name__ == "__main__":

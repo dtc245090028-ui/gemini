@@ -1,7 +1,7 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 *.so
 .Python
 env/
@@ -27,15 +27,34 @@ wheels/
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Temporary backups
+*.bak
+
+# Quarantine folder
+_quarantine/
+test_write.txt
+
+# Testing & Linting
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*results.json
+*_results.json
+backend/tests/performance/results/*.csv
+backend/tests/performance/results/*.json
+
+# Logs
+backend/logs/
+*.log
 
 # Environment
 .env
 !.env.example
-
-# Pytest / Testing
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Node / Frontend
 node_modules/
@@ -51,4 +70,3 @@ secrets/
 
 backend/warehouse.db
 backend/.env
-
