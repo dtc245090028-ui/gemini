@@ -26,8 +26,9 @@ import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
+import { stockEvents } from '../utils/stockEvents';
 
-export const Products = ({ onSelectProductLedger }) => {
+export const Products = ({ onSelectProductLedger, isActive = true }) => {
   const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -37,6 +38,7 @@ export const Products = ({ onSelectProductLedger }) => {
 
   // Synchronous submit lock Ref
   const isSubmittingRef = useRef(false);
+  const isStaleRef = useRef(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -106,8 +108,8 @@ export const Products = ({ onSelectProductLedger }) => {
     }
   };
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchProducts = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = {};
       if (debouncedSearch) params.search = debouncedSearch;
@@ -120,7 +122,7 @@ export const Products = ({ onSelectProductLedger }) => {
     } catch (err) {
       console.error('Lỗi tải hàng hóa:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -148,6 +150,40 @@ export const Products = ({ onSelectProductLedger }) => {
   useEffect(() => {
     fetchProducts();
   }, [debouncedSearch, selectedCategory, filterLowStock]);
+
+  // Lắng nghe biến động kho qua kênh sự kiện (Keep-Alive Sync)
+  useEffect(() => {
+    const unsubscribe = stockEvents.subscribe((event) => {
+      // 1. Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)
+      if (event.patches && Array.isArray(event.patches) && event.patches.length > 0) {
+        setProducts((prev) =>
+          prev.map((p) => {
+            const patch = event.patches.find((it) => it.id === p.id);
+            return patch && patch.current_stock !== undefined
+              ? { ...p, current_stock: patch.current_stock }
+              : p;
+          })
+        );
+      }
+
+      // 2. Đồng bộ ngầm (Stale-While-Revalidate): nếu đang xem tab thì tải ngầm êm ái, nếu đang ẩn thì đánh dấu stale
+      if (isActive) {
+        fetchProducts(true);
+      } else {
+        isStaleRef.current = true;
+      }
+    });
+
+    return unsubscribe;
+  }, [isActive, debouncedSearch, selectedCategory, filterLowStock]);
+
+  // Khi quay trở lại tab Hàng hóa & kho sau khi đã phát sinh biến động kho -> refetch ngầm tức thì
+  useEffect(() => {
+    if (isActive && isStaleRef.current) {
+      isStaleRef.current = false;
+      fetchProducts(true);
+    }
+  }, [isActive]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -616,7 +652,7 @@ export const Products = ({ onSelectProductLedger }) => {
                         <div className="leading-snug">{p.name}</div>
                         <span className="font-mono text-xs text-[var(--text-secondary)]">{p.code}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-[var(--text-secondary)] align-middle">{p.category?.name || 'Chưa phân loại'}</td>
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)] align-middle">{p.category_name || p.category?.name || 'Chưa phân loại'}</td>
                       <td className="py-3.5 px-4 text-center text-[var(--text-secondary)] align-middle">{p.unit}</td>
                       <td className="py-3.5 px-4 text-center align-middle">
                         <span

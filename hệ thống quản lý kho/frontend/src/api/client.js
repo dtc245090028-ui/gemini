@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { stockEvents } from '../utils/stockEvents';
 
 // Tạo axios instance
 const api = axios.create({
@@ -146,10 +147,12 @@ const handleAutoInvalidation = (url) => {
     invalidateCache('/import-notes');
     invalidateCache('/export-notes');
     invalidateCache('/reports');
+    stockEvents.emit({ url, type: 'TRANSACTION_MUTATED' });
   } else if (url.includes('/products')) {
     invalidateCache('/products');
     invalidateCache('/stock-ledger');
     invalidateCache('/reports');
+    stockEvents.emit({ url, type: 'PRODUCT_MUTATED' });
   } else if (url.includes('/categories')) {
     invalidateCache('/categories');
     invalidateCache('/products');
@@ -159,6 +162,7 @@ const handleAutoInvalidation = (url) => {
     invalidateCache('/products');
     invalidateCache('/stock-ledger');
     invalidateCache('/reports');
+    stockEvents.emit({ url, type: 'LEDGER_ADJUSTED' });
   }
 };
 
