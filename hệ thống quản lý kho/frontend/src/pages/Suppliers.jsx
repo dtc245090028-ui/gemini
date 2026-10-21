@@ -19,9 +19,13 @@ import Modal from '../components/Modal';
 import { draftStorage } from '../utils/draftStorage';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export const Suppliers = () => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const { confirm } = useConfirm();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const showLoader = useDelayedLoading(loading);
@@ -177,12 +181,21 @@ export const Suppliers = () => {
   };
 
   const handleDeleteSupplier = async (s) => {
-    if (!window.confirm(`Bạn có chắc muốn ngưng hợp tác với "${s.name}"?`)) return;
+    const res = await confirm({
+      title: `Ngưng hợp tác với "${s.name}"?`,
+      message: `Nhà cung cấp [${s.code}] sẽ chuyển sang trạng thái ngưng kích hoạt. Bạn vẫn có thể kích hoạt lại sau này.`,
+      confirmText: 'Ngưng hợp tác',
+      cancelText: 'Giữ lại',
+      variant: 'danger',
+    });
+    if (!res.confirmed) return;
+
     try {
       await apiClient.suppliers.delete(s.id);
+      showSuccess(`Đã ngưng hợp tác với nhà cung cấp "${s.name}" thành công!`);
       fetchSuppliers();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể xóa nhà cung cấp này');
+      showError(err.response?.data?.detail || 'Không thể thao tác nhà cung cấp này');
     }
   };
 

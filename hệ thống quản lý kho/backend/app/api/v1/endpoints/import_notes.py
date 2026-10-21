@@ -145,6 +145,7 @@ def create_new_import_note(
 )
 def cancel_existing_import_note(
     import_note_id: int,
+    reason: Optional[str] = Query(None, description="Lý do hủy phiếu nhập"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
@@ -153,5 +154,7 @@ def cancel_existing_import_note(
     Nếu hàng đã bị xuất đi dẫn đến tồn kho hiện tại không đủ để hoàn trả,
     hệ thống sẽ từ chối và hướng dẫn tạo phiếu Điều chỉnh tồn kho (Stock Adjustment).
     """
-    note = cancel_import_note(db=db, import_note_id=import_note_id, current_user_id=current_user.id)
+    note = cancel_import_note(
+        db=db, import_note_id=import_note_id, current_user_id=current_user.id, reason=reason
+    )
     return _serialize_import_note(note)

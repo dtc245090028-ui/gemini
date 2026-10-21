@@ -299,6 +299,7 @@ def cancel_import_note(
     db: Session,
     import_note_id: int,
     current_user_id: int,
+    reason: Optional[str] = None,
 ) -> ImportNote:
     """Hủy phiếu nhập kho an toàn (Phương án B kèm Guard-check chống tồn âm).
 
@@ -341,6 +342,12 @@ def cancel_import_note(
     # Thực hiện hủy an toàn
     now = datetime.now(timezone.utc)
     import_note.status = "CANCELLED"
+    if reason and reason.strip():
+        r_text = reason.strip()
+        import_note.note = f"{import_note.note or ''} [Lý do hủy: {r_text}]".strip()
+        ledger_note = f"Hoàn tác do hủy phiếu nhập {import_note.code}: {r_text}"
+    else:
+        ledger_note = f"Hoàn tác do hủy phiếu nhập {import_note.code}"
 
     for detail in import_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
@@ -372,7 +379,7 @@ def cancel_import_note(
             balance_after=new_balance,
             created_by=current_user_id,
             transaction_date=now,
-            note=f"Hoàn tác do hủy phiếu nhập {import_note.code}",
+            note=ledger_note,
         )
         db.add(ledger_entry)
 
@@ -512,6 +519,7 @@ def cancel_export_note(
     db: Session,
     export_note_id: int,
     current_user_id: int,
+    reason: Optional[str] = None,
 ) -> tuple[Optional[ExportNote], bool]:
     """Hủy phiếu xuất kho an toàn theo nghiệp vụ:
     - Nếu trạng thái là CONFIRMED (Chưa trừ kho): Xóa hoàn toàn bản ghi khỏi CSDL (không lưu vết phiếu rác).
@@ -545,6 +553,12 @@ def cancel_export_note(
     # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
     now = datetime.now(timezone.utc)
     export_note.status = "CANCELLED"
+    if reason and reason.strip():
+        r_text = reason.strip()
+        export_note.note = f"{export_note.note or ''} [Lý do hủy: {r_text}]".strip()
+        ledger_note = f"Hoàn tác do hủy phiếu xuất {export_note.code}: {r_text}"
+    else:
+        ledger_note = f"Hoàn tác do hủy phiếu xuất {export_note.code}"
 
     for detail in export_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
@@ -569,7 +583,7 @@ def cancel_export_note(
             balance_after=new_balance,
             created_by=current_user_id,
             transaction_date=now,
-            note=f"Hoàn tác do hủy phiếu xuất {export_note.code}",
+            note=ledger_note,
         )
         db.add(ledger_entry)
 
