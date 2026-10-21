@@ -300,11 +300,20 @@ Mỗi trigger dưới đây là **bắt buộc**, không tùy chọn:
 
 ---
 
-## Quy ước MASTER-ROADMAP.md
+---
 
-- Chỉ có **1 tài liệu MASTER-ROADMAP**: `docs/MASTER-ROADMAP.md`.
-- Mọi thay đổi trạng thái trong MASTER-ROADMAP phải có 1 dòng mới trong bảng
-  **"Lịch sử cập nhật"** ở cuối file (không xóa dòng cũ).
-- Khi thêm nhiệm vụ mới vào MASTER-ROADMAP, phải đồng thời thêm vào Buoc-NN.md tương ứng
-  hoặc tạo Buoc-NN.md mới — không để nhiệm vụ chỉ tồn tại ở MASTER-ROADMAP mà không có
-  spec chi tiết.
+## 12. Checklist trước khi kết luận (Báo cáo Hiệu năng & Dữ liệu)
+
+Mọi báo cáo kết quả kiểm thử tải, hiệu năng và tính toàn vẹn dữ liệu từ sau Bậc 3 BẮT BUỘC phải thực hiện và ghi rõ trạng thái (Đã làm / Chưa làm / Không áp dụng, kèm lý do) cho từng mục sau đây trước khi đưa ra phần Kết luận:
+
+1. **[ ] Đối soát cân bằng kế toán bắt buộc**: Tính toán `Tồn_Đầu + Tổng_Nhập - Tổng_Xuất = Tồn_Cuối` bằng truy vấn SQL trên CSDL, không chỉ đối chiếu tồn kho với số dư dòng cuối.
+2. **[ ] Kiểm tra tính đơn điệu của sổ cái**: Chạy script quét toàn bộ bảng Thẻ kho để xác nhận không có `balance_after` bị trùng lặp (`COUNT(*) > 1` trên cùng mặt hàng) và mọi dòng đều thỏa mãn `balance[n] = balance[n-1] + change[n]`.
+3. **[ ] Soát log công cụ test trước khi đọc số liệu**: Mở toàn bộ log runner (Locust/pytest) kiểm tra có lỗi `CRITICAL`, `Traceback`, `UnicodeEncodeError` làm gián đoạn việc ghi file kết quả không.
+4. **[ ] Đối chiếu chéo số lượng mẫu giữa các nguồn**: Khớp số lượng `Total Requests` giữa file CSV, file JSON summary và bảng stdout terminal; nếu lệch dù 1 request thì không được chắp vá số liệu.
+5. **[ ] Thẩm tra chéo giữa code tĩnh và script động**: Khi viết script introspection thư viện (như Pydantic/SQLAlchemy), luôn mở trực tiếp file schema bằng mắt để kiểm chứng output của script có khớp với định nghĩa code thật hay không.
+6. **[ ] Không suy đoán nguyên nhân khi chưa có phép đo**: Nếu chưa có log/metric đo trực tiếp thời gian khóa SQLite hoặc CPU từng tiến trình, phải ghi "chưa có bằng chứng", tuyệt đối không tự ý suy đoán nguyên nhân.
+7. **[ ] Duy trì cấu trúc 3 dòng bất biến**: Mọi kết luận kỹ thuật đều phải trình bày đúng 3 dòng:
+   - `Bằng chứng:` (Dữ liệu/log thực tế trích xuất được)
+   - `Kết luận rút ra từ bằng chứng:` (Điều chứng minh được từ dữ liệu trên)
+   - `Điều bằng chứng này chưa chứng minh được:` (Giới hạn của dữ liệu, những gì chưa đo được)
+

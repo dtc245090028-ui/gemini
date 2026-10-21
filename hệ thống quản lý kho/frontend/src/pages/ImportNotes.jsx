@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { stockEvents } from '../utils/stockEvents';
 import {
   Plus,
   Trash2,
@@ -16,7 +17,7 @@ import ProductSelect from '../components/ProductSelect';
 import Loader from '../components/Loader';
 import useDelayedLoading from '../hooks/useDelayedLoading';
 
-export const ImportNotes = () => {
+export const ImportNotes = ({ isActive = true }) => {
   const { user } = useAuth();
   const [importNotes, setImportNotes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -27,6 +28,7 @@ export const ImportNotes = () => {
 
   // Synchronous submit lock Ref
   const isSubmittingRef = useRef(false);
+  const isStaleRef = useRef(false);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -45,8 +47,8 @@ export const ImportNotes = () => {
 
   const canCreate = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_KEEPER';
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [notesRes, supRes, prodRes, catRes] = await Promise.all([
         apiClient.importNotes.getAll(),
@@ -61,13 +63,31 @@ export const ImportNotes = () => {
     } catch (err) {
       console.error('Lỗi tải phiếu nhập:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = stockEvents.subscribe(() => {
+      if (isActive) {
+        fetchData(true);
+      } else {
+        isStaleRef.current = true;
+      }
+    });
+    return unsubscribe;
+  }, [isActive]);
+
+  useEffect(() => {
+    if (isActive && isStaleRef.current) {
+      isStaleRef.current = false;
+      fetchData(true);
+    }
+  }, [isActive]);
 
   const handleOpenCreate = () => {
     isSubmittingRef.current = false;

@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.schemas.category import CategoryResponse
+
 
 class ProductBase(BaseModel):
     code: str = Field(..., min_length=2, max_length=50, description="Mã SKU hàng hóa")
@@ -39,6 +41,7 @@ class ProductResponse(ProductBase):
     current_stock: int
     created_at: datetime
     category_name: Optional[str] = None
+    category: Optional[CategoryResponse] = None
     initial_import_note_code: Optional[str] = Field(None, description="Mã phiếu nhập kho khởi tạo (nếu có)")
 
     @computed_field

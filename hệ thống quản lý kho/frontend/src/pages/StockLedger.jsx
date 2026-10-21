@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { stockEvents } from '../utils/stockEvents';
 import {
   AlertCircle,
   Calendar,
@@ -53,11 +54,12 @@ const formatRangePreview = (period, dateStr) => {
   return '';
 };
 
-export const StockLedger = ({ defaultProductId }) => {
+export const StockLedger = ({ defaultProductId, isActive = true }) => {
   const { user } = useAuth();
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isStaleRef = useRef(false);
   const showTableLoader = useDelayedLoading(loading);
   const [selectedProductId, setSelectedProductId] = useState(defaultProductId || '');
   const [transactionType, setTransactionType] = useState('');
@@ -143,8 +145,8 @@ export const StockLedger = ({ defaultProductId }) => {
     }
   };
 
-  const fetchLedger = async () => {
-    setLoading(true);
+  const fetchLedger = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = { limit: 100 };
       if (selectedProductId) params.product_id = selectedProductId;
@@ -155,7 +157,7 @@ export const StockLedger = ({ defaultProductId }) => {
     } catch (err) {
       console.error('Lỗi tải thẻ kho:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -166,6 +168,28 @@ export const StockLedger = ({ defaultProductId }) => {
   useEffect(() => {
     fetchLedger();
   }, [selectedProductId, transactionType]);
+
+  // Lắng nghe biến động kho để cập nhật thẻ kho ngầm (Keep-Alive Sync)
+  useEffect(() => {
+    const unsubscribe = stockEvents.subscribe(() => {
+      if (isActive) {
+        fetchLedger(true);
+        fetchProducts();
+      } else {
+        isStaleRef.current = true;
+      }
+    });
+    return unsubscribe;
+  }, [isActive, selectedProductId, transactionType]);
+
+  // Khi quay lại thẻ kho sau khi có giao dịch -> cập nhật ngầm không nháy
+  useEffect(() => {
+    if (isActive && isStaleRef.current) {
+      isStaleRef.current = false;
+      fetchLedger(true);
+      fetchProducts();
+    }
+  }, [isActive]);
 
   const handleOpenAdjust = () => {
     // Kiểm tra xem có bản nháp kiểm kê bù trừ trong vòng 24h không
