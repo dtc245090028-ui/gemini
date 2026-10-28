@@ -24,13 +24,13 @@
 
 1. `users`: Quản lý tài khoản (`id`, `username`, `password_hash`, `full_name`, `role`, `is_active`, `created_at`).
 2. `categories`: Nhóm hàng hóa (`id`, `code`, `name`, `description`).
-3. `products`: Hàng hóa (`id`, `code`, `name`, `category_id`, `unit`, `min_stock`, `current_stock`, `standard_price`, `status`, `created_at`).
+3. `products`: Hàng hóa (`id`, `code`, `name`, `category_id`, `unit`, `min_stock`, `current_stock`, `standard_price`, `image_url`, `status`, `created_at`).
 4. `suppliers`: Nhà cung cấp (`id`, `code`, `name`, `phone`, `email`, `address`, `is_active`).
-5. `import_notes`: Phiếu nhập kho (`id`, `code`, `supplier_id`, `created_by`, `note_date`, `total_amount`, `note`, `status`).
+5. `import_notes`: Phiếu nhập kho (`id`, `code`, `supplier_id`, `created_by`, `note_date`, `total_amount`, `note`, `status`, `idempotency_key`). Trạng thái: `COMPLETED`, `CANCELLED` (mặc định `COMPLETED`, không dùng `DRAFT`).
 6. `import_note_details`: Dòng chi tiết phiếu nhập (`id`, `import_note_id`, `product_id`, `quantity`, `unit_price`, `subtotal`).
-7. `export_notes`: Phiếu xuất kho (`id`, `code`, `recipient_name`, `created_by`, `note_date`, `total_amount`, `note`, `status`).
+7. `export_notes`: Phiếu xuất kho (`id`, `code`, `recipient_name`, `created_by`, `note_date`, `total_amount`, `note`, `status`, `idempotency_key`). Trạng thái: `CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED` (mặc định `CONFIRMED`, không dùng `DRAFT`).
 8. `export_note_details`: Dòng chi tiết phiếu xuất (`id`, `export_note_id`, `product_id`, `quantity`, `unit_price`, `subtotal`).
-9. `stock_ledger`: Thẻ kho / Sổ kiểm toán (`id`, `product_id`, `transaction_type`, `reference_code`, `quantity_change`, `balance_after`, `created_by`, `transaction_date`, `note`).
+9. `stock_ledger`: Thẻ kho / Sổ kiểm toán (`id`, `product_id`, `transaction_type`, `reference_code`, `quantity_change`, `balance_after`, `created_by`, `transaction_date`, `note`). Lưu vết số lượng thuần, không lưu đơn giá/thành tiền.
 
 ### 2.2. Thiết kế Sơ đồ Mermaid ERD
 
@@ -78,3 +78,16 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 ```markdown
 | YYYY-MM-DD | Bước 02 | Thiết kế CSDL & Sơ đồ ERD Chuẩn | Hoàn thành | `docs/SDLC/KT1/02_Database_Design_ERD.md` | Đã hoàn thiện thiết kế 9 bảng CSDL và sơ đồ Mermaid ERD |
 ```
+
+---
+
+## 6. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #10, #14, #15).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #10 - Nhóm A]:* Bỏ trạng thái `DRAFT` khỏi bảng `import_notes` và `export_notes`; đồng bộ trạng thái thực tế: `import_notes` (`COMPLETED`, `CANCELLED`), `export_notes` (`CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED`) theo [`backend/app/models/import_note.py` L19](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/import_note.py#L19) và [`backend/app/models/export_note.py` L19](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/export_note.py#L19).
+  2. *[Mục #14 - Nhóm B]:* Bổ sung cột `image_url` (VARCHAR 500) vào bảng `products` theo [`backend/app/models/product.py` L20](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/product.py#L20).
+  3. *[Mục #15 - Nhóm B]:* Bổ sung cột `idempotency_key` (VARCHAR 100, UNIQUE) vào bảng `import_notes` và `export_notes` theo [`backend/app/models/import_note.py` L20](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/import_note.py#L20) và [`backend/app/models/export_note.py` L20](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/export_note.py#L20).
+  4. *[Điểm Nghi ngờ 3]:* Xác nhận bảng `stock_ledger` chỉ lưu trữ số lượng thuần và số dư tức thời, không lưu đơn giá hay thành tiền để bảo vệ bí mật kinh doanh theo [`backend/app/models/stock_ledger.py` L9-28](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/stock_ledger.py#L9-L28).
+- **Lý do:** Đồng bộ cấu trúc 9 bảng CSDL khớp chính xác với mã nguồn SQLAlchemy models và CSDL SQLite thực tế.

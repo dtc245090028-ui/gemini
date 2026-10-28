@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { stockEvents } from '../utils/stockEvents';
 
 // Tạo axios instance
@@ -262,9 +262,15 @@ export const apiClient = {
 
   // 8. Báo cáo Nhập - Xuất - Tồn
   reports: {
-    getSummary: (fromDate, toDate) =>
+    getSummary: (fromDate, toDate, categoryId = null) =>
       api.get('/reports/inventory-summary', {
-        params: { from_date: fromDate, to_date: toDate },
+        params: { from_date: fromDate, to_date: toDate, category_id: categoryId },
+      }),
+    exportExcel: (fromDate, toDate, categoryId = null) =>
+      api.get('/reports/inventory-summary/export-excel', {
+        params: { from_date: fromDate, to_date: toDate, category_id: categoryId },
+        responseType: 'blob',
+        skipCache: true,
       }),
   },
 

@@ -12,16 +12,15 @@
 
 Hệ thống quản lý kho yêu cầu tính toàn vẹn và nhất quán dữ liệu ở mức độ tuyệt đối. Mô hình CSDL được thiết kế theo chuẩn hóa dạng chuẩn 3 (3NF), đảm bảo các nguyên tắc kỹ thuật sau:
 
-1. **Toàn vẹn thực thể & quan hệ:** Toàn bộ bảng đều có Khóa chính (`id` tự tăng) và các ràng buộc Khóa ngoại (`FOREIGN KEY`) chỉ rõ hành vi toàn vẹn tham chiếu.
+1. **Toàn vẹn thực thể & quan hệ:** Toàn bộ bảng đều có Khóa chính (`id` tự tăng) và các ràng buộc Khóa ngoại (`FOREIGN KEY`) chỉ rõ hành vi toàn vẹn tham chiếu. Bật thực thi khóa ngoại trên SQLite (`PRAGMA foreign_keys=ON;`).
 2. **Triệt tiêu nguy cơ tồn kho âm:** Cài đặt ràng buộc kiểm tra cấp độ CSDL:
-
    ```sql
    CHECK (current_stock >= 0)
    ```
-
-   Ràng buộc này đóng vai trò chốt chặn cuối cùng (Last line of defense), ngăn chặn bất kỳ lỗi code nào làm số lượng tồn kho bị âm.
-3. **Audit Trail bất biến qua Thẻ kho (`stock_ledger`):** Mọi giao dịch làm tăng/giảm tồn kho đều bắt buộc sinh một bản ghi kiểm toán ghi nhận số dư tức thời sau giao dịch.
-4. **Tách biệt giá vốn và giá niêm yết:** Bảng `products` chỉ lưu giá tiêu chuẩn/tham khảo. Giá nhập thực tế được lưu tại từng dòng chi tiết phiếu nhập `import_note_details` để phục vụ tính giá vốn bình quân/FIFO chính xác.
+   Ràng buộc này đóng vai trò chốt chặn cuối cùng (Last line of defense), ngăn chặn bất kỳ lỗi race condition nào làm số lượng tồn kho bị âm.
+3. **Audit Trail bất biến qua Thẻ kho (`stock_ledger`):** Mọi giao dịch làm tăng/giảm tồn kho đều bắt buộc sinh một bản ghi kiểm toán ghi nhận số dư tức thời sau giao dịch (`balance_after`), chỉ theo dõi số lượng vật lý và không lưu đơn giá/thành tiền.
+4. **Cơ chế Idempotency Key:** Hai bảng chứng từ `import_notes` và `export_notes` đều trang bị trường `idempotency_key` (Unique Index) để chống tạo trùng phiếu khi client retry hoặc rớt mạng.
+5. **Cỗ máy trạng thái xuất kho 3 bước:** Bảng `export_notes` quản lý các trạng thái: `CONFIRMED` (Chờ xuất), `SHIPPING` (Đang giao / trừ kho), `COMPLETED` (Hoàn thành), và `CANCELLED` (Đã hủy).
 
 ---
 
@@ -70,6 +69,7 @@ erDiagram
         int min_stock "Ngưỡng cảnh báo tồn tối thiểu"
         int current_stock "Số lượng tồn kho tức thời (>=0)"
         float standard_price "Giá niêm yết / tham khảo"
+        string image_url "Đường dẫn ảnh sản phẩm"
         string status "ACTIVE | DISCONTINUED"
         datetime created_at "Thời điểm tạo"
     }
@@ -87,12 +87,13 @@ erDiagram
     import_notes {
         int id PK "Khóa chính tự tăng"
         string code UK "Mã chứng từ: PN-YYYYMMDD-XXX"
+        string idempotency_key UK "Khóa chống trùng lặp"
         int supplier_id FK "Nhà cung cấp hàng"
         int created_by FK "Người lập phiếu (User ID)"
         datetime note_date "Ngày giờ nhập kho"
         float total_amount "Tổng tiền phiếu nhập"
         string note "Ghi chú phiếu nhập"
-        string status "DRAFT | COMPLETED | CANCELLED"
+        string status "COMPLETED | CANCELLED"
     }
 
     import_note_details {
@@ -107,12 +108,13 @@ erDiagram
     export_notes {
         int id PK "Khóa chính tự tăng"
         string code UK "Mã chứng từ: PX-YYYYMMDD-XXX"
+        string idempotency_key UK "Khóa chống trùng lặp"
         string recipient_name "Tên người nhận / Khách hàng"
         int created_by FK "Người lập phiếu (User ID)"
         datetime note_date "Ngày giờ xuất kho"
         float total_amount "Tổng tiền phiếu xuất"
         string note "Ghi chú xuất kho"
-        string status "DRAFT | COMPLETED | CANCELLED"
+        string status "CONFIRMED | SHIPPING | COMPLETED | CANCELLED"
     }
 
     export_note_details {
@@ -143,8 +145,6 @@ erDiagram
 
 ### 3.1. Bảng `users` (Tài khoản người dùng)
 
-Lưu thông tin nhân sự và phân quyền truy cập hệ thống theo mô hình RBAC.
-
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Định danh duy nhất của tài khoản |
@@ -157,18 +157,14 @@ Lưu thông tin nhân sự và phân quyền truy cập hệ thống theo mô h�
 
 ### 3.2. Bảng `categories` (Nhóm hàng hóa)
 
-Phân loại các mặt hàng trong kho để thuận tiện quản lý và lập báo cáo.
-
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Định danh duy nhất nhóm hàng |
-| `code` | VARCHAR(20) | NOT NULL, UNIQUE, INDEX | Mã viết tắt nhóm hàng (ví dụ: `IT`, `OFFICE`, `FOOD`) |
+| `code` | VARCHAR(20) | NOT NULL, UNIQUE, INDEX | Mã viết tắt nhóm hàng |
 | `name` | VARCHAR(100) | NOT NULL | Tên hiển thị đầy đủ của nhóm hàng |
 | `description` | TEXT | NULLABLE | Mô tả chi tiết danh mục |
 
 ### 3.3. Bảng `products` (Hàng hóa)
-
-Bảng cốt lõi quản lý thông tin từng mặt hàng và lưu trữ số lượng tồn kho tức thời.
 
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -180,41 +176,37 @@ Bảng cốt lõi quản lý thông tin từng mặt hàng và lưu trữ số l
 | `min_stock` | INTEGER | NOT NULL, DEFAULT 10 | Ngưỡng tồn an toàn để kích hoạt cảnh báo |
 | `current_stock` | INTEGER | NOT NULL, DEFAULT 0, **`CHECK (current_stock >= 0)`** | **Số lượng tồn kho tức thời (tuyệt đối không âm)** |
 | `standard_price` | DECIMAL(12,2) | NOT NULL, DEFAULT 0.0 | Giá niêm yết/tham khảo |
+| `image_url` | VARCHAR(255) | NULLABLE | Đường dẫn ảnh sản phẩm tải lên |
 | `status` | VARCHAR(20) | NOT NULL, DEFAULT 'ACTIVE' | Trạng thái: `ACTIVE` hoặc `DISCONTINUED` |
 | `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Ngày tạo mặt hàng |
 
 ### 3.4. Bảng `suppliers` (Nhà cung cấp)
 
-Quản lý danh sách các đối tác cung ứng hàng hóa cho kho.
-
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Định danh duy nhất nhà cung cấp |
-| `code` | VARCHAR(30) | NOT NULL, UNIQUE, INDEX | Mã nhà cung cấp (ví dụ: `NCC-FPT`, `NCC-DGW`) |
+| `code` | VARCHAR(30) | NOT NULL, UNIQUE, INDEX | Mã nhà cung cấp |
 | `name` | VARCHAR(150) | NOT NULL | Tên doanh nghiệp/đối tác |
 | `phone` | VARCHAR(20) | NULLABLE | Số điện thoại liên lạc |
 | `email` | VARCHAR(100) | NULLABLE | Thư điện tử |
 | `address` | VARCHAR(255) | NULLABLE | Địa chỉ văn phòng / kho nhà cung cấp |
-| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Trạng thái hợp tác còn hiệu lực hay không |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Trạng thái hợp tác |
 
 ### 3.5. Bảng `import_notes` (Phiếu nhập kho)
-
-Quản lý chứng từ nhập hàng vào kho từ nhà cung cấp.
 
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Định danh duy nhất phiếu nhập |
 | `code` | VARCHAR(50) | NOT NULL, UNIQUE, INDEX | Số chứng từ: `PN-YYYYMMDD-XXX` |
+| `idempotency_key` | VARCHAR(100) | NULLABLE, UNIQUE, INDEX | Khóa chống tạo trùng lặp giao dịch |
 | `supplier_id` | INTEGER | NOT NULL, FOREIGN KEY (`suppliers.id`) | Đơn vị cung ứng hàng hóa |
 | `created_by` | INTEGER | NOT NULL, FOREIGN KEY (`users.id`) | Nhân viên/Thủ kho lập phiếu |
 | `note_date` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Thời điểm lập phiếu nhập |
 | `total_amount` | DECIMAL(15,2) | NOT NULL, DEFAULT 0.0 | Tổng giá trị phiếu nhập (VNĐ) |
 | `note` | TEXT | NULLABLE | Ghi chú thêm về lô hàng |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'COMPLETED' | `DRAFT`, `COMPLETED`, `CANCELLED` |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'COMPLETED' | `COMPLETED`, `CANCELLED` |
 
 ### 3.6. Bảng `import_note_details` (Chi tiết phiếu nhập kho)
-
-Lưu chi tiết từng mặt hàng, số lượng và đơn giá của từng dòng trong phiếu nhập.
 
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -227,22 +219,19 @@ Lưu chi tiết từng mặt hàng, số lượng và đơn giá của từng d�
 
 ### 3.7. Bảng `export_notes` (Phiếu xuất kho)
 
-Quản lý chứng từ xuất hàng hóa ra khỏi kho phục vụ bán lẻ, phân phối hoặc điều chuyển.
-
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Định danh duy nhất phiếu xuất |
 | `code` | VARCHAR(50) | NOT NULL, UNIQUE, INDEX | Số chứng từ: `PX-YYYYMMDD-XXX` |
+| `idempotency_key` | VARCHAR(100) | NULLABLE, UNIQUE, INDEX | Khóa chống tạo trùng lặp giao dịch |
 | `recipient_name` | VARCHAR(100) | NOT NULL | Tên người nhận hàng / Khách hàng |
 | `created_by` | INTEGER | NOT NULL, FOREIGN KEY (`users.id`) | Nhân viên/Thủ kho lập phiếu xuất |
 | `note_date` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Thời điểm lập phiếu xuất |
 | `total_amount` | DECIMAL(15,2) | NOT NULL, DEFAULT 0.0 | Tổng giá trị hàng xuất (VNĐ) |
 | `note` | TEXT | NULLABLE | Ghi chú / lý do xuất kho |
-| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'COMPLETED' | `DRAFT`, `COMPLETED`, `CANCELLED` |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'CONFIRMED' | `CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED` |
 
 ### 3.8. Bảng `export_note_details` (Chi tiết phiếu xuất kho)
-
-Lưu danh sách chi tiết các mặt hàng và số lượng xuất của từng dòng trong phiếu xuất.
 
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -254,8 +243,6 @@ Lưu danh sách chi tiết các mặt hàng và số lượng xuất của từn
 | `subtotal` | DECIMAL(15,2) | NOT NULL | Thành tiền (`quantity * unit_price`) |
 
 ### 3.9. Bảng `stock_ledger` (Thẻ kho / Sổ kiểm toán tồn kho)
-
-Bảng bất biến (append-only) ghi lại từng biến động tăng/giảm tồn kho của từng sản phẩm.
 
 | Tên trường | Kiểu dữ liệu | Ràng buộc | Mô tả ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -279,8 +266,9 @@ Bảng bất biến (append-only) ghi lại từng biến động tăng/giảm t
 # Toàn bộ khối lệnh chạy trong một Database Transaction
 db.begin()
 try:
-    # 1. Tạo phiếu nhập (import_notes)
-    # 2. Với mỗi sản phẩm:
+    # 1. Kiểm tra Idempotency Key (nếu có)
+    # 2. Tạo phiếu nhập (import_notes)
+    # 3. Với mỗi sản phẩm:
     #    - Lưu chi tiết (import_note_details)
     #    - Cập nhật tăng: product.current_stock += item.quantity
     #    - Thêm bản ghi thẻ kho: stock_ledger(product_id, qty_change=+quantity, balance_after=product.current_stock)
@@ -290,24 +278,38 @@ except Exception:
     raise
 ```
 
-### 4.2. Quy trình Transaction khi Xuất kho (Chống Tồn Kho Âm)
+### 4.2. Quy trình Cỗ máy Trạng thái Xuất kho & Chống Tồn Kho Âm (Atomic SQL)
 
 ```python
+# Khi chuyển trạng thái từ CONFIRMED sang SHIPPING:
 db.begin()
 try:
-    # 1. Khóa/Kiểm tra số lượng tồn kho từng sản phẩm
-    for item in export_items:
-        product = get_product_for_update(db, item.product_id)
-        if product.current_stock < item.quantity:
-            # Vi phạm quy tắc tồn âm: Rollback tức thời
-            raise InsufficientStockError(
-                f"Sản phẩm {product.name} (SKU: {product.code}) chỉ còn {product.current_stock}, "
-                f"không đủ xuất {item.quantity}!"
+    for item in export_note.details:
+        # Thực thi câu lệnh SQL trừ kho nguyên tử cấp độ Database Engine
+        stmt = text("""
+            UPDATE products
+            SET current_stock = current_stock - :qty
+            WHERE id = :prod_id AND current_stock >= :qty
+            RETURNING current_stock
+        """)
+        result = db.execute(stmt, {"qty": item.quantity, "prod_id": item.product_id}).scalar()
+        
+        if result is None:
+            # Không đủ tồn kho: Rollback tức thời
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sản phẩm ID {item.product_id} không đủ tồn kho để xuất {item.quantity}!"
             )
-        # 2. Trừ số lượng tồn kho
-        product.current_stock -= item.quantity
-        # 3. Ghi nhận chi tiết phiếu xuất & Thẻ kho
-        record_stock_ledger(product_id, qty_change=-item.quantity, balance_after=product.current_stock)
+            
+        # Ghi nhận Thẻ kho với số dư sau trừ
+        record_stock_ledger(
+            product_id=item.product_id,
+            qty_change=-item.quantity,
+            balance_after=result,
+            ref_code=export_note.code
+        )
+        
+    export_note.status = "SHIPPING"
     db.commit()
 except Exception:
     db.rollback()
@@ -318,4 +320,16 @@ except Exception:
 
 ## 5. Kết luận
 
-Thiết kế CSDL trên đảm bảo tính chuẩn hóa 3NF, đáp ứng trọn vẹn nghiệp vụ quản lý kho của Đề tài 07, triệt tiêu khả năng phát sinh tồn kho âm và cung cấp nguồn dữ liệu lịch sử chuẩn xác cho Module AI phân tích.
+Thiết kế CSDL trên đảm bảo tính chuẩn hóa 3NF, đáp ứng trọn vẹn nghiệp vụ quản lý kho của Đề tài 07, triệt tiêu khả năng phát sinh tồn kho âm bằng câu lệnh SQL nguyên tử, hỗ trợ đầy đủ Idempotency Key và upload ảnh sản phẩm.
+
+---
+
+## 6. Lịch sử đồng bộ
+
+- **Ngày đồng bộ:** 2026-10-28
+- **Nội dung điều chỉnh theo thực tế mã nguồn:**
+  - **Bổ sung trường `image_url`:** Thêm vào bảng `products` để lưu trữ đường dẫn ảnh đại diện sản phẩm (`/uploads/...`).
+  - **Bổ sung trường `idempotency_key`:** Thêm vào hai bảng `import_notes` và `export_notes` (Unique Index) để chống tạo trùng giao dịch khi rớt mạng.
+  - **Điều chỉnh trạng thái chứng từ:** Bỏ trạng thái `DRAFT`. Đồng bộ trạng thái thực tế: `import_notes` (`COMPLETED`, `CANCELLED`); `export_notes` (`CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED`).
+  - **Đồng bộ Thẻ kho:** Xác nhận bảng `stock_ledger` chỉ lưu trữ số lượng và số dư tồn sau giao dịch, không có cột giá tiền.
+  - **Cập nhật mã nguồn trừ kho:** Thay thế cơ chế trừ kho thông thường bằng câu lệnh Atomic SQL `RETURNING current_stock` của luồng `SHIPPING`.

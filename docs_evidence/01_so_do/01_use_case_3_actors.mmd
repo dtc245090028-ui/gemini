@@ -1,0 +1,123 @@
+graph LR
+    %% Actors
+    Admin["Quản trị viên<br/>(ADMIN)"]
+    Keeper["Thủ kho<br/>(WAREHOUSE_KEEPER)"]
+    Accountant["Kế toán kho<br/>(ACCOUNTANT)"]
+
+    %% Boundaries / Subsystems
+    subgraph Sub_Auth["1. Xác thực & Tài khoản"]
+        UC_Login["Đăng nhập hệ thống<br/>/auth/login, /auth/token"]
+        UC_Me["Tra cứu thông tin cá nhân<br/>/auth/me"]
+        UC_Users["Quản lý người dùng & phân quyền<br/>POST /auth/users"]
+    end
+
+    subgraph Sub_MasterData["2. Quản lý Danh mục & Hàng hóa"]
+        UC_CatView["Xem nhóm hàng<br/>GET /categories/"]
+        UC_CatEdit["Thêm / Sửa nhóm hàng<br/>POST, PUT /categories/"]
+        UC_CatDelete["Xóa nhóm hàng<br/>DELETE /categories/{id}"]
+        UC_ProdView["Xem & Lọc hàng hóa, cảnh báo<br/>GET /products/"]
+        UC_ProdEdit["Thêm / Sửa hàng hóa, Upload ảnh<br/>POST, PUT /products/"]
+        UC_ProdDelete["Ngừng kinh doanh / Xóa hàng<br/>DELETE /products/{id}"]
+        UC_SuppView["Xem đối tác nhà cung cấp<br/>GET /suppliers/"]
+        UC_SuppEdit["Thêm / Sửa nhà cung cấp<br/>POST, PUT /suppliers/"]
+        UC_SuppDelete["Ngừng hợp tác / Xóa NCC<br/>DELETE /suppliers/{id}"]
+    end
+
+    subgraph Sub_Transactions["3. Nhập kho & Xuất kho (ACID)"]
+        UC_ImportCreate["Lập phiếu nhập kho<br/>POST /import-notes/"]
+        UC_ImportCancel["Hủy phiếu nhập (Guard-check)<br/>POST /import-notes/{id}/cancel"]
+        UC_ExportCreate["Lập phiếu xuất (CONFIRMED)<br/>POST /export-notes/"]
+        UC_ExportShip["Bắt đầu giao (SHIPPING)<br/>POST /export-notes/{id}/ship"]
+        UC_ExportComplete["Xác nhận hoàn tất (COMPLETED)<br/>POST /export-notes/{id}/complete"]
+        UC_ExportCancel["Hủy đơn & Hoàn kho<br/>POST /export-notes/{id}/cancel"]
+        UC_ExportDelete["Xóa phiếu chưa xuất<br/>DELETE /export-notes/{id}"]
+    end
+
+    subgraph Sub_LedgerReports["4. Thẻ kho, Kiểm kê & Báo cáo"]
+        UC_LedgerView["Tra cứu Thẻ kho điện tử<br/>GET /stock-ledger/"]
+        UC_LedgerExcel["Xuất Excel Thẻ kho (2 sheet)<br/>GET /stock-ledger/export-excel"]
+        UC_StockAdjust["Điều chỉnh tồn kho kiểm kê<br/>POST /stock-ledger/adjust"]
+        UC_ReportSummary["Xem Báo cáo Nhập-Xuất-Tồn<br/>GET /reports/inventory-summary"]
+        UC_Dashboard["Xem KPI Dashboard & Cảnh báo<br/>GET /reports/dashboard, /reports/low-stock"]
+    end
+
+    subgraph Sub_AI["5. Trợ lý Trí tuệ Nhân tạo AI Copilot"]
+        UC_AIMonthly["Báo cáo Nhập-Xuất-Tồn tháng<br/>GET /ai/monthly-report"]
+        UC_AIRestock["Gợi ý nhập hàng tối ưu<br/>GET /ai/restock-suggestions"]
+        UC_AIAnomalies["Nhận diện dị thường kho<br/>GET /ai/anomalies"]
+        UC_AIOrder["Đề xuất đơn hàng xuất kho AI<br/>POST /ai/generate-order"]
+        UC_AIAsk["Hỏi đáp Trợ lý kho (#SmartKho)<br/>POST /ai/ask"]
+    end
+
+    %% Relationships - Admin
+    Admin --> UC_Login
+    Admin --> UC_Me
+    Admin --> UC_Users
+    Admin --> UC_CatView
+    Admin --> UC_CatEdit
+    Admin --> UC_CatDelete
+    Admin --> UC_ProdView
+    Admin --> UC_ProdEdit
+    Admin --> UC_ProdDelete
+    Admin --> UC_SuppView
+    Admin --> UC_SuppEdit
+    Admin --> UC_SuppDelete
+    Admin --> UC_ImportCreate
+    Admin --> UC_ImportCancel
+    Admin --> UC_ExportCreate
+    Admin --> UC_ExportShip
+    Admin --> UC_ExportComplete
+    Admin --> UC_ExportCancel
+    Admin --> UC_ExportDelete
+    Admin --> UC_LedgerView
+    Admin --> UC_LedgerExcel
+    Admin --> UC_StockAdjust
+    Admin --> UC_ReportSummary
+    Admin --> UC_Dashboard
+    Admin --> UC_AIMonthly
+    Admin --> UC_AIRestock
+    Admin --> UC_AIAnomalies
+    Admin --> UC_AIOrder
+    Admin --> UC_AIAsk
+
+    %% Relationships - Keeper
+    Keeper --> UC_Login
+    Keeper --> UC_Me
+    Keeper --> UC_CatView
+    Keeper --> UC_CatEdit
+    Keeper --> UC_ProdView
+    Keeper --> UC_ProdEdit
+    Keeper --> UC_SuppView
+    Keeper --> UC_SuppEdit
+    Keeper --> UC_ImportCreate
+    Keeper --> UC_ImportCancel
+    Keeper --> UC_ExportCreate
+    Keeper --> UC_ExportShip
+    Keeper --> UC_ExportComplete
+    Keeper --> UC_ExportCancel
+    Keeper --> UC_ExportDelete
+    Keeper --> UC_LedgerView
+    Keeper --> UC_LedgerExcel
+    Keeper --> UC_StockAdjust
+    Keeper --> UC_ReportSummary
+    Keeper --> UC_Dashboard
+    Keeper --> UC_AIMonthly
+    Keeper --> UC_AIRestock
+    Keeper --> UC_AIAnomalies
+    Keeper --> UC_AIOrder
+    Keeper --> UC_AIAsk
+
+    %% Relationships - Accountant (Read-only)
+    Accountant --> UC_Login
+    Accountant --> UC_Me
+    Accountant --> UC_CatView
+    Accountant --> UC_ProdView
+    Accountant --> UC_SuppView
+    Accountant --> UC_LedgerView
+    Accountant --> UC_LedgerExcel
+    Accountant --> UC_ReportSummary
+    Accountant --> UC_Dashboard
+    Accountant --> UC_AIMonthly
+    Accountant --> UC_AIRestock
+    Accountant --> UC_AIAnomalies
+    Accountant --> UC_AIAsk

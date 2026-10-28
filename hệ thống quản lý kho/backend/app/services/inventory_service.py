@@ -687,21 +687,20 @@ def get_inventory_summary_report(
     total_opening = 0
     total_import = 0
     total_export = 0
+    total_adjustment = 0
     total_closing = 0
     total_inventory_value = 0.0
 
     for product in products:
-        # 1. Tồn đầu kỳ: Số dư balance_after của giao dịch gần nhất TRƯỚC from_date
-        last_entry_before = (
-            db.query(StockLedger)
+        # 1. Tồn đầu kỳ: Tổng đại số quantity_change của mọi giao dịch TRƯỚC from_date
+        opening_stock = (
+            db.query(func.coalesce(func.sum(StockLedger.quantity_change), 0))
             .filter(
                 StockLedger.product_id == product.id,
                 StockLedger.transaction_date < from_date,
             )
-            .order_by(StockLedger.transaction_date.desc(), StockLedger.id.desc())
-            .first()
+            .scalar()
         )
-        opening_stock = last_entry_before.balance_after if last_entry_before else 0
 
         # 2. Biến động trong kỳ [from_date, to_date]
         period_entries = (
@@ -714,11 +713,31 @@ def get_inventory_summary_report(
             .all()
         )
 
-        period_import = sum(e.quantity_change for e in period_entries if e.quantity_change > 0)
-        period_export = sum(abs(e.quantity_change) for e in period_entries if e.quantity_change < 0)
+        # Nhập thương mại từ NCC (IMPORT)
+        period_import = sum(e.quantity_change for e in period_entries if e.transaction_type == "IMPORT")
 
-        # 3. Tồn cuối kỳ = Tồn đầu + Nhập - Xuất
-        closing_stock = opening_stock + period_import - period_export
+        # Hoàn trừ xuất kho do hủy phiếu (CANCEL-PX-)
+        cancel_export_qty = sum(
+            e.quantity_change
+            for e in period_entries
+            if e.transaction_type == "ADJUSTMENT"
+            and e.reference_code
+            and e.reference_code.startswith("CANCEL-PX")
+        )
+
+        # Xuất kho thương mại thuần túy (EXPORT) sau khi đã trừ lượng hủy hoàn trả
+        period_export = sum(abs(e.quantity_change) for e in period_entries if e.transaction_type == "EXPORT") - cancel_export_qty
+
+        # Các khoản điều chỉnh khác (ví dụ: kiểm kê kho hoặc hủy nhập)
+        period_adjustment = sum(
+            e.quantity_change
+            for e in period_entries
+            if e.transaction_type == "ADJUSTMENT"
+            and (not e.reference_code or not e.reference_code.startswith("CANCEL-PX"))
+        )
+
+        # 3. Tồn cuối kỳ = Tồn đầu + Nhập - Xuất + Điều chỉnh
+        closing_stock = opening_stock + period_import - period_export + period_adjustment
         total_val = closing_stock * product.standard_price
 
         items.append(
@@ -731,6 +750,7 @@ def get_inventory_summary_report(
                 opening_stock=opening_stock,
                 total_import=period_import,
                 total_export=period_export,
+                adjustment=period_adjustment,
                 closing_stock=closing_stock,
                 standard_price=product.standard_price,
                 total_value=total_val,
@@ -741,6 +761,7 @@ def get_inventory_summary_report(
         total_opening += opening_stock
         total_import += period_import
         total_export += period_export
+        total_adjustment += period_adjustment
         total_closing += closing_stock
         total_inventory_value += total_val
 
@@ -751,6 +772,7 @@ def get_inventory_summary_report(
         total_opening=total_opening,
         total_import=total_import,
         total_export=total_export,
+        total_adjustment=total_adjustment,
         total_closing=total_closing,
         total_inventory_value=total_inventory_value,
         items=items,

@@ -14,7 +14,8 @@ class InventorySummaryItem(BaseModel):
     opening_stock: int = Field(..., description="Số lượng tồn đầu kỳ")
     total_import: int = Field(..., description="Tổng số lượng nhập trong kỳ")
     total_export: int = Field(..., description="Tổng số lượng xuất trong kỳ")
-    closing_stock: int = Field(..., description="Số lượng tồn cuối kỳ (Tồn đầu + Nhập - Xuất)")
+    adjustment: int = Field(default=0, description="Số lượng điều chỉnh kho trong kỳ (kiểm kê)")
+    closing_stock: int = Field(..., description="Số lượng tồn cuối kỳ (Tồn đầu + Nhập - Xuất + Điều chỉnh)")
     standard_price: float = Field(..., description="Đơn giá chuẩn")
     total_value: float = Field(..., description="Giá trị tồn kho cuối kỳ (closing_stock * standard_price)")
     is_low_stock: bool = Field(..., description="Cờ cảnh báo hàng dưới mức tồn tối thiểu")
@@ -27,6 +28,7 @@ class InventorySummaryReport(BaseModel):
     total_opening: int
     total_import: int
     total_export: int
+    total_adjustment: int = 0
     total_closing: int
     total_inventory_value: float
     items: List[InventorySummaryItem]

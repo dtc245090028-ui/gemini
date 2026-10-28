@@ -287,11 +287,12 @@ def test_inventory_summary_report_accounting_formula(client, thukho_headers):
     report = report_res.json()
 
     for item in report["items"]:
-        # Công thức kế toán bất biến
-        expected_closing = item["opening_stock"] + item["total_import"] - item["total_export"]
+        # Công thức kế toán bất biến: Tồn đầu + Nhập - Xuất + Điều chỉnh = Tồn cuối
+        adj = item.get("adjustment", 0)
+        expected_closing = item["opening_stock"] + item["total_import"] - item["total_export"] + adj
         assert item["closing_stock"] == expected_closing, (
             f"Lỗi công thức tại sản phẩm {item['product_code']}: "
-            f"{item['opening_stock']} + {item['total_import']} - {item['total_export']} != {item['closing_stock']}"
+            f"{item['opening_stock']} + {item['total_import']} - {item['total_export']} + {adj} != {item['closing_stock']}"
         )
 
 

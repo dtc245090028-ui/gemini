@@ -30,19 +30,25 @@
 ### 2.2. Khởi tạo FastAPI App & Middleware
 
 - `app/main.py`:
-  - Khởi tạo `app = FastAPI(title=..., version=..., docs_url="/docs")`.
+  - Khởi tạo `app = FastAPI(title=..., version=..., docs_url="/docs", lifespan=lifespan)`.
   - Cấu hình `CORSMiddleware` cho phép kết nối an toàn từ frontend React (`http://localhost:5173`).
-  - Đăng ký Router chính `/api/v1`.
+  - Đăng ký Router chính `/api/v1` (gom 9 sub-routers nghiệp vụ).
+  - Mount thư mục tĩnh `app.mount("/static", StaticFiles(directory=...), name="static")` phục vụ ảnh sản phẩm.
+  - Tự động kiểm tra và migrate cột `idempotency_key` cho 2 bảng `import_notes` và `export_notes` trong lifespan.
 
 ### 2.3. Bộ xử lý lỗi tập trung (Global Exception Handler)
 
-- Bắt các lỗi phổ biến (`HTTPException`, `RequestValidationError`, `SQLAlchemyError`) và trả về định dạng JSON chuẩn:
+- Chuẩn hóa định dạng lỗi trả về tiếng Việt thống nhất toàn hệ thống:
+  - `StarletteHTTPException`: Bắt lỗi HTTP nghiệp vụ, trả về mã trạng thái tương ứng kèm `"error_code": "HTTP_xxx"`.
+  - `RequestValidationError`: Bắt lỗi Pydantic validation (422 Unprocessable Entity).
+  - `IntegrityError`: Bắt vi phạm ràng buộc toàn vẹn CSDL (trùng khóa Unique, vi phạm CheckConstraint `current_stock >= 0`), trả về HTTP 400 Bad Request rõ ràng thay vì sập lỗi 500.
+  - `SQLAlchemyError`: Nhận diện đụng độ ghi đồng thời (`database is locked` / `busy`), trả về mã lỗi `DATABASE_BUSY` (500) kèm lời nhắn thử lại sau giây lát.
 
   ```json
   {
     "success": false,
     "detail": "Thông báo lỗi tiếng Việt dễ hiểu",
-    "error_code": "RESOURCE_NOT_FOUND"
+    "error_code": "INTEGRITY_ERROR"
   }
   ```
 
@@ -56,16 +62,18 @@ Khi thực hiện bước này, các file và thư mục sau phải được t�
 backend/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                        # Điểm khởi chạy FastAPI, đăng ký middleware & routers
+│   ├── main.py                        # Điểm khởi chạy FastAPI, middleware, handlers & static mount
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── config.py                  # Pydantic Settings đọc biến môi trường
-│   │   └── database.py                # Engine, SessionLocal, get_db()
+│   │   ├── database.py                # Engine, SessionLocal, get_db(), SQLite PRAGMA listener
+│   │   └── seed.py                    # Idempotent seed tài khoản mặc định
 │   ├── api/
 │   │   ├── __init__.py
+│   │   ├── deps.py                    # Dependencies: auth, RBAC require_roles, sliding window rate limiter
 │   │   └── v1/
 │   │       ├── __init__.py
-│   │       └── api.py                 # Gom các sub-routers vào API router v1
+│   │       └── api.py                 # Gom 9 sub-routers vào API router v1
 │   └── models/
 │       └── __init__.py                # Import Base và các models để khởi tạo bảng
 ```
@@ -74,9 +82,10 @@ backend/
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
 
-- [ ] Khởi động backend thành công bằng lệnh: `uvicorn app.main:app --reload`.
-- [ ] Truy cập được trang Swagger UI tại `http://localhost:8000/docs` và thấy endpoint `/health` trả về `{"status": "healthy"}`.
-- [ ] Session database mở và đóng tự động, không bị rò rỉ kết nối (connection leak).
+- [x] Khởi động backend thành công bằng lệnh: `uvicorn app.main:app --reload`.
+- [x] Truy cập được trang Swagger UI tại `http://localhost:8000/docs` và thấy endpoint `/health` trả về `{"status": "healthy"}`.
+- [x] Session database mở và đóng tự động, không bị rò rỉ kết nối (connection leak).
+- [x] Bật cưỡng chế khóa ngoại SQLite qua `PRAGMA foreign_keys = ON;`.
 
 ---
 
@@ -87,3 +96,15 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 ```markdown
 | YYYY-MM-DD | Bước 04 | Cấu trúc Backend & Database Session | Hoàn thành | `backend/app/main.py`, `core/database.py`, `core/config.py` | Đã hoàn thiện cấu trúc FastAPI phân tầng, database session và global error handlers |
 ```
+
+---
+
+## 6. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #14, #15, #16).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #14 - Nhóm B]:* Bổ sung tài liệu về cấu hình mount thư mục tĩnh `/static` cho ảnh sản phẩm trong `app/main.py` ([`backend/app/main.py` L136-139](file:///e:/gemini/hệ thống quản lý kho/backend/app/main.py#L136-L139)).
+  2. *[Mục #15 - Nhóm B]:* Bổ sung cơ chế auto-migrate an toàn cột `idempotency_key` trong lifespan startup ([`backend/app/main.py` L31-37](file:///e:/gemini/hệ thống quản lý kho/backend/app/main.py#L31-L37)).
+  3. *[Mục #16 - Nhóm B]:* Ghi nhận exception handler chuyên biệt cho `IntegrityError` (trả về 400 rõ ràng) và `SQLAlchemyError` với mã `DATABASE_BUSY` khi SQLite bị khóa đồng thời ([`backend/app/main.py` L96-130](file:///e:/gemini/hệ thống quản lý kho/backend/app/main.py#L96-L130)).
+- **Lý do:** Hoàn thiện đặc tả kiến trúc nền tảng Backend khớp chính xác với mã nguồn thực tế triển khai.

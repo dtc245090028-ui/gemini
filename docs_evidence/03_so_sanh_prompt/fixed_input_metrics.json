@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "label": "[CHẠY THỰC TẾ]",
+    "source": "Trích xuất từ CSDL SQLite warehouse.db bằng hàm AIService.get_monthly_aggregated_data(db, month=10, year=2026)",
+    "timestamp": "2026-10-27T23:08:00+07:00",
+    "zero_price_leak_verified": true,
+    "contains_unit_price": false
+  },
+  "period": "10/2026",
+  "start_date": "2026-10-01",
+  "end_date": "2026-10-31",
+  "metrics": {
+    "total_products": 76,
+    "active_products": 25,
+    "total_imports_qty": 96,
+    "total_exports_qty": 165,
+    "low_stock_count": 4,
+    "top_exported_products": [
+      {
+        "product_id": 2,
+        "product_code": "SP002",
+        "product_name": "Chuột không dây Logitech G304",
+        "quantity": 39
+      },
+      {
+        "product_id": 36,
+        "product_code": "SP036",
+        "product_name": "Dell Inspiron 15 3520 i5",
+        "quantity": 23
+      },
+      {
+        "product_id": 16,
+        "product_code": "SP016",
+        "product_name": "Cáp mạng bấm sẵn Cat6 UTP 10 mét",
+        "quantity": 20
+      },
+      {
+        "product_id": 50,
+        "product_code": "SP050",
+        "product_name": "Logitech M185",
+        "quantity": 18
+      },
+      {
+        "product_id": 23,
+        "product_code": "SP023",
+        "product_name": "iPhone 16 128GB",
+        "quantity": 16
+      }
+    ]
+  }
+}
