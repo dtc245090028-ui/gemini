@@ -178,6 +178,7 @@ def complete_existing_export_note(
 )
 def cancel_existing_export_note(
     export_note_id: int,
+    reason: Optional[str] = Query(None, description="Lý do hủy phiếu xuất"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
@@ -203,7 +204,9 @@ def cancel_existing_export_note(
     # Chụp lại dữ liệu serialized trước khi thao tác CSDL
     serialized = _serialize_export_note(existing_note)
 
-    note, was_deleted = cancel_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+    note, was_deleted = cancel_export_note(
+        db=db, export_note_id=export_note_id, current_user_id=current_user.id, reason=reason
+    )
     if was_deleted:
         serialized.status = "CANCELLED"
         return serialized

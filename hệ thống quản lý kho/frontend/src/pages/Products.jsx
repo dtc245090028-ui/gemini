@@ -27,9 +27,13 @@ import Modal from '../components/Modal';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
 import { stockEvents } from '../utils/stockEvents';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export const Products = ({ onSelectProductLedger, isActive = true }) => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const { confirm } = useConfirm();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -468,12 +472,21 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   };
 
   const handleDeleteProduct = async (p) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn ngưng kinh doanh mặt hàng "${p.name}"?`)) return;
+    const res = await confirm({
+      title: `Ngưng kinh doanh mặt hàng "${p.name}"?`,
+      message: `Mặt hàng [${p.code}] sẽ chuyển sang trạng thái ngưng kinh doanh và không thể tạo thêm phiếu xuất mới.`,
+      confirmText: 'Ngưng kinh doanh',
+      cancelText: 'Giữ lại',
+      variant: 'danger',
+    });
+    if (!res.confirmed) return;
+
     try {
       await apiClient.products.delete(p.id);
+      showSuccess(`Đã ngưng kinh doanh mặt hàng "${p.name}" thành công!`);
       fetchProducts();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể xóa mặt hàng này.');
+      showError(err.response?.data?.detail || 'Không thể xóa mặt hàng này.');
     }
   };
 

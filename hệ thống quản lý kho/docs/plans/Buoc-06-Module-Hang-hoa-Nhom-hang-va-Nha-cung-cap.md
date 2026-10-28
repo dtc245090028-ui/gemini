@@ -23,25 +23,27 @@
 
 - `app/models/category.py`: `id`, `code`, `name`, `description`.
 - `app/models/product.py`:
-  - `id`, `code` (SKU duy nhất), `name`, `category_id` (FK), `unit`, `min_stock`, `current_stock`, `standard_price`, `status`, `created_at`.
+  - `id`, `code` (SKU duy nhất), `name`, `category_id` (FK), `unit`, `min_stock`, `current_stock`, `standard_price`, `image_url`, `status`, `created_at`.
   - Ràng buộc: `CHECK (current_stock >= 0)`.
 - `app/models/supplier.py`: `id`, `code`, `name`, `phone`, `email`, `address`, `is_active`.
 
 ### 2.2. Schemas Xác thực (Pydantic v2)
 
 - `app/schemas/category.py`: `CategoryCreate`, `CategoryUpdate`, `CategoryResponse`.
-- `app/schemas/product.py`: `ProductCreate`, `ProductUpdate`, `ProductResponse` (bổ sung thuộc tính tính toán `is_low_stock: bool`).
+- `app/schemas/product.py`: `ProductCreate` (hỗ trợ các trường tùy chọn nhập ban đầu: `initial_quantity`, `initial_price`, `supplier_id`), `ProductUpdate`, `ProductResponse` (bổ sung thuộc tính tính toán `@computed_field is_low_stock: bool` và `image_url`).
 - `app/schemas/supplier.py`: `SupplierCreate`, `SupplierUpdate`, `SupplierResponse`.
 
 ### 2.3. Endpoints RESTful API
 
-- `app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa.
+- `app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa (`GET`, `POST`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`).
 - `app/api/v1/endpoints/products.py`:
   - `GET /api/v1/products`: Hỗ trợ phân trang (`skip`, `limit`), tìm kiếm theo từ khóa tên/SKU, lọc theo `category_id`, lọc `is_low_stock=true`.
-  - `POST /api/v1/products`: Thêm mới mặt hàng (chỉ Admin/Thủ kho).
+  - `POST /api/v1/products`: Thêm mới mặt hàng (chỉ Admin/Thủ kho). Nếu có `initial_quantity > 0`, tự động khởi tạo luôn phiếu nhập kho ban đầu và ghi Thẻ kho trong một Transaction nguyên tử.
+  - `GET /api/v1/products/{id}`: Xem chi tiết hàng hóa.
   - `PUT /api/v1/products/{id}`: Cập nhật thông tin hàng hóa.
-  - `DELETE /api/v1/products/{id}`: Xóa hoặc chuyển trạng thái sang `DISCONTINUED`.
-- `app/api/v1/endpoints/suppliers.py`: CRUD nhà cung cấp.
+  - `DELETE /api/v1/products/{id}`: Xóa cứng nếu chưa có giao dịch, hoặc chuyển trạng thái mềm sang `DISCONTINUED` nếu đã có chứng từ liên quan.
+  - `POST /api/v1/products/{id}/image`: Tải lên tệp ảnh đại diện sản phẩm (Multipart form data).
+- `app/api/v1/endpoints/suppliers.py`: CRUD nhà cung cấp (`GET`, `POST`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`).
 
 ---
 
@@ -105,5 +107,17 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 - **Tài liệu bàn giao KT2:**
   - Hoàn thành `docs/SDLC/KT2/01_API_Specifications.md` đặc tả chi tiết toàn bộ RESTful APIs và ma trận phân quyền RBAC.
 - **Kiểm thử tự động:**
-  - Viết `backend/tests/test_master_data.py` (4 test functions lớn bao quát vòng đời Category, Product, Supplier và RBAC).
-  - Tổng số test cases toàn dự án: **18/18 PASS 100%**.
+  - Viết `backend/tests/test_master_data.py` (5 test functions lớn bao quát vòng đời Category, Product, Supplier, Initial Import và RBAC).
+  - Tổng số test cases toàn dự án: **19/19 PASS 100%**.
+
+---
+
+## 7. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #14, #21, #23).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #14 - Nhóm B]:* Bổ sung cột `image_url` vào model `Product` và bổ sung endpoint `POST /products/{id}/image` theo [`backend/app/models/product.py` L20](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/product.py#L20) và [`backend/app/api/v1/endpoints/products.py` L231-275](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/products.py#L231-L275).
+  2. *[Mục #21 - Nhóm B]:* Bổ sung tính năng tạo phiếu nhập đầu kỳ tích hợp trong `POST /products` (`initial_quantity`, `initial_price`, `supplier_id`) theo [`backend/app/api/v1/endpoints/products.py` L108-160](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/products.py#L108-L160).
+  3. Cập nhật số ca kiểm thử trong `test_master_data.py` là 5 tests (thêm test kiểm thử nhập ban đầu `test_product_creation_with_initial_import_note`).
+- **Lý do:** Hoàn thiện đặc tả Master Data khớp 100% với mã nguồn triển khai.

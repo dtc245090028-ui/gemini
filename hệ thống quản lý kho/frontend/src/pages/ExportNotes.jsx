@@ -21,9 +21,13 @@ import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
 import Loader from '../components/Loader';
 import useDelayedLoading from '../hooks/useDelayedLoading';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export const ExportNotes = ({ isActive = true }) => {
   const { user } = useAuth();
+  const { showSuccess, showError, showInfo } = useToast();
+  const { confirm } = useConfirm();
   const [exportNotes, setExportNotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -197,7 +201,7 @@ export const ExportNotes = ({ isActive = true }) => {
       setIsCreateOpen(true);
     } catch (err) {
       console.error('Lỗi khi gọi AI sinh đơn hàng:', err);
-      alert(err.response?.data?.detail || 'Không thể sinh đơn hàng AI vào lúc này.');
+      showError(err.response?.data?.detail || 'Không thể sinh đơn hàng AI vào lúc này.');
     } finally {
       setAiGenerating(false);
     }
@@ -329,7 +333,7 @@ export const ExportNotes = ({ isActive = true }) => {
       setSelectedNote(res.data);
       setIsDetailOpen(true);
     } catch (err) {
-      alert('Không thể tải chi tiết phiếu xuất');
+      showError('Không thể tải chi tiết phiếu xuất');
     }
   };
 
@@ -349,81 +353,91 @@ export const ExportNotes = ({ isActive = true }) => {
   };
 
   const handleShipNote = async (note) => {
-    if (
-      !window.confirm(
-        `Xác nhận bắt đầu giao hàng cho phiếu xuất ${note.code}? Hệ thống sẽ trừ tồn kho thực tế và ghi Thẻ kho.`
-      )
-    )
-      return;
+    const res = await confirm({
+      title: `Bắt đầu giao hàng cho phiếu ${note.code}?`,
+      message: 'Hệ thống sẽ trừ tồn kho thực tế của các mặt hàng và ghi nhận biến động tức thời vào Sổ cái Thẻ kho.',
+      confirmText: 'Bắt đầu giao hàng',
+      cancelText: 'Giữ lại',
+      variant: 'primary',
+    });
+    if (!res.confirmed) return;
 
     try {
       await apiClient.exportNotes.ship(note.id);
-      alert(`Phiếu xuất ${note.code} đã bắt đầu giao hàng (đã trừ tồn kho)!`);
+      showSuccess(`Phiếu xuất ${note.code} đã bắt đầu giao hàng (đã trừ tồn kho)!`);
       fetchData();
       if (selectedNote?.id === note.id) {
         setIsDetailOpen(false);
       }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể bắt đầu giao hàng');
+      showError(err.response?.data?.detail || 'Không thể bắt đầu giao hàng');
     }
   };
 
   const handleCompleteNote = async (note) => {
-    if (
-      !window.confirm(
-        `Xác nhận khách đã nhận đủ hàng và hoàn thành phiếu xuất ${note.code}?`
-      )
-    )
-      return;
+    const res = await confirm({
+      title: `Hoàn thành phiếu xuất ${note.code}?`,
+      message: 'Xác nhận khách hàng đã nhận đủ hàng và hoàn tất quy trình phân phối cho đơn này.',
+      confirmText: 'Xác nhận hoàn thành',
+      cancelText: 'Giữ lại',
+      variant: 'primary',
+    });
+    if (!res.confirmed) return;
 
     try {
       await apiClient.exportNotes.complete(note.id);
-      alert(`Phiếu xuất ${note.code} đã hoàn thành thành công!`);
+      showSuccess(`Phiếu xuất ${note.code} đã hoàn thành thành công!`);
       fetchData();
       if (selectedNote?.id === note.id) {
         setIsDetailOpen(false);
       }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể hoàn thành phiếu xuất');
+      showError(err.response?.data?.detail || 'Không thể hoàn thành phiếu xuất');
     }
   };
 
   const handleDeleteOrCancelNote = async (note) => {
     if (note.status === 'CONFIRMED') {
-      if (
-        !window.confirm(
-          `Phiếu xuất ${note.code} chưa xuất kho. Bạn có chắc muốn hủy và xóa vĩnh viễn phiếu này không?`
-        )
-      )
-        return;
+      const res = await confirm({
+        title: `Xóa phiếu xuất ${note.code}?`,
+        message: `Phiếu xuất ${note.code} chưa xuất kho. Bạn có chắc muốn hủy và xóa vĩnh viễn phiếu này khỏi hệ thống không?`,
+        confirmText: 'Xác nhận xóa',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      });
+      if (!res.confirmed) return;
 
       try {
         await apiClient.exportNotes.delete(note.id);
-        alert(`Đã xóa vĩnh viễn phiếu xuất ${note.code}!`);
+        showSuccess(`Đã xóa vĩnh viễn phiếu xuất ${note.code}!`);
         fetchData();
         if (selectedNote?.id === note.id) {
           setIsDetailOpen(false);
         }
       } catch (err) {
-        alert(err.response?.data?.detail || 'Không thể xóa phiếu xuất');
+        showError(err.response?.data?.detail || 'Không thể xóa phiếu xuất');
       }
     } else if (note.status === 'SHIPPING') {
-      if (
-        !window.confirm(
-          `Xác nhận hủy đơn hàng đang giao ${note.code}? Hệ thống sẽ hoàn trả số lượng vào tồn kho và lưu vết phiếu đã hủy.`
-        )
-      )
-        return;
+      const res = await confirm({
+        title: `Hủy đơn hàng ${note.code}?`,
+        message: 'Hệ thống sẽ hoàn trả số lượng vào tồn kho, ghi nhận Thẻ kho điều chỉnh và lưu vết phiếu đã hủy.',
+        confirmText: 'Xác nhận hủy',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+        showReasonInput: true,
+        reasonPlaceholder: 'Nhập lý do hủy (ví dụ: Khách đổi ý, sai địa chỉ giao, sản phẩm lỗi...)...',
+      });
+      if (!res.confirmed) return;
 
       try {
-        await apiClient.exportNotes.cancel(note.id);
-        alert(`Đã hủy phiếu xuất ${note.code} và hoàn trả tồn kho thành công!`);
+        await apiClient.exportNotes.cancel(note.id, res.reason);
+        showSuccess(`Đã hủy phiếu xuất ${note.code} và hoàn trả tồn kho thành công!`);
         fetchData();
         if (selectedNote?.id === note.id) {
           setIsDetailOpen(false);
         }
       } catch (err) {
-        alert(err.response?.data?.detail || 'Không thể hủy phiếu xuất');
+        showError(err.response?.data?.detail || 'Không thể hủy phiếu xuất');
       }
     }
   };

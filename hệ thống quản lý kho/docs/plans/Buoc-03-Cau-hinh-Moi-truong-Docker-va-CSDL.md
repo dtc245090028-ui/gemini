@@ -31,12 +31,11 @@
 
 ### 2.2. Cấu hình Docker & Docker Compose
 
-- `backend/Dockerfile`: Build ứng dụng FastAPI với Python 3.14 / 3.11 slim.
-- `frontend/Dockerfile`: Build ứng dụng React với Node.js và phục vụ qua Nginx.
-- `docker-compose.yml`: Điều phối 3 containers:
-  - `db`: PostgreSQL 16 Alpine kèm volume lưu trữ bền vững.
-  - `backend`: Kết nối tới `db`, nạp biến môi trường từ `.env`.
-  - `frontend`: Kết nối tới backend qua cổng 80/5173.
+- `backend/Dockerfile`: Build ứng dụng FastAPI với Python 3.11 / 3.14 slim.
+- `frontend/Dockerfile`: Multi-stage build ứng dụng React Vite với Node.js 18 và phục vụ qua Nginx Alpine.
+- `docker-compose.yml`: Điều phối **2 containers** gọn nhẹ và độc lập:
+  - `backend` (`warehouse_backend`): Chạy FastAPI tại cổng 8000, kết nối trực tiếp CSDL SQLite nhúng (`sqlite:///./warehouse.db`), mount volume `./backend:/app`, nạp cấu hình từ `./backend/.env`. (Hỗ trợ cấu hình chuyển sang PostgreSQL qua `DATABASE_URL` khi triển khai Enterprise).
+  - `frontend` (`warehouse_frontend`): Chạy Nginx tại cổng 5173 (ánh xạ từ cổng 80 nội bộ), cấu hình `depends_on: backend`.
 
 ---
 
@@ -47,7 +46,7 @@ Khi thực hiện bước này, các file và thư mục sau phải được t�
 ```text
 he-thong-quan-ly-kho/
 ├── .env.example                       # Mẫu cấu hình môi trường gốc
-├── docker-compose.yml                 # File điều phối Docker containers
+├── docker-compose.yml                 # File điều phối 2 Docker containers (backend + frontend)
 ├── backend/
 │   ├── .env                           # File cấu hình môi trường backend (không commit git)
 │   ├── .env.example                   # Mẫu cấu hình môi trường backend
@@ -61,9 +60,9 @@ he-thong-quan-ly-kho/
 
 ## 4. Ràng buộc kỹ thuật & Tiêu chí hoàn thành (Definition of Done)
 
-- [ ] Ứng dụng chạy được cục bộ với `SQLite` mà không cần cài đặt thêm phần mềm máy chủ CSDL.
-- [ ] Chạy được lệnh `docker-compose up --build` khởi động thành công cả 3 services (DB, Backend, Frontend).
-- [ ] File `.env` chứa bí mật không bị commit lên kho mã nguồn Git.
+- [x] Ứng dụng chạy được cục bộ với `SQLite` mà không cần cài đặt thêm phần mềm máy chủ CSDL bên ngoài.
+- [x] Chạy được lệnh `docker compose up --build` khởi động thành công cả 2 services (`warehouse_backend`, `warehouse_frontend`).
+- [x] File `.env` chứa bí mật không bị commit lên kho mã nguồn Git.
 
 ---
 
@@ -74,3 +73,14 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
 ```markdown
 | YYYY-MM-DD | Bước 03 | Cấu hình Môi trường, Docker & CSDL | Hoàn thành | `.env.example`, `docker-compose.yml`, `Dockerfile` | Đã hoàn thiện cấu hình .env, docker-compose.yml và Dockerfile |
 ```
+
+---
+
+## 6. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #5).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #5 - Nhóm A]:* Điều chỉnh số lượng containers trong `docker-compose.yml` từ 3 containers (có PostgreSQL 16 Alpine) thành **2 containers** (`warehouse_backend` và `warehouse_frontend`) chạy CSDL SQLite nhúng trực tiếp theo đúng file thực tế [`docker-compose.yml` L1-26](file:///e:/gemini/hệ thống quản lý kho/docker-compose.yml#L1-L26).
+  2. Ghi nhận PostgreSQL là phương án mở rộng hạ tầng qua chuỗi kết nối `DATABASE_URL` thay vì container cố định trong file compose hiện tại.
+- **Lý do:** Đồng bộ tài liệu thiết kế môi trường khớp 100% với cấu hình Docker Compose thực tế đang vận hành của dự án.

@@ -51,6 +51,7 @@ def seed_database():
     print("===============================================================================")
     print("     BẮT ĐẦU NẠP DỮ LIỆU MẪU ENTERPRISE 5 THÁNG HOẠT ĐỘNG LIÊN TỤC (WMS AI)")
     print("===============================================================================")
+    random.seed(42)
     Base.metadata.create_all(bind=engine)
     db: Session = SessionLocal()
 
@@ -284,103 +285,29 @@ def seed_database():
             "Khách hàng Đặt hàng Online (Giao nhanh)",
         ]
 
-        def record_import(code: str, sup_code: str, note_date: datetime, items: list, note_text: str, status: str = "COMPLETED"):
-            imp = ImportNote(
-                code=code,
-                supplier_id=sup_map[sup_code].id,
-                created_by=thukho_user.id,
-                note_date=note_date,
-                total_amount=0.0,
-                status=status,
-                note=note_text,
-            )
-            db.add(imp)
-            db.flush()
+        events = []
 
-            total_amount = 0.0
-            for sku, qty, unit_price in items:
-                p = prod_map[sku]
-                subtotal = float(qty * unit_price)
-                total_amount += subtotal
-                db.add(
-                    ImportNoteDetail(
-                        import_note_id=imp.id,
-                        product_id=p.id,
-                        quantity=qty,
-                        unit_price=unit_price,
-                        subtotal=subtotal,
-                    )
-                )
-                if status == "COMPLETED":
-                    p.current_stock += qty
-                    db.add(
-                        StockLedger(
-                            product_id=p.id,
-                            transaction_type="IMPORT",
-                            reference_code=imp.code,
-                            quantity_change=qty,
-                            balance_after=p.current_stock,
-                            created_by=thukho_user.id,
-                            transaction_date=note_date,
-                            note=f"Nhập kho từ {sup_map[sup_code].name}",
-                        )
-                    )
-            imp.total_amount = total_amount
-            return imp
+        def record_import(code: str, sup_code: str, note_date: datetime, items: list, note_text: str, status: str = "COMPLETED"):
+            events.append({
+                "type": "IMPORT",
+                "code": code,
+                "sup_code": sup_code,
+                "note_date": note_date,
+                "items": items,
+                "note_text": note_text,
+                "status": status,
+            })
 
         def record_export(code: str, recipient: str, note_date: datetime, items: list, note_text: str, status: str = "COMPLETED"):
-            exp = ExportNote(
-                code=code,
-                recipient_name=recipient,
-                created_by=thukho_user.id,
-                note_date=note_date,
-                total_amount=0.0,
-                status=status,
-                note=note_text,
-            )
-            db.add(exp)
-            db.flush()
-
-            total_amount = 0.0
-            for sku, requested_qty in items:
-                if sku == "SP003":  # Kịch bản DEAD STOCK: tuyệt đối không xuất!
-                    continue
-                p = prod_map[sku]
-                price = p.standard_price
-
-                # Khống chế số lượng để không bao giờ bị âm kho
-                safe_margin = 4 if sku == "SP001" else 1
-                qty_can_export = max(0, p.current_stock - safe_margin)
-                actual_qty = min(requested_qty, qty_can_export)
-
-                if actual_qty > 0:
-                    subtotal = float(actual_qty * price)
-                    total_amount += subtotal
-                    db.add(
-                        ExportNoteDetail(
-                            export_note_id=exp.id,
-                            product_id=p.id,
-                            quantity=actual_qty,
-                            unit_price=price,
-                            subtotal=subtotal,
-                        )
-                    )
-                    if status == "COMPLETED":
-                        p.current_stock -= actual_qty
-                        db.add(
-                            StockLedger(
-                                product_id=p.id,
-                                transaction_type="EXPORT",
-                                reference_code=exp.code,
-                                quantity_change=-actual_qty,
-                                balance_after=p.current_stock,
-                                created_by=thukho_user.id,
-                                transaction_date=note_date,
-                                note=f"Xuất kho cho {recipient}",
-                            )
-                        )
-            exp.total_amount = total_amount
-            return exp
+            events.append({
+                "type": "EXPORT",
+                "code": code,
+                "recipient": recipient,
+                "note_date": note_date,
+                "items": items,
+                "note_text": note_text,
+                "status": status,
+            })
 
         # ---------------------------------------------------------------------
         # THÁNG 5/2026: ĐẠI NHẬP KHO KHAI TRƯƠNG & XUẤT ĐƠN ĐẦU TIÊN
@@ -689,32 +616,172 @@ def seed_database():
             ("SP023", 1), ("SP034", 1), ("SP070", 2)
         ], "Đơn giao hàng công nghệ trong ngày")
 
-        # Tinh chỉnh tồn kho cuối cùng cho SP001 về đúng 4 chiếc nếu còn lệch
-        p1 = prod_map["SP001"]
-        if p1.current_stock > 4:
-            adjust_qty = p1.current_stock - 4
-            record_export("PX-202610-008", "Cửa hàng Bán lẻ Tin học Nguyễn Kim", datetime(2026, 10, 18, 16, 0), [
-                ("SP001", adjust_qty)
-            ], "Xuất bổ sung hoàn tất hợp đồng cung ứng bàn phím Akko")
+        # Tinh chỉnh tồn kho cuối cùng cho SP001 về đúng 4 chiếc nếu còn lệch (kịch bản AI)
+        events.append({
+            "type": "EXPORT_TARGET",
+            "code": "PX-202610-008",
+            "recipient": "Cửa hàng Bán lẻ Tin học Nguyễn Kim",
+            "note_date": datetime(2026, 10, 20, 11, 0),
+            "target_sku": "SP001",
+            "target_stock": 4,
+            "note_text": "Xuất bổ sung hoàn tất hợp đồng cung ứng bàn phím Akko",
+            "status": "COMPLETED",
+        })
 
         # Tinh chỉnh một vài sản phẩm khác để danh sách gợi ý nhập đa dạng (SP023, SP036, SP050)
-        p_ip16 = prod_map["SP023"]
-        if p_ip16.current_stock > 2:
-            record_export("PX-202610-009", "Khách hàng Đặt hàng Online (Giao nhanh)", datetime(2026, 10, 19, 11, 0), [
-                ("SP023", p_ip16.current_stock - 2)
-            ], "Xuất giao nhanh iPhone 16 cho khách hàng VIP")
+        events.append({
+            "type": "EXPORT_TARGET",
+            "code": "PX-202610-009",
+            "recipient": "Khách hàng Đặt hàng Online (Giao nhanh)",
+            "note_date": datetime(2026, 10, 20, 14, 0),
+            "target_sku": "SP023",
+            "target_stock": 2,
+            "note_text": "Xuất giao nhanh iPhone 16 cho khách hàng VIP",
+            "status": "COMPLETED",
+        })
 
-        p_dell = prod_map["SP036"]
-        if p_dell.current_stock > 3:
-            record_export("PX-202610-010", "Viện Đào tạo Quốc tế Kent", datetime(2026, 10, 18, 14, 0), [
-                ("SP036", p_dell.current_stock - 3)
-            ], "Xuất trang bị máy tính Dell Inspiron phòng học")
+        events.append({
+            "type": "EXPORT_TARGET",
+            "code": "PX-202610-010",
+            "recipient": "Viện Đào tạo Quốc tế Kent",
+            "note_date": datetime(2026, 10, 20, 15, 0),
+            "target_sku": "SP036",
+            "target_stock": 3,
+            "note_text": "Xuất trang bị máy tính Dell Inspiron phòng học",
+            "status": "COMPLETED",
+        })
 
-        p_m185 = prod_map["SP050"]
-        if p_m185.current_stock > 8:
-            record_export("PX-202610-011", "Tập đoàn Bất động sản Đất Việt", datetime(2026, 10, 19, 16, 30), [
-                ("SP050", p_m185.current_stock - 8)
-            ], "Cung ứng chuột không dây văn phòng Đất Việt")
+        events.append({
+            "type": "EXPORT_TARGET",
+            "code": "PX-202610-011",
+            "recipient": "Tập đoàn Bất động sản Đất Việt",
+            "note_date": datetime(2026, 10, 20, 16, 0),
+            "target_sku": "SP050",
+            "target_stock": 8,
+            "note_text": "Cung ứng chuột không dây văn phòng Đất Việt",
+            "status": "COMPLETED",
+        })
+
+        # Sắp xếp toàn bộ chuỗi sự kiện theo đúng thứ tự thời gian thực tế
+        # Nếu cùng thời điểm, ưu tiên NHẬP trước XUẤT để bảo toàn tồn kho ACID
+        events.sort(key=lambda ev: (ev["note_date"], 0 if ev["type"] == "IMPORT" else 1))
+
+        print(f"  -> Đang thực thi tuần tự {len(events)} giao dịch 5 tháng theo đúng thứ tự thời gian...")
+        for ev in events:
+            ev_type = ev["type"]
+            note_date = ev["note_date"]
+            status = ev.get("status", "COMPLETED")
+
+            if ev_type == "IMPORT":
+                sup_code = ev["sup_code"]
+                imp = ImportNote(
+                    code=ev["code"],
+                    supplier_id=sup_map[sup_code].id,
+                    created_by=thukho_user.id,
+                    note_date=note_date,
+                    total_amount=0.0,
+                    status=status,
+                    note=ev["note_text"],
+                )
+                db.add(imp)
+                db.flush()
+
+                total_amount = 0.0
+                for sku, qty, unit_price in ev["items"]:
+                    p = prod_map[sku]
+                    subtotal = float(qty * unit_price)
+                    total_amount += subtotal
+                    db.add(
+                        ImportNoteDetail(
+                            import_note_id=imp.id,
+                            product_id=p.id,
+                            quantity=qty,
+                            unit_price=unit_price,
+                            subtotal=subtotal,
+                        )
+                    )
+                    if status == "COMPLETED":
+                        p.current_stock += qty
+                        db.add(
+                            StockLedger(
+                                product_id=p.id,
+                                transaction_type="IMPORT",
+                                reference_code=imp.code,
+                                quantity_change=qty,
+                                balance_after=p.current_stock,
+                                created_by=thukho_user.id,
+                                transaction_date=note_date,
+                                note=f"Nhập kho từ {sup_map[sup_code].name}",
+                            )
+                        )
+                imp.total_amount = total_amount
+
+            elif ev_type in ("EXPORT", "EXPORT_TARGET"):
+                items = []
+                if ev_type == "EXPORT_TARGET":
+                    sku = ev["target_sku"]
+                    p = prod_map[sku]
+                    target_stock = ev["target_stock"]
+                    if p.current_stock > target_stock:
+                        items = [(sku, p.current_stock - target_stock)]
+                    else:
+                        items = []
+                else:
+                    items = ev["items"]
+
+                if not items:
+                    continue
+
+                exp = ExportNote(
+                    code=ev["code"],
+                    recipient_name=ev["recipient"],
+                    created_by=thukho_user.id,
+                    note_date=note_date,
+                    total_amount=0.0,
+                    status=status,
+                    note=ev["note_text"],
+                )
+                db.add(exp)
+                db.flush()
+
+                total_amount = 0.0
+                for sku, requested_qty in items:
+                    if sku == "SP003":  # Kịch bản DEAD STOCK: tuyệt đối không xuất!
+                        continue
+                    p = prod_map[sku]
+                    price = p.standard_price
+
+                    safe_margin = 0 if ev_type == "EXPORT_TARGET" else (4 if sku == "SP001" else 1)
+                    qty_can_export = max(0, p.current_stock - safe_margin)
+                    actual_qty = min(requested_qty, qty_can_export)
+
+                    if actual_qty > 0:
+                        subtotal = float(actual_qty * price)
+                        total_amount += subtotal
+                        db.add(
+                            ExportNoteDetail(
+                                export_note_id=exp.id,
+                                product_id=p.id,
+                                quantity=actual_qty,
+                                unit_price=price,
+                                subtotal=subtotal,
+                            )
+                        )
+                        if status == "COMPLETED":
+                            p.current_stock -= actual_qty
+                            db.add(
+                                StockLedger(
+                                    product_id=p.id,
+                                    transaction_type="EXPORT",
+                                    reference_code=exp.code,
+                                    quantity_change=-actual_qty,
+                                    balance_after=p.current_stock,
+                                    created_by=thukho_user.id,
+                                    transaction_date=note_date,
+                                    note=f"Xuất kho cho {ev['recipient']}",
+                                )
+                            )
+                exp.total_amount = total_amount
 
         db.commit()
 

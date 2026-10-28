@@ -1,0 +1,80 @@
+flowchart TD
+    %% TẦNG 1: FRONTEND
+    subgraph Layer_Frontend["TẦNG 1: GIAO DIỆN NGƯỜI DÙNG (REACT 18 + VITE + TAILWIND)"]
+        UI_Pages["Pages: Dashboard, Products, Suppliers, ImportNotes, ExportNotes, StockLedger, AIAssistant"]
+        UI_Components["Components: ProductSelect, Modal, ConfirmModal, Loader, Badge, ErrorBoundary"]
+        UI_Context["State & Context: AuthContext (JWT/Role), ToastContext, ConfirmContext"]
+        UI_Client["Axios API Client: src/api/client.js (Gắn Bearer token, Interceptors)"]
+    end
+
+    %% TẦNG 2: API GATEWAY & ROUTERS
+    subgraph Layer_API["TẦNG 2: TẦNG ĐIỀU HƯỚNG & XÁC THỰC (FASTAPI)"]
+        API_Main["FastAPI App (app/main.py) - Lifespan, CORS, Exception Handlers"]
+        API_Security["Bảo mật & RBAC: app/api/deps.py (require_roles, check_ai_rate_limit)"]
+        API_Routers["Sub-Routers (app/api/v1/endpoints/):<br/>auth, categories, products, suppliers, import_notes, export_notes, stock_ledger, reports, ai"]
+        API_Schemas["Pydantic Schemas (app/schemas/): Validation đầu vào/đầu ra"]
+    end
+
+    %% TẦNG 3: SERVICE LAYER
+    subgraph Layer_Service["TẦNG 3: TẦNG NGHIỆP VỤ & ĐIỀU PHỐI (SERVICE LAYER)"]
+        Srv_Inv["InventoryService (inventory_service.py):<br/>ACID Transactions, Atomic SQL, Guard-check, Thẻ kho, Báo cáo"]
+        Srv_AI["AIService (ai_service.py):<br/>Điều phối phân tích kho bãi, Quản lý chuỗi model & Cache"]
+        Srv_Fallback["FallbackService (fallback_service.py):<br/>Động cơ Heuristic toán học nội bộ (Offline-safe < 50ms)"]
+        Srv_Cache["AICacheManager (ai_cache.py):<br/>Fingerprint Verification & Lưu trữ JSON theo khoảng ngày"]
+    end
+
+    %% TẦNG 4: DATABASE LAYER
+    subgraph Layer_DB["TẦNG 4: CƠ SỞ DỮ LIỆU & ORM (SQLITE 3 + SQLALCHEMY 2.0)"]
+        DB_Engine["SQLite Engine (WAL mode, PRAGMA synchronous=NORMAL, foreign_keys=ON)"]
+        DB_ORM["SQLAlchemy ORM Models: 9 Bảng CSDL"]
+        DB_Constraints["CheckConstraints: chk_stock_non_negative, chk_balance_after_non_negative"]
+        DB_Files[("warehouse.db<br/>(9 Tables, 76 Products, 419 Ledgers)")]
+    end
+
+    %% DỊCH VỤ NGOÀI AI
+    subgraph External_AI["DỊCH VỤ NGOÀI: GOOGLE GEMINI API"]
+        Gemini_API["Google Generative AI SDK (gemini-3.5-flash-lite / gemini-1.5-flash)<br/>Model Fallback Chain: 3.5-lite -> 3.1-lite -> 3.6-flash"]
+    end
+
+    %% KẾT NỐI KIẾN TRÚC TẦNG
+    UI_Client -->|HTTP / JSON Requests| API_Main
+    API_Main --> API_Security
+    API_Security --> API_Routers
+    API_Routers --> API_Schemas
+    API_Routers -->|Gọi nghiệp vụ kho| Srv_Inv
+    API_Routers -->|Gọi phân tích AI| Srv_AI
+
+    Srv_Inv -->|SessionLocal ORM & Raw SQL| DB_ORM
+    DB_ORM --> DB_Engine
+    DB_Engine --> DB_Constraints
+    DB_Constraints --> DB_Files
+
+    %% ==========================================
+    %% LUỒNG DỮ LIỆU ĐẾN PHÂN HỆ AI (AI PIPELINE)
+    %% ==========================================
+    API_Routers -.->|1. Request AI Report| Srv_AI
+    Srv_AI -->|2. SQL Aggregation Pipeline| DB_Files
+    DB_Files -->|3. Trả số liệu thô| Srv_AI
+
+    Srv_AI --> Srv_Sanitize["4. LỌC BẢO MẬT (DATA SANITIZATION)<br/>Loại bỏ 100% unit_price & giá vốn<br/>Chỉ giữ số lượng, mã SKU, velocity"]
+    Srv_Sanitize --> Srv_CacheCheck{5. Kiểm tra Fingerprint<br/>trong ai_cache.json?}
+
+    Srv_CacheCheck -->|Cache Hit: Dữ liệu không đổi| Srv_ReturnCache["6a. Lấy nhận xét từ Cache (< 5ms)<br/>is_cached=True, is_fallback=False"]
+    Srv_ReturnCache --> Srv_Response["9. Pydantic Response Model<br/>(MonthlyReportResponse)"]
+
+    Srv_CacheCheck -->|Cache Miss hoặc force_refresh| Srv_PromptInject["6b. Nạp Template từ app/ai/prompts/<br/>Nhúng Metrics vào {{placeholders}}"]
+    Srv_PromptInject --> Srv_KeyCheck{7. Kiểm tra GEMINI_API_KEY?}
+
+    Srv_KeyCheck -->|Có Key| Gemini_API
+    Gemini_API -->|Thành công 200 OK| Srv_GeminiSuccess["8a. Parse JSON Schema<br/>Lưu vào ai_cache.json<br/>is_fallback=False, provider=gemini"]
+    Srv_GeminiSuccess --> Srv_Response
+
+    Gemini_API -.->|Lỗi 429 Quota / Timeout / 503| Srv_CircuitBreaker["8b. Chuyển mạch Circuit Breaker<br/>Ghi log ai_service.log"]
+    Srv_CircuitBreaker --> Srv_Fallback
+    Srv_KeyCheck -->|Không có Key / Kho rỗng| Srv_Fallback
+
+    Srv_Fallback --> Srv_FallbackExec["8c. Tính toán Heuristic Deterministic<br/>suggested_qty, SURGE_EXPORT, DEAD_STOCK<br/>is_fallback=True, provider=heuristic_fallback"]
+    Srv_FallbackExec --> Srv_Response
+
+    Srv_Response -->|HTTP 200 JSON| API_Routers
+    API_Routers -->|Render Cards, Badges, Markdown| UI_Pages

@@ -1,0 +1,77 @@
+sequenceDiagram
+    autonumber
+    actor User as Người dùng<br/>(Thủ kho / Kế toán / Admin)
+    participant UI as Frontend React<br/>(AIAssistant.jsx)
+    participant API as AI Endpoint<br/>(endpoints/ai.py)
+    participant Deps as RBAC & RateLimit<br/>(api/deps.py)
+    participant Srv as AIService<br/>(ai_service.py)
+    participant Cache as AICacheManager<br/>(ai_cache.py)
+    participant DB as SQLite Database<br/>(warehouse.db)
+    participant Gemini as Google Gemini API<br/>(gemini-3.5-flash-lite)
+    participant Fallback as FallbackService<br/>(fallback_service.py)
+
+    User->>UI: Bấm xem "Báo cáo tháng"<br/>hoặc bấm "Tạo lại" (force_refresh)
+    UI->>API: GET /api/v1/ai/monthly-report?month=10&year=2026&force_refresh=false
+    API->>Deps: Xác thực Bearer JWT & Phân quyền (require_roles)
+    Deps-->>API: Quyền hợp lệ (ADMIN / WAREHOUSE_KEEPER / ACCOUNTANT)
+
+    alt force_refresh == True
+        API->>Deps: check_ai_rate_limit(user)<br/>(Chống spam nhấn nút)
+    end
+
+    API->>Srv: generate_monthly_report(db, month, year, force_refresh)
+    
+    %% Bước 1: SQL Aggregation
+    Note over Srv,DB: 1. TIỀN XỬ LÝ SỐ LIỆU (SQL AGGREGATION & SANITIZATION)
+    Srv->>DB: Query đếm total_products, active_products, tổng nhập, tổng xuất, low_stock, top 5 mặt hàng
+    Note over Srv,DB: Tuyệt đối KHÔNG SELECT trường unit_price (Zero-price leakage)
+    DB-->>Srv: Trả về tập số liệu tổng hợp (MonthlyReportMetrics)
+    
+    %% Bước 2: Compute Fingerprint
+    Srv->>Cache: compute_fingerprint(db, start_d, end_d)
+    Cache->>DB: Đếm ledger_count, max_ledger_id, net_change
+    DB-->>Cache: Trả về thông số biến động
+    Cache-->>Srv: Trả về fingerprint object
+
+    %% Nhánh 1: Cache Hit
+    alt force_refresh == False và Cache Hit
+        Note over Srv,Cache: NHÁNH 1: BẢN LƯU HỢP LỆ (CACHE HIT - < 5ms)
+        Srv->>Cache: get_range_commentary("monthly_report", start_d, end_d, fingerprint)
+        Cache-->>Srv: Trả về bản lưu nhận xét (commentary JSON)
+        Srv-->>API: MonthlyReportResponse(is_cached=True, is_fallback=False, provider="gemini")
+        API-->>UI: HTTP 200 OK (Kèm cờ is_cached=True)
+        UI-->>User: Hiển thị ngay Báo cáo tháng + Thẻ KPI
+    else Cache Miss hoặc force_refresh == True
+        Note over Srv: NHÁNH 2 & 3: TỔNG HỢP MỚI VÀ GỌI AI
+        Srv->>Srv: _read_prompt_template("inventory_report_prompt.txt")
+        Srv->>Srv: Nhúng số liệu Metrics vào template (Anti-hallucination Grounding)
+        
+        alt Có GEMINI_API_KEY và Kho có sản phẩm
+            Srv->>Gemini: _call_gemini_with_models(prompt_content, config)
+            
+            alt Gemini thành công (200 OK)
+                Note over Srv,Gemini: NHÁNH 2A: GEMINI THÀNH CÔNG (~1.2s)
+                Gemini-->>Srv: Phản hồi chuỗi JSON (executive_summary, recommendations)
+                Srv->>Cache: save_range_commentary(fingerprint, commentary)
+                Srv-->>API: MonthlyReportResponse(is_fallback=False, provider="gemini", is_cached=False)
+                API-->>UI: HTTP 200 OK (provider="gemini")
+                UI-->>User: Hiển thị Báo cáo AI với Huy hiệu xanh [Google Gemini]
+            else Gặp lỗi HTTP 429 Quota Exceeded / Timeout / 503
+                Note over Srv,Fallback: NHÁNH 2B: CHUYỂN MẠCH DỰ PHÒNG (CIRCUIT BREAKER)
+                Gemini-->>Srv: Ném ngoại lệ ResourceExhausted (429) / Timeout
+                Srv->>Srv: Ghi traceback lỗi vào logs/ai_service.log
+                Srv->>Fallback: generate_monthly_report_fallback(metrics, period_str)
+                Fallback-->>Srv: Trả về tóm tắt toán học Heuristic (< 50ms)
+                Srv-->>API: MonthlyReportResponse(is_fallback=True, provider="heuristic_fallback")
+                API-->>UI: HTTP 200 OK (provider="heuristic_fallback")
+                UI-->>User: Hiển thị Báo cáo với Huy hiệu vàng cam [Heuristic Offline]
+            end
+        else Không có GEMINI_API_KEY hoặc Kho rỗng (total_products == 0)
+            Note over Srv,Fallback: NHÁNH 3: TỰ ĐỘNG CHẠY OFFLINE KHI THIẾU KEY
+            Srv->>Fallback: generate_monthly_report_fallback(metrics, period_str)
+            Fallback-->>Srv: Trả về thông báo hướng dẫn khởi tạo kho
+            Srv-->>API: MonthlyReportResponse(is_fallback=True, provider="heuristic_fallback")
+            API-->>UI: HTTP 200 OK
+            UI-->>User: Hiển thị giao diện an toàn không crash
+        end
+    end

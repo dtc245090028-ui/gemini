@@ -25,7 +25,7 @@ Trong đề tài quản lý kho bãi, AI không đóng vai trò "sáng tác" mà
 
 ## 2. QUÁ TRÌNH THỬ NGHIỆM VÀ SO SÁNH 3 PHIÊN BẢN PROMPT
 
-Hệ thống đã trải qua quá trình thử nghiệm qua 3 thế hệ Prompt cho 3 bài toán nghiệp vụ kho:
+Hệ thống đã trải qua quá trình thử nghiệm qua 3 thế hệ Prompt cho các bài toán nghiệp vụ kho:
 
 ### 2.1. Thử nghiệm trên Bài toán 1: Báo cáo Nhập - Xuất - Tồn theo tháng
 
@@ -56,7 +56,7 @@ Hệ thống đã trải qua quá trình thử nghiệm qua 3 thế hệ Prompt 
 
 ### 2.2. Bảng so sánh định lượng giữa các phiên bản Prompt
 
-Thử nghiệm được thực hiện trên 20 kịch bản kiểm thử (gồm: dữ liệu rỗng, dữ liệu chuẩn 60 ngày, dữ liệu xuất đột biến):
+Thử nghiệm được thực hiện trên 20 kịch bản kiểm thử (gồm: dữ liệu rỗng, dữ liệu chuẩn 150 ngày, dữ liệu xuất đột biến):
 
 | Chỉ số đánh giá | Phiên bản v1 (Naive) | Phiên bản v2 (Markdown) | Phiên bản v3 (Structured JSON - Hiện tại) |
 | --- | :---: | :---: | :---: |
@@ -125,10 +125,28 @@ Nguyên tắc bất biến:
 }
 ```
 
+### 3.4. Template Sinh đơn hàng tự động (`generate_order_prompt.txt`)
+
+```text
+System:
+Bạn là trợ lý soạn thảo đơn hàng xuất nhập kho tự động.
+Phân tích yêu cầu bằng ngôn ngữ tự nhiên từ người dùng, trích xuất danh sách sản phẩm (mã SKU, tên, số lượng) và thông tin đối tác/khách hàng. Trả về JSON có cấu trúc để hệ thống điền tự động vào form lập phiếu.
+```
+
 ---
 
 ## 4. KẾT LUẬN & ĐÁNH GIÁ MỐC KT3
 
-* Bộ Prompt phiên bản v3 kết hợp với **SQL Aggregation Pipeline** và **Pydantic Validation** đã giải quyết triệt để bài toán chống ảo giác số liệu.
-* Khi kết nối với Google Gemini API (`gemini-1.5-flash`), hệ thống đưa ra các nhận xét nghiệp vụ sâu sắc, tự nhiên.
+* Bộ Prompt phiên bản v3 kết hợp với **SQL Aggregation Pipeline**, **Pydantic Validation**, và bộ nhớ đệm **AI In-Day Cache** (`ai_cache.py`) đã giải quyết triệt để bài toán chống ảo giác số liệu và tối ưu chi phí token.
+* Hệ thống sử dụng mô hình chính thức **Google Gemini 3.5 Flash Lite** (`gemini-3.5-flash-lite`), cùng chuỗi dự phòng fallback (`gemini-3.1-flash-lite` $\rightarrow$ `gemini-3.6-flash`), mang lại tốc độ phản hồi nhanh và phân tích chính xác.
 * Khi mất kết nối hoặc thiếu API Key, **Heuristic Fallback Engine** đảm bảo trả về cùng một cấu trúc JSON với tính toán chính xác, giúp hệ thống luôn sẵn sàng demo 100% trong mọi tình huống chấm thi.
+
+---
+
+## 5. LỊCH SỬ ĐỒNG BỘ
+
+- **Ngày đồng bộ:** 2026-10-28
+- **Nội dung điều chỉnh theo thực tế mã nguồn:**
+  - **Cập nhật mô hình AI chính thức:** Chuẩn hóa sang `gemini-3.5-flash-lite` kèm chuỗi fallback chain 3.1 $\rightarrow$ 3.6 thay vì mô hình cũ `gemini-1.5-flash`.
+  - **Bổ sung Template Tạo đơn hàng:** Thêm mô tả cho `generate_order_prompt.txt` phục vụ tính năng `/ai/generate-order`.
+  - **Bổ sung AI Cache:** Ghi nhận bộ nhớ đệm kết quả phân tích trong ngày (`ai_cache.py`).

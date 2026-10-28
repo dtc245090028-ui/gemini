@@ -34,22 +34,28 @@
 - Schemas (`app/schemas/user.py`):
   - `UserLogin`, `UserCreate`, `UserResponse`, `TokenResponse`.
 
-### 2.2. Cơ chế Bảo mật & JWT
+### 2.2. Cơ chế Bảo mật & JWT & Rate Limiting
 
 - `app/core/security.py`:
   - `verify_password(plain_password, hashed_password) -> bool`
   - `get_password_hash(password) -> str`
   - `create_access_token(data: dict, expires_delta: timedelta) -> str`
   - `decode_access_token(token: str) -> dict`
+- `app/api/deps.py`:
+  - Bộ kiểm soát tần suất In-Memory (`SlidingWindowRateLimiter`):
+    - `rate_limit_login`: Giới hạn tối đa 10 lượt đăng nhập / phút trên mỗi địa chỉ IP (hỗ trợ đọc IP thực qua header `X-Forwarded-For` phía sau Proxy).
+    - `check_ai_rate_limit`: Giới hạn tối đa 10 yêu cầu gọi AI / phút trên mỗi tài khoản người dùng.
 
 ### 2.3. Endpoints Xác thực & Phân quyền
 
 - Router `app/api/v1/endpoints/auth.py`:
-  - `POST /api/v1/auth/login`: Nhận username/password $\rightarrow$ Kiểm tra $\rightarrow$ Cấp JWT Token.
+  - `POST /api/v1/auth/login`: Nhận username/password qua JSON $\rightarrow$ Cấp JWT Token.
+  - `POST /api/v1/auth/login-form`: Hỗ trợ OAuth2PasswordRequestForm cho nút Authorize trên Swagger UI.
   - `GET /api/v1/auth/me`: Trả về thông tin người dùng đang đăng nhập.
+  - `POST /api/v1/auth/users`: Tạo tài khoản người dùng mới (Chỉ dành riêng cho `ADMIN`). (Các tính năng sửa, khóa tài khoản, đổi mật khẩu không triển khai trên UI để giữ hệ thống tinh gọn, thuộc lộ trình nâng cấp sau).
 - Dependencies (`app/api/deps.py`):
   - `get_current_user`: Trích xuất token từ header `Authorization: Bearer <token>`, giải mã và tìm user trong DB.
-  - `require_roles(["ADMIN", "WAREHOUSE_KEEPER"])`: Kiểm tra `current_user.role`, trả về HTTP 403 Forbidden nếu không đủ quyền.
+  - `require_roles(["ADMIN", "WAREHOUSE_KEEPER"])`: Kiểm tra `current_user.role`, trả về HTTP 403 Forbidden nếu không đủ quyền. (Kế toán `ACCOUNTANT` chỉ có quyền xem dữ liệu, bị cấm mọi quyền tạo/sửa/xóa).
 
 ---
 
@@ -111,5 +117,18 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
   - **Exception Handler:** Tinh chỉnh `backend/app/main.py` bắt riêng `IntegrityError` trả về HTTP 400 kèm thông báo rõ ràng thay vì lỗi 500 chung.
   - **Idempotent Seed:** Tạo `backend/app/core/seed.py` tự động khởi tạo 3 tài khoản mẫu (`admin/admin123`, `thukho/thukho123`, `ketoan/ketoan123`) trong `lifespan` với kiểm tra `filter_by(username=...)` an toàn khi khởi động lại server nhiều lần.
 - **Kiểm thử tự động:**
-  - Bổ sung `backend/tests/test_auth.py` kiểm thử toàn diện 11 trường hợp: Seed an toàn, đăng nhập đúng/sai, lấy thông tin tài khoản, phân quyền RBAC và ràng buộc Foreign Key.
-  - Kết quả: **14/14 test cases PASS 100%**.
+  - Bổ sung `backend/tests/test_auth.py` kiểm thử toàn diện 12 trường hợp: Seed an toàn, đăng nhập đúng/sai, lấy thông tin tài khoản, Swagger login, phân quyền RBAC, ràng buộc Foreign Key và Rate Limiter chống brute-force IP.
+  - Kết quả: **12/12 test cases PASS 100%**.
+
+---
+
+## 7. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #2, #3, #16, #34).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #2, #3 - Nhóm A]:* Bỏ mô tả tính năng đổi mật khẩu và quản lý user sửa/khóa/reset mật khẩu trên UI; ghi rõ hiện tại chỉ có API `POST /auth/users` cho Admin theo [`backend/app/api/v1/endpoints/auth.py` L96-124](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/auth.py#L96-L124).
+  2. *[Mục #16 - Nhóm B]:* Bổ sung cơ chế Rate Limiting trượt `SlidingWindowRateLimiter` (10 req/phút/IP và 10 req/phút/user) theo [`backend/app/api/deps.py` L18-89](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/deps.py#L18-L89).
+  3. *[Mục #34 - Nhóm D]:* Thống nhất vai trò Kế toán: chỉ có quyền Read-only đối soát chứng từ, không can thiệp thay đổi số lượng kho theo [`backend/app/api/deps.py` L135-148](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/deps.py#L135-L148).
+  4. Cập nhật số ca test thực tế trong `test_auth.py` là 12 tests (thêm test rate limit IP).
+- **Lý do:** Đồng bộ tài liệu xác thực và phân quyền RBAC khớp chính xác với mã nguồn thực tế.
