@@ -1,0 +1,38 @@
+stateDiagram-v2
+    [*] --> CONFIRMED : POST /export-notes/ (Thủ kho tạo phiếu)
+    
+    CONFIRMED --> SHIPPING : POST /export-notes/{id}/ship (Hàng rời kho)
+    CONFIRMED --> [*] : DELETE /export-notes/{id} (Hủy khi chưa xuất)
+
+    SHIPPING --> COMPLETED : POST /export-notes/{id}/complete (Khách nhận hàng)
+    SHIPPING --> CANCELLED : POST /export-notes/{id}/cancel (Giao thất bại)
+
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+
+    note right of CONFIRMED
+      TRẠNG THÁI CONFIRMED:
+      • Tồn kho Product: GIỮ NGUYÊN (Chưa trừ)
+      • Thẻ kho StockLedger: CHƯA GHI (Không giam hàng ảo)
+      • Thao tác: Sửa, Xóa cứng, Bắt đầu giao
+    end note
+
+    note right of SHIPPING
+      TRẠNG THÁI SHIPPING:
+      • Tồn kho Product: ĐÃ TRỪ NGUYÊN TỬ TẦNG SQL
+      • Thẻ kho StockLedger: GHI BẢN GHI EXPORT (qty_change < 0)
+      • Guard-check: current_stock >= quantity (Rollback nếu thiếu)
+    end note
+
+    note right of COMPLETED
+      TRẠNG THÁI COMPLETED:
+      • Tồn kho & Thẻ kho: GIỮ NGUYÊN
+      • Chứng từ: KHÓA VĨNH VIỄN (Read-only)
+    end note
+
+    note left of CANCELLED
+      TRẠNG THÁI CANCELLED:
+      • Tồn kho: HOÀN LẠI 100% NGUYÊN TỬ TẦNG SQL
+      • Thẻ kho: GHI BẢN GHI ADJUSTMENT (CANCEL-PX-...)
+      • Giữ nguyên phiếu để kiểm toán
+    end note

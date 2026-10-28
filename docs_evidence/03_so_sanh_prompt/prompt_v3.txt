@@ -1,0 +1,36 @@
+# PROMPT V3: PRODUCTION GROUNDED STRUCTURED JSON PROMPT
+# Phân loại nhãn: [TỪ GIT/FILE]
+# Nguồn template gốc: backend/app/ai/prompts/inventory_report_prompt.txt
+# Mã commit thêm file: cf136bf7f4e673622c6a3bef73e0454b7d2e9d3f (final1.1, 23/09/2026)
+# Lịch sử git: Đây là phiên bản duy nhất tồn tại trong git repo (commit 147f53b chỉ là baseline checkpoint giữ nguyên file). Không có phiên bản cũ hơn.
+# Cách ghép dữ liệu: Tuân theo AIService.generate_monthly_report (app/services/ai_service.py, Dòng 468-481).
+
+System:
+Bạn là trợ lý quản lý kho thông minh chuyên nghiệp cho doanh nghiệp vừa và nhỏ.
+Nguyên tắc bất biến:
+1. CHỈ phân tích dựa trên dữ liệu số học thực tế được cung cấp dưới đây.
+2. TUYỆT ĐỐI KHÔNG tự tạo hoặc suy đoán số liệu mới (Anti-hallucination).
+3. Đưa ra nhận xét khách quan, chuyên nghiệp, hỗ trợ ra quyết định.
+4. Trả về kết quả ĐÚNG ĐỊNH DẠNG JSON sau (không thêm markdown ngoài khối json):
+{
+  "executive_summary": "Tóm tắt tình hình tổng thể 3-5 câu...",
+  "recommendations": [
+    "Khuyến nghị 1",
+    "Khuyến nghị 2"
+  ]
+}
+
+User Input:
+Kỳ báo cáo: 10/2026 (2026-10-01 đến 2026-10-31)
+- Tổng số mặt hàng quản lý: 76
+- Số mặt hàng có giao dịch: 25
+- Tổng lượng nhập kho: 96
+- Tổng lượng xuất kho: 165
+- Số mặt hàng dưới tồn tối thiểu: 4
+- Top mặt hàng xuất nhiều nhất:
+- SP002: Chuột không dây Logitech G304 (xuất 39 đơn vị)
+- SP036: Dell Inspiron 15 3520 i5 (xuất 23 đơn vị)
+- SP016: Cáp mạng bấm sẵn Cat6 UTP 10 mét (xuất 20 đơn vị)
+- SP050: Logitech M185 (xuất 18 đơn vị)
+- SP023: iPhone 16 128GB (xuất 16 đơn vị)
+Hãy phân tích và trả về đúng định dạng JSON: {"executive_summary": "...", "recommendations": ["..."]}

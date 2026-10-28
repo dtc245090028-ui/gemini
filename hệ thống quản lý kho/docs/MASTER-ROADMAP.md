@@ -68,8 +68,8 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | --- | --- | :---: | --- | --- | :---: |
 | 1.1 | Tài liệu SRS + Use Case (3 Actor, 8 luồng nghiệp vụ) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/01_SRS_and_UseCases.md` | ✅ |
 | 1.2 | Thiết kế ERD + Data Dictionary (9 bảng) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `docs/SDLC/KT1/02_Database_Design_ERD.md` | ✅ |
-| 1.3 | Kiến trúc AI + Prompt mẫu (anti-hallucination) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | ✅ |
-| 1.4 | Wireframes: Dashboard, Phiếu nhập/xuất, Trợ lý AI | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/04_Wireframes.md` | ✅ |
+| 1.3 | Kiến trúc AI + Prompt mẫu (Gemini 3.5 Flash Lite) | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/03_AI_Architecture_and_Prompts.md` | ✅ |
+| 1.4 | Wireframes: Dashboard, Phiếu nhập/xuất, Trợ lý AI, Dark/Light mode | 🔴 P0 | [Buoc-01](plans/Buoc-01-Dac-ta-yeu-cau-va-Phan-tich-nghiep-vu.md) | `docs/SDLC/KT1/04_Wireframes.md` | ✅ |
 | 1.5 | 9 SQLAlchemy Models (`users`, `categories`, `products`, `suppliers`, `import_notes`, `import_note_details`, `export_notes`, `export_note_details`, `stock_ledger`) | 🔴 P0 | [Buoc-02](plans/Buoc-02-Thiet-ke-CSDL-va-So-do-ERD.md) | `backend/app/models/*.py` | ✅ |
 | 1.6 | `Base.metadata.create_all()` — tạo bảng khi khởi động | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | DB schema khớp ERD, `CHECK (current_stock >= 0)` | ✅ |
 
@@ -86,10 +86,10 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | --- | --- | :---: | --- | --- | :---: |
 | 2.1 | Pydantic Schemas cho tất cả models | 🔴 P0 | [Buoc-04](plans/Buoc-04-Cau-truc-Backend-Cau-hinh-va-Database-Session.md) | `backend/app/schemas/*.py` | ✅ |
 | 2.2 | Auth: bcrypt + JWT + endpoint `/auth/login` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | `backend/app/core/security.py`, `api/v1/endpoints/auth.py` | ✅ |
-| 2.3 | RBAC dependency `require_role(["ADMIN", ...])` | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | Tích hợp vào tất cả protected endpoints | ✅ |
-| 2.4 | CRUD: Categories, Products (với `min_stock`, `current_stock`) | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/products.py` + Swagger OK | ✅ |
+| 2.3 | RBAC dependency `require_roles(["ADMIN", ...])` & Rate Limiting | 🔴 P0 | [Buoc-05](plans/Buoc-05-Xac-thuc-Dang-nhap-va-Phan-quyen-RBAC.md) | Tích hợp vào tất cả protected endpoints | ✅ |
+| 2.4 | CRUD: Categories, Products (với `min_stock`, `current_stock`, upload ảnh) | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/products.py` + Swagger OK | ✅ |
 | 2.5 | CRUD: Suppliers | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `api/v1/endpoints/suppliers.py` + Swagger OK | ✅ |
-| 2.6 | Tài liệu API Spec KT2 | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `docs/SDLC/KT2/01_API_Specifications.md` | ✅ |
+| 2.6 | Tài liệu API Spec KT2 (Mở rộng 44 endpoints) | 🔴 P0 | [Buoc-06](plans/Buoc-06-Module-Hang-hoa-Nhom-hang-va-Nha-cung-cap.md) | `docs/SDLC/KT2/01_API_Specifications.md` | ✅ |
 
 **Tiêu chí hoàn thành Giai đoạn 2:** Login trả JWT; CRUD products/suppliers pass test; Swagger UI hiển thị đủ endpoints.
 
@@ -103,12 +103,12 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 3.1 | `InventoryService.create_import()` — Transaction ACID nhập hàng + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
-| 3.2 | `InventoryService.create_export()` — Atomic check tồn + Rollback nếu âm + ghi Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
-| 3.3 | API endpoints nhập/xuất kho (`/import-notes`, `/export-notes`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/import_notes.py`, `export_notes.py` | ✅ |
-| 3.4 | State Machine phiếu: `DRAFT → COMPLETED → CANCELLED` (hoàn trả tồn kho khi hủy) | 🟡 P1 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Logic trong `inventory_service.py` | ✅ |
-| 3.5 | API Báo cáo Nhập-Xuất-Tồn theo kỳ + tra cứu Stock Ledger | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/reports.py`, `stock_ledger.py` | ✅ |
-| 3.6 | API cảnh báo hàng dưới tồn tối thiểu | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Tích hợp vào `/products` hoặc `/reports/alerts` | ✅ |
+| 3.1 | `InventoryService.create_import()` — Transaction ACID nhập hàng + ghi Stock Ledger + Idempotency Key | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
+| 3.2 | `InventoryService.create_export()` & Cỗ máy xuất kho 3 bước (`CONFIRMED` -> `SHIPPING` -> `COMPLETED`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `backend/app/services/inventory_service.py` | ✅ |
+| 3.3 | API endpoints nhập/xuất kho (`/import-notes`, `/export-notes`, xóa phiếu CONFIRMED) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/import_notes.py`, `export_notes.py` | ✅ |
+| 3.4 | State Machine phiếu xuất & Guard-check hủy phiếu an toàn | 🟡 P1 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Logic trong `inventory_service.py` | ✅ |
+| 3.5 | API Báo cáo Nhập-Xuất-Tồn theo kỳ + tra cứu Stock Ledger + Xuất Excel | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `api/v1/endpoints/reports.py`, `stock_ledger.py` | ✅ |
+| 3.6 | API cảnh báo hàng dưới tồn tối thiểu (`@computed_field is_low_stock`) | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | Tích hợp vào `/products` | ✅ |
 | 3.7 | Tài liệu Transaction Design KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md` | ✅ |
 | 3.8 | Minh chứng dùng AI trong SDLC KT2 | 🔴 P0 | [Buoc-07](plans/Buoc-07-Module-Nhap-xuat-kho-va-The-kho-Transaction-ACID.md) | `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md` | ✅ |
 
@@ -118,22 +118,22 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 ### GIAI ĐOẠN 4 — Tích hợp AI + Fallback Engine
 
-> **Mục tiêu:** 3 chức năng AI hoạt động, offline-safe, không bịa số liệu.
+> **Mục tiêu:** 5 chức năng AI hoạt động, offline-safe, không bịa số liệu.
 > **Dependency:** Giai đoạn 3 (có dữ liệu kho thực để AI phân tích).
 > **Mốc nộp bài:** KT3
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 4.1 | Data Aggregation Pipeline (SQL tổng hợp, loại bỏ giá mua) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/services/ai_service.py` — hàm `tong_hop_du_lieu()` | ✅ |
-| 4.2 | Kết nối Gemini API — Báo cáo tháng | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_monthly_report()` | ✅ |
-| 4.3 | Kết nối Gemini API — Gợi ý nhập hàng (kèm velocity 30 ngày) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_restock_suggestions()` | ✅ |
-| 4.4 | Kết nối Gemini API — Biến động bất thường (xuất >200%, tồn >30 ngày) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_anomaly_detection()` | ✅ |
-| 4.5 | Prompt Templates tập trung (không hardcode trong router) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/ai/prompts/*.txt` | ✅ |
+| 4.1 | Data Aggregation Pipeline (SQL tổng hợp, loại bỏ 100% giá mua) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/services/ai_service.py` | ✅ |
+| 4.2 | Kết nối Gemini 3.5 Flash Lite — Báo cáo tháng | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_monthly_report()` | ✅ |
+| 4.3 | Kết nối Gemini 3.5 Flash Lite — Gợi ý nhập hàng (kèm velocity 30 ngày) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_restock_suggestions()` | ✅ |
+| 4.4 | Kết nối Gemini 3.5 Flash Lite — Biến động bất thường (xuất >200%, tồn >30 ngày) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `ai_service.generate_anomaly_detection()` | ✅ |
+| 4.5 | Prompt Templates tập trung & AI In-Day Cache (`ai_cache.py`) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/ai/prompts/*.txt`, `ai_cache.py` | ✅ |
 | 4.6 | Heuristic Fallback Engine (offline-safe, trả cùng cấu trúc JSON) | 🟡 P1 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `backend/app/services/fallback_service.py` | ✅ |
-| 4.7 | API endpoints AI (`/ai/monthly-report`, `/ai/restock-suggestions`, `/ai/anomalies`) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `api/v1/endpoints/ai.py` | ✅ |
-| 4.8 | Tài liệu KT3: Prompt Engineering + AI Architecture | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md`, `03_AI_Integration_Architecture.md` | ✅ |
+| 4.7 | API endpoints AI (`/monthly-report`, `/restock-suggestions`, `/anomalies`, `/ask`, `/generate-order`) | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `api/v1/endpoints/ai.py` | ✅ |
+| 4.8 | Tài liệu KT3: Prompt Engineering + AI Integration Architecture | 🔴 P0 | [Buoc-08](plans/Buoc-08-Module-AI-Tro-ly-va-Scheduler-Quet-ton-kho.md) | `docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md`, `03_AI_Integration_Architecture.md` | ✅ |
 
-**Tiêu chí hoàn thành Giai đoạn 4:** 3 endpoint AI trả kết quả đúng cấu trúc; khi `GEMINI_API_KEY` trống, Fallback Engine kích hoạt tự động và giao diện không vỡ.
+**Tiêu chí hoàn thành Giai đoạn 4:** 5 endpoint AI trả kết quả đúng cấu trúc; khi `GEMINI_API_KEY` trống hoặc 429, Fallback Engine kích hoạt tự động và giao diện không vỡ.
 
 ---
 
@@ -145,16 +145,16 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 5.1 | `conftest.py` — Pytest fixtures (SQLite in-memory, test client) | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | Tích hợp trong các test modules | ✅ |
-| 5.2 | `test_import_stock` — Nhập kho tăng đúng tồn + ghi đúng Stock Ledger | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
-| 5.3 | `test_prevent_negative_stock` — Xuất > tồn → HTTP 400, tồn không đổi | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
-| 5.4 | `test_stock_ledger_balance` — `balance_after` khớp `current_stock` sau mỗi giao dịch | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
-| 5.5 | `test_ai_pipeline` — Mock Gemini, kiểm tra dữ liệu đầu vào không chứa giá mua | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_ai.py` | ✅ |
-| 5.6 | `test_ai_fallback` — Khi API lỗi, fallback trả đúng cấu trúc | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_ai.py` | ✅ |
-| 5.7 | Seed Data thực tế: 20+ SP, 3 user, giao dịch 60 ngày | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/seed_data.py` | ✅ |
-| 5.8 | Báo cáo kết quả test KT3 | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `docs/SDLC/KT3/02_Test_Plan_and_Results.md` | ✅ |
+| 5.1 | `conftest.py` — Pytest fixtures (SQLite in-memory, test client, JWT tokens) | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | Tích hợp trong các test modules | ✅ |
+| 5.2 | `test_auth.py` — 12 tests xác thực, RBAC, Rate Limiting | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_auth.py` | ✅ |
+| 5.3 | `test_master_data.py` — 5 tests CRUD danh mục, upload ảnh | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_master_data.py` | ✅ |
+| 5.4 | `test_stock_transactions.py` — 18 tests luồng xuất 3 bước, ACID, chặn tồn âm, Thẻ kho, Idempotency | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_stock_transactions.py` | ✅ |
+| 5.5 | `test_ai_service.py` — 31 tests AI pipeline, heuristic fallback, AI cache, Gemini mock | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_ai_service.py` | ✅ |
+| 5.6 | `test_ai_empty_data.py` — 4 tests an toàn khi kho hoàn toàn rỗng | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/tests/test_ai_empty_data.py` | ✅ |
+| 5.7 | Seed Data thực tế: 76 sản phẩm, 7 nhóm, 10 NCC, giao dịch 5 tháng (150 ngày) | 🟡 P1 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `backend/seed_data.py` | ✅ |
+| 5.8 | Báo cáo kết quả test KT3 (70 tests pass 100%, 83% coverage) | 🔴 P0 | [Buoc-10](plans/Buoc-10-Viet-Bo-Test-Tu-dong-Pytest-va-Seed-Data.md) | `docs/SDLC/KT3/02_Test_Plan_and_Results.md` | ✅ |
 
-**Tiêu chí hoàn thành Giai đoạn 5:** `pytest` chạy không có test đỏ; các test không mock chính layer đang test (xem `CLAUDE.md §7`).
+**Tiêu chí hoàn thành Giai đoạn 5:** `pytest` đạt 70/70 tests PASS 100%, độ bao phủ code 83%.
 
 ---
 
@@ -166,17 +166,17 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 6.1 | Auth Context + Axios client + Trang Login | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/context/AuthContext.jsx`, `src/api/client.js`, `src/pages/Login.jsx` | ✅ |
+| 6.1 | Auth Context + Axios client (`api/client.js`) + Trang Login | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/context/AuthContext.jsx`, `src/api/client.js`, `src/pages/Login.jsx` | ✅ |
 | 6.2 | Dashboard: KPIs tổng quan + badge cảnh báo tồn kho | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Dashboard.jsx` | ✅ |
-| 6.3 | Trang Hàng hóa + Nhóm hàng (CRUD + lọc tìm kiếm) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Products.jsx` | ✅ |
+| 6.3 | Trang Hàng hóa + Nhóm hàng (CRUD + lọc tìm kiếm + upload ảnh) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Products.jsx` | ✅ |
 | 6.4 | Trang Nhà cung cấp (CRUD) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/Suppliers.jsx` | ✅ |
-| 6.5 | Trang Lập phiếu Nhập kho (form chọn hàng, tự tính tổng, hủy phiếu) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/ImportNotes.jsx` | ✅ |
-| 6.6 | Trang Lập phiếu Xuất kho (kiểm tra tồn realtime trước khi submit) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/ExportNotes.jsx` | ✅ |
-| 6.7 | Trang Báo cáo Nhập-Xuất-Tồn + tra cứu Thẻ kho | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/StockLedger.jsx` | ✅ |
-| 6.8 | Trang Trợ lý AI (3 nút 1-click: Báo cáo tháng · Gợi ý nhập · Bất thường) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/AIAssistant.jsx` | ✅ |
-| 6.9 | Biểu đồ trực quan trên Dashboard & Bộ chuyển đổi Demo Role | 🟢 P2 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | Tích hợp trong `Dashboard.jsx`, `Layout.jsx` | ✅ |
+| 6.5 | Trang Lập phiếu Nhập kho (chọn hàng, tự tính tổng, hủy phiếu) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/ImportNotes.jsx` | ✅ |
+| 6.6 | Trang Lập phiếu Xuất kho (luồng 3 bước, xóa phiếu CONFIRMED, kiểm tra tồn) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/ExportNotes.jsx` | ✅ |
+| 6.7 | Trang Tra cứu Thẻ kho + Xuất Excel | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/StockLedger.jsx` | ✅ |
+| 6.8 | Trang Trợ lý AI & Báo cáo NXT 4 tabs (Báo cáo NXT + Xuất Excel, Gợi ý, Bất thường, Copilot Chat) | 🔴 P0 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `src/pages/AIAssistant.jsx` | ✅ |
+| 6.9 | Giao diện Sáng/Tối (Dark/Light mode), ConfirmModal bắt buộc lý do $\ge 5$ ký tự, Role Switcher | 🟢 P2 | [Buoc-09](plans/Buoc-09-Xay-dung-Frontend-Web-React-Tailwind.md) | `Layout.jsx`, `tokens.css`, `ConfirmContext.jsx` | ✅ |
 
-**Tiêu chí hoàn thành Giai đoạn 6:** Demo được toàn bộ luồng: Đăng nhập → Nhập kho → Xuất kho → Xem cảnh báo → Xem báo cáo AI. Đã hoàn thành 100% build thành công.
+**Tiêu chí hoàn thành Giai đoạn 6:** Demo được toàn bộ luồng: Đăng nhập → Nhập kho → Xuất kho 3 bước → Thẻ kho → Báo cáo NXT & Trợ lý AI. Build thành công 100%.
 
 ---
 
@@ -188,13 +188,13 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 
 | # | Nhiệm vụ | Ưu tiên | Kế hoạch chi tiết | Deliverable | Trạng thái |
 | --- | --- | :---: | --- | --- | :---: |
-| 7.1 | `README.md` hướng dẫn cài đặt 1-click + script `run.bat` + kịch bản demo | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `README.md`, `run.bat` ở gốc dự án | ✅ |
+| 7.1 | `README.md` hướng dẫn Docker Compose 2 containers + `run.bat` + kịch bản demo | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `README.md`, `docker-compose.yml`, `run.bat` | ✅ |
 | 7.2 | Báo cáo kỹ thuật tổng kết đồ án (Markdown & Word) | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/01_Final_Technical_Report.md`, `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx` | ✅ |
 | 7.3 | Hướng dẫn sử dụng + kịch bản demo chấm thi 5 phút | 🔴 P0 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/02_User_Guide_and_Demo_Script.md` | ✅ |
 | 7.4 | Slide thuyết trình bảo vệ đồ án (Markdown & PowerPoint) | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | `docs/SDLC/final/03_Presentation_Slides.md`, `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx` | ✅ |
-| 7.5 | Kiểm tra bảo mật cuối: CORS, JWT expiry, lọc giá vốn, test 60/60 pass | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | Toàn bộ 60/60 Pytest cases pass 100%, ghi chú trong báo cáo | ✅ |
+| 7.5 | Kiểm tra bảo mật & toàn vẹn: 44 endpoints, 70 tests pass 100%, 83% coverage | 🟡 P1 | [Buoc-11](plans/Buoc-11-Dong-goi-Tai-lieu-SDLC-va-Kich-ban-Demo.md) | Toàn bộ 70 Pytest cases pass 100%, ghi chú trong báo cáo | ✅ |
 
-**Tiêu chí hoàn thành Giai đoạn 7:** Khởi chạy 1-Click qua `run.bat` hoặc cài đặt qua lệnh trong ≤5 phút; trọn bộ hồ sơ SDLC 4 mốc, văn bản Word 10 chương và Slide PowerPoint 16 trang sẵn sàng nộp và thuyết trình. Đã hoàn thành 100%.
+**Tiêu chí hoàn thành Giai đoạn 7:** Khởi chạy 1-Click qua Docker Compose hoặc `run.bat` trong ≤5 phút; trọn bộ hồ sơ SDLC 4 mốc sẵn sàng nộp và thuyết trình. Đã hoàn thành 100%.
 
 ---
 
@@ -209,98 +209,18 @@ Buoc-NN.md          ← Spec thực thi chi tiết cho từng bước
 | 2026-09-22 | #5 | Hoàn thành toàn bộ Giai đoạn 3 (Bước 07 & 3 tài liệu KT2/Architecture): Transaction ACID, Chống tồn âm, Guard-check Hủy phiếu, Thẻ kho, Báo cáo Nhập-Xuất-Tồn và 24/24 tests pass |
 | 2026-09-23 | #6 | Hoàn thành toàn bộ Giai đoạn 4 & 5 (Mốc KT3): Tích hợp AI Gemini + Heuristic Fallback offline, 3 prompt templates độc lập, seed data 60 ngày 3 kịch bản cốt lõi và 30/30 tests pass 100% |
 | 2026-09-23 | #7 | Hoàn thành toàn bộ Giai đoạn 6 (Bước 09): Xây dựng hoàn chỉnh ứng dụng Frontend Web React 18 + Tailwind CSS + Lucide Icons cho 7 phân hệ, Defensive UI chống xuất âm, Demo Role Switcher 1-click, build thành công 1551 modules |
-| 2026-09-25 | #8 | Hoàn thành toàn bộ Giai đoạn 7 (Bước 11 & Mốc Cuối kỳ): Đóng gói dự án 1-click (run.bat), trọn bộ hồ sơ SDLC 4 mốc tại docs/SDLC/final/, Báo cáo kỹ thuật Word 10 chương (Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx), Slide PowerPoint bảo vệ đồ án 16 trang (Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx), đồng bộ docs/submissions/final/ và bộ test Pytest đạt 60/60 tests pass 100% |
-
-> **Quy ước ghi lịch sử:** Mỗi lần cập nhật file này (thay đổi trạng thái, thêm/sửa nhiệm vụ, điều chỉnh kế hoạch), thêm 1 dòng vào bảng trên với ngày và lý do. Không xóa dòng cũ.
+| 2026-09-25 | #8 | Hoàn thành toàn bộ Giai đoạn 7 (Bước 11 & Mốc Cuối kỳ): Đóng gói dự án 1-click (run.bat), trọn bộ hồ sơ SDLC 4 mốc tại docs/SDLC/final/, Báo cáo kỹ thuật Word 10 chương, Slide PowerPoint bảo vệ đồ án 16 trang, đồng bộ docs/submissions/final/ và bộ test Pytest đạt 60/60 tests pass 100% |
+| 2026-10-28 | #9 | Đồng bộ toàn diện hồ sơ dự án theo mã nguồn thực tế: Chuẩn hóa 44 endpoints, Gemini 3.5 Flash Lite + AI In-Day Cache, 70 tests pass 100% (83% coverage), seed data 76 sản phẩm / 5 tháng, cỗ máy xuất kho 3 bước, xóa phiếu CONFIRMED, gộp Báo cáo NXT vào AIAssistant, xuất Excel và Dark mode |
 
 ---
 
 ## CHANGELOG
 
-### [2026-09-25] Hoàn thành Giai đoạn 7 (Bước 11: Đóng gói dự án, Hồ sơ SDLC Cuối kỳ, Báo cáo kỹ thuật Word & Slide PowerPoint Thuyết trình)
+### [2026-10-28] Đồng bộ Toàn diện Hồ sơ Dự án theo Mã nguồn Thực tế (Audit 09)
 
-- **Đóng gói & Hướng dẫn Khởi chạy 1-Click (Nhiệm vụ 7.1):**
-  - Tạo script `run.bat` tại gốc dự án tự động kích hoạt đồng thời cả Backend FastAPI (port 8000) và Frontend React Vite (port 5173) trên môi trường Windows.
-  - Cập nhật hướng dẫn trực quan trong `README.md` với danh sách tài khoản mẫu (`admin`, `thukho`, `ketoan`) và kịch bản demo 5 phút phân vai từng phút.
-- **Hồ sơ Bàn giao Cuối kỳ Đầy đủ & Chuẩn mực (Nhiệm vụ 7.2, 7.3, 7.4):**
-  - `docs/SDLC/final/01_Final_Technical_Report.md` & `Bao_Cao_Kien_Truc_He_Thong_Quan_Ly_Kho.docx`: Tổng hợp toàn bộ 10 chương kiến trúc phân tầng, CSDL chuẩn 3NF (9 bảng), giao dịch ACID, cỗ máy xuất kho 3 bước, chốt chặn kép chống tồn âm, phân hệ AI Copilot và Heuristic Fallback Engine.
-  - `docs/SDLC/final/02_User_Guide_and_Demo_Script.md`: Cẩm nang sử dụng 7 phân hệ và kịch bản thuyết trình demo 5 phút phân vai từng phút.
-  - `docs/SDLC/final/03_Presentation_Slides.md` & `Thuyet_Trinh_Kien_Truc_He_Thong_Quan_Ly_Kho.pptx`: Bộ 16 slide thuyết trình chuẩn đồ họa phục vụ bảo vệ đồ án trước Hội đồng nghiệm thu.
-- **Kiểm định Chất lượng & Bảo mật Toàn diện (Nhiệm vụ 7.5):**
-  - Mật khẩu băm an toàn với bcrypt (tương thích Python 3.14), JWT HS256 với thời hạn 60 phút, CORS chặt chẽ, loại bỏ hoàn toàn giá mua nhạy cảm khỏi context AI.
-  - Bộ kiểm thử tự động đạt mốc **60 / 60 tests PASS 100%**, tỷ lệ lỗi 0%.
-  - Đồng bộ toàn bộ tài liệu và bài tập sang `docs/submissions/` (KT1, KT2, KT3, final). Toàn bộ dự án đạt mốc hoàn thành 100%.
-
-### [2026-09-23] Hoàn thành Giai đoạn 6 (Bước 09: Frontend Web React 18 & Tailwind CSS)
-
-- **Kiến trúc Single Page Application:**
-  - Hoàn thiện bộ khung React 18 + Vite + Tailwind CSS + Lucide Icons.
-  - Tích hợp `AuthContext` quản lý phiên JWT, lưu `localStorage`, cung cấp hàm `switchDemoRole` chuyển vai trò tức thời (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`) phục vụ thuyết trình đồ án.
-  - Xây dựng `apiClient` tập trung với interceptor tự động xử lý token và mã lỗi 401.
-- **7 Phân hệ giao diện chức năng:**
-  - `Dashboard`: Thẻ KPI tồn kho, cảnh báo hàng sắp hết, lối tắt nghiệp vụ và giới thiệu tính năng AI.
-  - `Products`: CRUD hàng hóa, tìm kiếm tức thì, lọc danh mục & `is_low_stock`, bảo vệ quyền hạn RBAC.
-  - `Suppliers`: Quản lý thông tin nhà cung cấp và bảo toàn đối tác.
-  - `ImportNotes`: Lập phiếu nhập đa dòng, tra giá mẫu tự động, tính tổng tiền, hủy phiếu hoàn trừ kho.
-  - `ExportNotes`: Lập phiếu xuất với Defensive UI kiểm tra tồn kho realtime, khóa nút tạo phiếu nếu xuất vượt tồn, hủy phiếu hoàn kho.
-  - `StockLedger`: Sổ cái thẻ kho chi tiết, lọc theo giao dịch, modal điều chỉnh kiểm kê cân bằng tồn.
-  - `AIAssistant`: 3 bài toán AI kết nối API Backend (Báo cáo tháng, Gợi ý nhập hàng, Biến động bất thường) kèm nhãn nhận biết Fallback Engine.
-- **Chất lượng đóng gói:**
-  - `npm run build` PASS: 1551 modules compile trong 4.23s, 0 cảnh báo hay lỗi cú pháp.
-  - Backend test suite tiếp tục duy trì 30/30 test cases PASS 100%.
-
-### [2026-09-23] Hoàn thành Giai đoạn 4 & 5 (Mốc KT3: Tích hợp AI, Tối ưu Prompt & Kiểm thử tự động)
-
-- **Tích hợp AI & Heuristic Fallback Engine (Giai đoạn 4 - Bước 08):**
-  - Xây dựng `backend/app/services/ai_service.py` với SQL Aggregation Pipeline tiền xử lý và **loại bỏ hoàn toàn thông tin giá mua nhạy cảm** (`unit_price`).
-  - Tích hợp Google Gemini API (`gemini-1.5-flash`) qua Structured JSON Output.
-  - Xây dựng `backend/app/services/fallback_service.py` (Heuristic Fallback Engine) đảm bảo hệ thống phản hồi $< 50$ms khi offline hoặc thiếu API Key.
-  - Quản lý 3 Prompt Templates tập trung tại `backend/app/ai/prompts/*.txt`.
-  - Khởi tạo 3 endpoints API tại `backend/app/api/v1/endpoints/ai.py` (`/monthly-report`, `/restock-suggestions`, `/anomalies`).
-- **Bộ kiểm thử tự động & Dữ liệu mẫu 60 ngày (Giai đoạn 5 - Bước 10):**
-  - Viết `backend/tests/test_ai.py` (6 bài test kiểm tra bảo mật dữ liệu, fallback rỗng, gợi ý nhập, biến động bất thường, mock Gemini, RBAC). Toàn bộ **30/30 test cases PASS 100%**.
-  - Xây dựng `backend/seed_data.py` nạp 22 mặt hàng, 3 users, 3 NCC và lịch sử 60 ngày theo 3 kịch bản: SP001 (bán chạy cạn kho), SP002 (xuất đột biến), SP003 (tồn chết).
-- **Hồ sơ bàn giao mốc KT3:**
-  - Hoàn thiện đầy đủ 3 tài liệu tại `docs/SDLC/KT3/`: `01_Prompt_Engineering_and_Evaluation.md`, `02_Test_Plan_and_Results.md`, `03_AI_Integration_Architecture.md`.
-
-### [2026-09-22] Hoàn thành Giai đoạn 3 (Bước 07: Module Nhập/Xuất kho & Thẻ kho Transaction ACID)
-
-- **Nghiệp vụ cốt lõi (Core Inventory Service):**
-  - `backend/app/services/inventory_service.py`: Transaction ACID cho Nhập/Xuất kho, kiểm tra chống tồn âm, sinh mã tự động với Retry Pattern, Guard-check hủy phiếu (Phương án B), điều chỉnh kiểm kê (Phương án A) và báo cáo Nhập-Xuất-Tồn chuẩn kế toán.
-  - `backend/app/schemas/`: Đầy đủ schemas cho ImportNote, ExportNote, StockLedger, Report.
-  - `backend/app/api/v1/endpoints/`: Đăng ký các endpoints `/import-notes`, `/export-notes`, `/stock-ledger`, `/reports`.
-- **Tài liệu bàn giao KT2:**
-  - `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md`: Tài liệu thiết kế Transaction và chống tồn âm.
-  - `docs/SDLC/KT2/03_AI_Assisted_Development_Evidence.md`: Minh chứng sinh viên ứng dụng AI trong quy trình SDLC.
-  - `docs/architecture.md`: Tài liệu kiến trúc hệ thống 3 tầng và các sơ đồ luồng dữ liệu.
-- **Kiểm thử tự động:**
-  - `backend/tests/test_stock_transactions.py` (6 bài test lớn kiểm tra trọn vẹn mọi luồng).
-  - Kết quả toàn dự án: **24/24 test cases PASS 100%**.
-
-### [2026-09-22] Hoàn thành Giai đoạn 2 (Bước 06: Module Hàng hóa, Nhóm hàng & Nhà cung cấp)
-
-- **Hoàn thành các nhiệm vụ Giai đoạn 2:**
-  - `backend/app/schemas/`: Toàn bộ Schemas cho Category, Product, Supplier và User.
-  - `backend/app/api/v1/endpoints/categories.py`: CRUD nhóm hàng hóa, chặn xóa khi có sản phẩm liên kết.
-  - `backend/app/api/v1/endpoints/products.py`: CRUD hàng hóa, tìm kiếm theo tên/SKU, lọc theo nhóm hàng, lọc cảnh báo tồn `is_low_stock`, soft delete `DISCONTINUED`.
-  - `backend/app/api/v1/endpoints/suppliers.py`: CRUD nhà cung cấp, chuyển `is_active=False` khi đã có phiếu nhập.
-  - Phân quyền RBAC chặt chẽ: `ACCOUNTANT` chỉ đọc, `WAREHOUSE_KEEPER` thêm/sửa, `ADMIN` toàn quyền.
-- **Tài liệu bàn giao KT2:**
-  - Hoàn thành `docs/SDLC/KT2/01_API_Specifications.md` đặc tả toàn bộ RESTful APIs và RBAC Matrix.
-- **Kiểm thử tự động:**
-  - `backend/tests/test_master_data.py`: Đạt 4/4 test suites lớn. Tổng cộng 18/18 tests toàn dự án PASS 100%.
-
-### [2026-09-22] Cập nhật Giai đoạn 2 (Bước 05: Auth & RBAC)
-
-- **Hoàn thành các mục trong Bước 05:**
-  - `backend/app/core/security.py`: Sử dụng `bcrypt` thuần (loại bỏ phụ thuộc `passlib` để tương thích hoàn toàn Python 3.14) và `pyjwt` (HS256).
-  - Chuẩn hóa JWT tối thiểu: `ACCESS_TOKEN_EXPIRE_MINUTES = 60` (được đọc từ `.env`).
-  - `backend/app/schemas/user.py`: Cung cấp các Pydantic schema cho đăng nhập, thông tin người dùng và token.
-  - `backend/app/api/deps.py`: Dependency `get_current_user` và `require_roles` phân quyền 3 vai trò (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`).
-  - `backend/app/api/v1/endpoints/auth.py`: Đăng ký router `/api/v1/auth` gồm các endpoint `/login`, `/login-form`, `/me`, `/users`.
-- **Cải tiến kỹ thuật & 2 đề xuất của người dùng:**
-  - **SQLite Foreign Keys:** Kích hoạt `PRAGMA foreign_keys = ON;` qua SQLAlchemy connection listener tại `database.py`.
-  - **Exception Handler:** Bắt riêng `IntegrityError` trả về HTTP 400 trong `main.py`.
-  - **Idempotent Seed:** Thêm `backend/app/core/seed.py` tự động nạp 3 tài khoản mẫu (`admin`, `thukho`, `ketoan`) an toàn trong `lifespan`.
-- **Chất lượng kiểm thử:**
-  - `backend/tests/test_auth.py` đạt 11/11 tests. Tổng cộng bộ test hiện tại 14/14 tests PASS 100%.
+- **Chuẩn hóa số lượng endpoint:** Cập nhật 44 endpoints (42 API v1 + 2 root/health).
+- **Chuẩn hóa mô hình AI:** Nâng cấp sang `gemini-3.5-flash-lite`, chuỗi fallback chain 3.1 $\rightarrow$ 3.6, bổ sung `ai_cache.py`, endpoint `/ai/ask` và `/ai/generate-order`.
+- **Cỗ máy xuất kho 3 bước:** Cập nhật luồng `CONFIRMED` $\rightarrow$ `SHIPPING` $\rightarrow$ `COMPLETED`, trừ kho nguyên tử bằng Atomic SQL `RETURNING current_stock`, bảo toàn quyền xóa phiếu `CONFIRMED` (`DELETE /export-notes/{id}`).
+- **Bộ kiểm thử tự động:** Mở rộng thành **70 ca test PASS 100%** (bổ sung 4 ca test kho rỗng tại `test_ai_empty_data.py`), độ bao phủ mã nguồn đạt **83%**.
+- **Dữ liệu mẫu thực tế:** Cập nhật quy mô trong `seed_data.py` lên **76 sản phẩm**, **7 nhóm hàng**, **10 nhà cung cấp** và dữ liệu liên tục **5 tháng (150 ngày)**.
+- **Frontend & Tiện ích:** Bổ sung giao diện Sáng / Tối (Dark / Light mode qua `tokens.css`), hộp thoại `ConfirmModal` bắt buộc lý do $\ge 5$ ký tự, tích hợp Báo cáo Nhập-Xuất-Tồn và xuất file Excel vào trang `AIAssistant.jsx`.

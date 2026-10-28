@@ -18,6 +18,8 @@ import {
   Send,
   Copy,
   Check,
+  Download,
+  Search,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import Badge from '../components/Badge';
@@ -81,6 +83,11 @@ export const AIAssistant = ({ onNavigateToImport }) => {
 
   // 1. Data Báo cáo Nhập - Xuất - Tồn theo kỳ / khoảng ngày
   const [monthlyData, setMonthlyData] = useState(null);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isExportingSummary, setIsExportingSummary] = useState(false);
   const now = new Date();
   const [periodType, setPeriodType] = useState('month'); // 'month' | 'week' | 'day' | 'custom'
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -133,10 +140,78 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Fetch Báo cáo kỳ / khoảng ngày
+  const getPeriodDateRange = () => {
+    if (periodType === 'month') {
+      const lastDay = new Date(year, month, 0).getDate();
+      return {
+        fromDate: `${year}-${String(month).padStart(2, '0')}-01T00:00:00`,
+        toDate: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59`,
+      };
+    } else if (periodType === 'day') {
+      return {
+        fromDate: `${targetDate}T00:00:00`,
+        toDate: `${targetDate}T23:59:59`,
+      };
+    } else if (periodType === 'week') {
+      const d = new Date(targetDate);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(d.setDate(diff));
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      return {
+        fromDate: `${startOfWeek.toISOString().slice(0, 10)}T00:00:00`,
+        toDate: `${endOfWeek.toISOString().slice(0, 10)}T23:59:59`,
+      };
+    } else {
+      return {
+        fromDate: `${customStartDate}T00:00:00`,
+        toDate: `${customEndDate}T23:59:59`,
+      };
+    }
+  };
+
+  const handleExportSummaryExcel = async () => {
+    setIsExportingSummary(true);
+    setSummaryError(null);
+    try {
+      const { fromDate, toDate } = getPeriodDateRange();
+      const res = await apiClient.reports.exportExcel(fromDate, toDate);
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      let filename = `bao_cao_nhap_xuat_ton_${fromDate.slice(0, 10)}_${toDate.slice(0, 10)}.xlsx`;
+      const disposition = res.headers?.['content-disposition'];
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/i);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Lỗi khi xuất file Excel:', err);
+      setSummaryError('Không thể xuất file Excel Báo cáo Nhập Xuất Tồn. Vui lòng thử lại.');
+    } finally {
+      setIsExportingSummary(false);
+    }
+  };
+
+  // Fetch Báo cáo kỳ / khoảng ngày (Đồng thời cả Trợ lý AI và Bảng Nhập Xuất Tồn 76 SP)
   const handleFetchMonthlyReport = async (forceRefresh = false) => {
     setLoading(true);
+    setSummaryLoading(true);
     setError(null);
+    setSummaryError(null);
+    const { fromDate, toDate } = getPeriodDateRange();
+
     try {
       const extra = { period_type: periodType };
       if (periodType === 'day' || periodType === 'week') {
@@ -145,12 +220,26 @@ export const AIAssistant = ({ onNavigateToImport }) => {
         extra.start_date = customStartDate;
         extra.end_date = customEndDate;
       }
-      const res = await apiClient.ai.getMonthlyReport(month, year, forceRefresh, extra);
-      setMonthlyData(res.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Không thể sinh báo cáo AI');
+
+      const [aiRes, sumRes] = await Promise.allSettled([
+        apiClient.ai.getMonthlyReport(month, year, forceRefresh, extra),
+        apiClient.reports.getSummary(fromDate, toDate),
+      ]);
+
+      if (aiRes.status === 'fulfilled') {
+        setMonthlyData(aiRes.value.data);
+      } else {
+        setError(aiRes.reason?.response?.data?.detail || 'Không thể sinh báo cáo AI');
+      }
+
+      if (sumRes.status === 'fulfilled') {
+        setSummaryData(sumRes.value.data);
+      } else {
+        setSummaryError(sumRes.reason?.response?.data?.detail || 'Không thể tải bảng số liệu nhập xuất tồn.');
+      }
     } finally {
       setLoading(false);
+      setSummaryLoading(false);
     }
   };
 
@@ -343,6 +432,16 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 <span>Tạo lại</span>
               </button>
+
+              <button
+                onClick={handleExportSummaryExcel}
+                disabled={isExportingSummary || summaryLoading}
+                className="btn-primary text-xs flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shrink-0"
+                title="Xuất Báo cáo Nhập Xuất Tồn ra file Excel (.xlsx)"
+              >
+                {isExportingSummary ? <Loader variant="inline" /> : <Download className="w-3.5 h-3.5" />}
+                <span>{isExportingSummary ? 'Đang xuất...' : 'Xuất Excel Báo Cáo'}</span>
+              </button>
             </div>
           </div>
 
@@ -406,6 +505,148 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                     {monthlyData.metrics.low_stock_count} <span className="text-xs font-normal text-[var(--text-muted)] font-sans">sp</span>
                   </p>
                 </div>
+              </div>
+
+              {/* BẢNG BÁO CÁO NHẬP - XUẤT - TỒN KHO CHI TIẾT (76 MẶT HÀNG) */}
+              <div className="card-warm p-4 sm:p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
+                  <div>
+                    <div className="flex items-center gap-2 text-[var(--text-primary)] font-bold font-serif text-base">
+                      <Package className="w-5 h-5 text-[var(--wood-accent)]" />
+                      <span>Báo Cáo Nhập - Xuất - Tồn Kho Hàng Hóa</span>
+                      {summaryData && (
+                        <span className="text-xs font-sans font-normal text-[var(--text-muted)]">
+                          ({summaryData.items.length} mặt hàng)
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Công thức kế toán chuẩn: Tồn đầu + Nhập - Xuất + Điều chỉnh = Tồn cuối
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Tìm SKU, tên hàng..."
+                        className="input-wood text-xs pl-8 pr-3 py-1.5 w-44 sm:w-56"
+                      />
+                      <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    </div>
+
+                    <button
+                      onClick={handleExportSummaryExcel}
+                      disabled={isExportingSummary || summaryLoading}
+                      className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5 cursor-pointer disabled:opacity-50"
+                      title="Xuất bảng số liệu ra file Excel (.xlsx)"
+                    >
+                      {isExportingSummary ? <Loader variant="inline" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>{isExportingSummary ? 'Đang xuất...' : 'Xuất Excel'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {summaryLoading && !summaryData && (
+                  <div className="py-8">
+                    <Loader variant="page" message="Đang tải bảng số liệu nhập - xuất - tồn..." />
+                  </div>
+                )}
+
+                {summaryError && (
+                  <div className="p-3 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] rounded-btn text-xs text-[var(--semantic-alert)] font-medium">
+                    {summaryError}
+                  </div>
+                )}
+
+                {summaryData && (
+                  <div className="overflow-x-auto rounded-card border border-[var(--border-subtle)] max-h-[520px] overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-[var(--bg-linen)] text-[var(--text-secondary)] font-semibold border-b border-[var(--border-subtle)] sticky top-0 z-10 shadow-xs">
+                        <tr>
+                          <th className="p-2.5 text-center w-10">STT</th>
+                          <th className="p-2.5">Mã SKU</th>
+                          <th className="p-2.5 min-w-[200px]">Tên hàng hóa</th>
+                          <th className="p-2.5 text-center">ĐVT</th>
+                          <th className="p-2.5 text-right">Tồn đầu</th>
+                          <th className="p-2.5 text-right text-[var(--semantic-success)]">Nhập</th>
+                          <th className="p-2.5 text-right text-[var(--semantic-alert)]">Xuất</th>
+                          <th className="p-2.5 text-right text-amber-600">Đ.Chỉnh</th>
+                          <th className="p-2.5 text-right font-bold text-[var(--text-primary)]">Tồn cuối</th>
+                          <th className="p-2.5 text-right">Đơn giá</th>
+                          <th className="p-2.5 text-right">Thành tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-subtle)]">
+                        {summaryData.items
+                          .filter((it) => {
+                            if (!searchTerm.trim()) return true;
+                            const term = searchTerm.toLowerCase();
+                            return (
+                              it.product_code.toLowerCase().includes(term) ||
+                              it.product_name.toLowerCase().includes(term) ||
+                              (it.category_name && it.category_name.toLowerCase().includes(term))
+                            );
+                          })
+                          .map((item, idx) => (
+                            <tr key={item.product_id} className="hover:bg-[var(--bg-linen)]/60 transition-colors">
+                              <td className="p-2 text-center text-[var(--text-muted)]">{idx + 1}</td>
+                              <td className="p-2 font-mono font-semibold text-[var(--wood-accent)]">{item.product_code}</td>
+                              <td className="p-2">
+                                <div className="font-medium text-[var(--text-primary)]">{item.product_name}</div>
+                                {item.category_name && (
+                                  <div className="text-[10px] text-[var(--text-muted)]">{item.category_name}</div>
+                                )}
+                              </td>
+                              <td className="p-2 text-center text-[var(--text-secondary)]">{item.unit}</td>
+                              <td className="p-2 text-right font-mono">{item.opening_stock}</td>
+                              <td className="p-2 text-right font-mono text-[var(--semantic-success)] font-medium">
+                                {item.total_import > 0 ? `+${item.total_import}` : '0'}
+                              </td>
+                              <td className="p-2 text-right font-mono text-[var(--semantic-alert)] font-medium">
+                                {item.total_export > 0 ? `-${item.total_export}` : '0'}
+                              </td>
+                              <td className="p-2 text-right font-mono text-amber-600">
+                                {item.adjustment !== 0 ? (item.adjustment > 0 ? `+${item.adjustment}` : item.adjustment) : '0'}
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold text-[var(--text-primary)]">
+                                <span>{item.closing_stock}</span>
+                                {item.is_low_stock && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-[var(--semantic-alert-bg)] text-[var(--semantic-alert)] rounded font-semibold border border-[var(--semantic-alert-border)]">
+                                    Dưới min
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2 text-right font-mono text-[var(--text-muted)]">
+                                {Math.round(item.standard_price).toLocaleString('vi-VN')} đ
+                              </td>
+                              <td className="p-2 text-right font-mono font-semibold text-[var(--text-primary)]">
+                                {Math.round(item.total_value).toLocaleString('vi-VN')} đ
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                      <tfoot className="bg-[var(--bg-linen)] font-bold text-[var(--text-primary)] border-t-2 border-[var(--border-subtle)] sticky bottom-0 z-10 shadow-xs">
+                        <tr>
+                          <td colSpan={4} className="p-2.5 text-center uppercase tracking-wider text-xs">
+                            Tổng cộng ({summaryData.total_products} SP)
+                          </td>
+                          <td className="p-2.5 text-right font-mono">{summaryData.total_opening}</td>
+                          <td className="p-2.5 text-right font-mono text-[var(--semantic-success)]">+{summaryData.total_import}</td>
+                          <td className="p-2.5 text-right font-mono text-[var(--semantic-alert)]">-{summaryData.total_export}</td>
+                          <td className="p-2.5 text-right font-mono text-amber-600">{summaryData.total_adjustment || 0}</td>
+                          <td className="p-2.5 text-right font-mono font-bold">{summaryData.total_closing}</td>
+                          <td className="p-2.5 text-right">-</td>
+                          <td className="p-2.5 text-right font-mono text-[var(--wood-accent)]">
+                            {Math.round(summaryData.total_inventory_value).toLocaleString('vi-VN')} đ
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* Executive Summary AI Box */}

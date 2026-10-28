@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo Cáo Phân Tích Lỗi & Đề Xuất Khắc Phục - Đề Tài 07 WMS AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      themeVariables: {
+        fontFamily: 'Be Vietnam Pro, sans-serif',
+        fontSize: '13px',
+        primaryColor: '#e0e7ff',
+        primaryTextColor: '#1e1b4b',
+        primaryBorderColor: '#6366f1',
+        lineColor: '#64748b'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true }
+    });
+  </script>
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-subtle: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --danger: #f87171;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: #ef4444;
+      --success: #4ade80;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: #22c55e;
+      --warning: #fbbf24;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --code-bg: #090d16;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding-bottom: 80px;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* HEADER HERO */
+    header {
+      background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 0 32px 0;
+      margin-bottom: 32px;
+    }
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .badge-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .badge-primary { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid var(--primary); }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #f8fafc 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 900px;
+      margin-bottom: 24px;
+    }
+
+    /* STATS SUMMARY */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .stat-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    .stat-val { font-size: 26px; font-weight: 800; color: #fff; font-family: 'JetBrains Mono', monospace; }
+    .stat-desc { font-size: 12px; color: var(--text-muted); }
+
+    /* SECTION STYLES */
+    section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+    .section-title svg { width: 22px; height: 22px; color: var(--primary); }
+
+    /* MERMAID DIAGRAM BOX */
+    .mermaid-box {
+      background: #ffffff;
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+      border: 2px solid #e2e8f0;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .mermaid-box .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot-red { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; display: inline-block; }
+    .dot-green { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; display: inline-block; }
+
+    /* TABLES */
+    .table-container {
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    thead {
+      background: #0f172a;
+      border-bottom: 2px solid var(--border);
+    }
+    th {
+      padding: 12px 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+    tr:hover { background: rgba(56, 189, 248, 0.05); }
+
+    .tag-error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .tag-ok {
+      background: var(--success-bg);
+      color: var(--success);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    /* DIFF VIEW (SIDE-BY-SIDE) */
+    .diff-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    @media (max-width: 900px) {
+      .diff-wrapper { grid-template-columns: 1fr; }
+    }
+    .diff-pane {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--code-bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .diff-header {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .diff-header.before { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+    .diff-header.after { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+    .code-body {
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow-x: auto;
+      flex: 1;
+    }
+    .line-error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      display: block;
+      margin: 0 -16px;
+      padding: 2px 16px;
+      border-left: 3px solid #ef4444;
+    }
+    .line-fixed {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      display: block;
+      margin: 0 -16px;
+      padding: 2px 16px;
+      border-left: 3px solid #22c55e;
+    }
+    .code-comment { color: #64748b; font-style: italic; }
+
+    /* ACTION PLAN CARDS */
+    .plan-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 20px;
+    }
+    .plan-card {
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .plan-card.p0 { border-left: 4px solid var(--danger); }
+    .plan-card.p1 { border-left: 4px solid var(--warning); }
+    .plan-card.p2 { border-left: 4px solid var(--primary); }
+    .plan-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .plan-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .plan-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+    .plan-steps {
+      list-style-type: decimal;
+      margin-left: 20px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    .plan-steps li { margin-bottom: 6px; }
+
+    /* NOTICE BOX */
+    .notice-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #fef3c7;
+      margin-top: 32px;
+    }
+    .notice-icon { font-size: 24px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- HERO HEADER -->
+  <header>
+    <div class="container">
+      <div class="badge-bar">
+        <span class="badge badge-danger">Trạng thái: Chưa sửa code (View-Only)</span>
+        <span class="badge badge-warning">Đề tài 07: WMS AI</span>
+        <span class="badge badge-primary">Antigravity Independent Audit</span>
+        <span class="badge badge-success">Báo cáo trực quan HTML</span>
+      </div>
+      <h1>BÁO CÁO PHÂN TÍCH LỖI & SƠ ĐỒ KHẮC PHỤC HỆ THỐNG</h1>
+      <p class="hero-desc">
+        Tài liệu kiểm định trực quan dành cho người đánh giá độc lập và lập trình viên.
+        Toàn bộ luồng dữ liệu, lỗi logic thuật toán, lỗi nghiệp vụ kế toán kho và thiếu sót giao diện được bóc tách chi tiết kèm sơ đồ luồng tô đỏ bước lỗi và so sánh Before/After.
+      </p>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- METRICS OVERVIEW -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Lỗi Logic Tính Tồn Đầu</span>
+        <span class="stat-val" style="color: var(--danger);">16 SKU</span>
+        <span class="stat-desc">Bị sai lệch số lượng trên CSDL gốc (14 trên DB seed mới)</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Lỗi Nghiệp Vụ ADJUSTMENT</span>
+        <span class="stat-val" style="color: var(--danger);">100%</span>
+        <span class="stat-desc">Phiếu hủy / kiểm kê bị gộp nhầm vào Nhập/Xuất thương mại</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Giao Diện Báo Cáo Nhập Xuất Tồn</span>
+        <span class="stat-val" style="color: var(--warning);">0 Màn hình</span>
+        <span class="stat-desc">Client API có khai báo nhưng Frontend không hiển thị bảng</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Xuất File Báo Cáo Tổng Hợp</span>
+        <span class="stat-val" style="color: var(--warning);">0 File</span>
+        <span class="stat-desc">Chỉ có xuất Thẻ kho chi tiết, thiếu file Báo cáo tổng hợp</span>
+      </div>
+    </div>
+
+    <!-- PHẦN 1: SƠ ĐỒ LUỒNG THUẬT TOÁN (MERMAID FLOWCHARTS) -->
+    <section id="flowcharts">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          1. SƠ ĐỒ LUỒNG XỬ LÝ (TÔ ĐỎ BƯỚC BỊ LỖI)
+        </div>
+      </div>
+
+      <!-- FLOWCHART 1: HÀM get_inventory_summary_report -->
+      <h3 style="margin-bottom: 8px; color: #38bdf8;">1.1 Luồng hàm tính Báo cáo Nhập - Xuất - Tồn (<code>inventory_service.py:670-745</code>)</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        Hàm xử lý báo cáo từ ngày <code>from_date</code> đến <code>to_date</code>. Bước lấy tồn đầu kỳ và bước gom nhóm số liệu trong kỳ chứa 2 lỗi kiến trúc nghiêm trọng.
+      </p>
+
+      <div class="mermaid-box">
+        <pre class="mermaid">
+flowchart TD
+    In(["ĐẦU VÀO: db, from_date, to_date, category_id"]) --> S1["1. Chuẩn hóa from_date & to_date về Naive UTC Datetime"]
+    S1 --> S2["2. Truy vấn danh sách Sản phẩm (Product.category)"]
+    S2 --> S3{"Lặp qua từng Product"}
+
+    %% Bước lỗi 1
+    S3 --> S4["Truy vấn StockLedger có transaction_date < from_date<br><b>order_by(transaction_date.desc(), id.desc()).first()</b>"]
+    S4 --> ERR1["🔴 BƯỚC LỖI 1: Lấy opening_stock = last_entry.balance_after<br><i>(Sai lầm: balance_after mang giá trị tại lúc chạy script,<br>không khớp với lũy kế thời gian thực khi có giao dịch lệch ngày)</i>"]
+
+    %% Bước xử lý trong kỳ
+    ERR1 --> S5["Truy vấn StockLedger có transaction_date trong [from_date, to_date]"]
+
+    %% Bước lỗi 2
+    S5 --> ERR2["🔴 BƯỚC LỖI 2: Phân loại theo dấu âm/dương<br><b>period_import = sum(qty > 0)</b><br><b>period_export = sum(abs(qty < 0))</b><br><i>(Sai lầm nghiệp vụ: Phiếu hủy & kiểm kê bị cộng vào Nhập/Xuất thương mại)</i>"]
+
+    ERR2 --> S6["3. Tính tồn cuối: closing = opening + period_import - period_export"]
+    S6 --> S7["4. Tạo InventorySummaryItem và tính tổng toàn kho"]
+    S7 --> S8{"Còn sản phẩm tiếp theo?"}
+    S8 -- Có --> S3
+    S8 -- Hết --> Out(["ĐẦU RA: InventorySummaryReport (BỊ SAI SỐ LIỆU TỒN ĐẦU VÀ DOANH SỐ)"])
+
+    %% Style highlight đỏ
+    style ERR1 fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,color:#991b1b,font-weight:bold
+    style ERR2 fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,color:#991b1b,font-weight:bold
+    style In fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,color:#0369a1
+    style Out fill:#fef2f2,stroke:#b91c1c,stroke-width:2px,color:#991b1b
+        </pre>
+      </div>
+      <div class="mermaid-note">
+        <span class="dot-red"></span> Các khối tô đỏ thể hiện điểm nghẽn gây sai lệch số liệu. Khối màu xanh là luồng thực thi bình thường.
+      </div>
+
+      <!-- FLOWCHART 2: seed_data.py -->
+      <h3 style="margin-top: 32px; margin-bottom: 8px; color: #38bdf8;">1.2 Luồng nạp dữ liệu mẫu bất đồng bộ thời gian (<code>seed_data.py:445-520</code>)</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        Nguyên nhân trực tiếp sinh ra 16 cặp ngày giao dịch bị đảo ngược trong CSDL.
+      </p>
+
+      <div class="mermaid-box">
+        <pre class="mermaid">
+flowchart TD
+    Init(["Bắt đầu seed_database()"]) --> UserCat["1. Khởi tạo Users, Categories, Suppliers, 76 Products"]
+    UserCat --> MonthLoop["2. Vòng lặp mô phỏng 5 tháng (05/2026 -> 10/2026)"]
+
+    MonthLoop --> ImpBlock["Gọi record_import() cho các lô hàng giữa/cuối tháng<br>(Ví dụ: Ngày 05/06, 14/06, 22/06)<br><b>p.current_stock += qty</b> (Tăng tồn trong bộ nhớ)"]
+    ImpBlock --> ERR_SEED["🔴 BƯỚC LỖI SEED: Vòng lặp record_export() chạy sau nhưng gán ngày đầu tháng<br>(Ví dụ: Ngày 02/06 < 05/06)<br><i>balance_after được lưu = p.current_stock (ĐÃ CỘNG DỒN CẢ HÀNG NGÀY 22/06)</i>"]
+
+    ERR_SEED --> LedgerSaved["Ghi vào StockLedger: ID lớn hơn nhưng Date nhỏ hơn<br>Tạo 16 cặp bản ghi đảo ngược thứ tự thời gian!"]
+    LedgerSaved --> EndSeed(["Hoàn tất nạp CSDL (Dữ liệu mang mầm mống sai lệch)"])
+
+    style ERR_SEED fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,color:#991b1b,font-weight:bold
+    style Init fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,color:#0369a1
+    style EndSeed fill:#fef2f2,stroke:#b91c1c,stroke-width:2px,color:#991b1b
+        </pre>
+      </div>
+
+      <!-- FLOWCHART 3: Missing UI & Export -->
+      <h3 style="margin-top: 32px; margin-bottom: 8px; color: #38bdf8;">1.3 Luồng Trải nghiệm Người dùng: Báo cáo & Xuất file (Frontend & API)</h3>
+      <div class="mermaid-box">
+        <pre class="mermaid">
+flowchart LR
+    UserReq(["Người dùng / Ban giám khảo"]) --> LookReport{"Muốn xem Báo cáo Nhập Xuất Tồn & Tải Excel"}
+
+    LookReport --> CheckUI["Mở giao diện Web (http://localhost:5173)"]
+    CheckUI --> ScreenAI["Trang AIAssistant.jsx (Tab Báo cáo tháng)"]
+    ScreenAI --> ERR_UI["🔴 THIẾU BẢNG BÁO CÁO:<br>Chỉ có 4 ô số tổng & nhận xét AI text.<br>Không có bảng chi tiết từng mặt hàng!"]
+
+    LookReport --> CheckExport["Tìm nút Xuất File Báo Cáo"]
+    CheckExport --> ScreenLedger["Trang StockLedger.jsx: Có nút Xuất Excel"]
+    ScreenLedger --> LedgerOnly["Chỉ xuất file Thẻ kho chi tiết (.xlsx)"]
+    LedgerOnly --> ERR_EXPORT["🔴 THIẾU XUẤT BÁO CÁO TỔNG HỢP:<br>Không có nút hoặc API xuất Excel cho bảng Nhập Xuất Tồn!"]
+
+    style ERR_UI fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,color:#991b1b,font-weight:bold
+    style ERR_EXPORT fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,color:#991b1b,font-weight:bold
+        </pre>
+      </div>
+    </section>
+
+    <!-- PHẦN 2: BẢNG PHÂN TÍCH LỖI (INPUT | KẾT QUẢ HIỆN TẠI | KẾT QUẢ MONG ĐỢI | NGUYÊN NHÂN) -->
+    <section id="analysis-tables">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          2. BẢNG PHÂN TÍCH NGUYÊN NHÂN VÀ ĐỐI CHIẾU THỰC NGHIỆM
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 20%;">Hạng mục / Input thực tế</th>
+              <th style="width: 25%;">Kết quả hiện tại (Bị lỗi)</th>
+              <th style="width: 25%;">Kết quả mong đợi (Đúng chuẩn)</th>
+              <th style="width: 30%;">Nguyên nhân cốt lõi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <b>Lỗi 1: Tồn đầu kỳ SKU SP008 (Tháng 07/2026)</b><br>
+                <span class="stat-desc">Dữ liệu thẻ kho trước 01/07/2026 gồm 4 giao dịch (+45, -4, +20, -2)</span>
+              </td>
+              <td>
+                <span class="tag-error">Tồn đầu = 61</span><br>
+                <span class="tag-error">Tồn cuối = 61</span><br>
+                (Lệch thừa <b>+2 đơn vị</b> so với thực tế)
+              </td>
+              <td>
+                <span class="tag-ok">Tồn đầu = 59</span><br>
+                <span class="tag-ok">Tồn cuối = 59</span><br>
+                (Lũy kế chính xác: 45 - 4 + 20 - 2 = 59)
+              </td>
+              <td>
+                Do truy vấn <code>order_by(date.desc()).first()</code> đọc dòng ID 101 (ngày 05/06) có <code>balance_after = 61</code>, vì dòng ID 114 (ngày 02/06 xuất 2 chiếc) bị nạp sau nhưng lại mang timestamp sớm hơn!
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <b>Lỗi 2: Nghiệp vụ Hủy phiếu xuất (Tháng 10/2026)</b><br>
+                <span class="stat-desc">SKU SP062 lập phiếu xuất 1 chiếc rồi hủy ngay trong ngày 21/10</span>
+              </td>
+              <td>
+                <span class="tag-error">Tổng Nhập = 1</span><br>
+                <span class="tag-error">Tổng Xuất = 1</span><br>
+                (Báo cáo ghi nhận có mua hàng và có bán hàng)
+              </td>
+              <td>
+                <span class="tag-ok">Tổng Nhập = 0</span><br>
+                <span class="tag-ok">Tổng Xuất = 0</span><br>
+                (Giao dịch hủy phải hoàn trừ xuất bán, không được coi là nhập mua NCC)
+              </td>
+              <td>
+                Tại <code>inventory_service.py:717</code>, code phân loại bằng <code>qty > 0</code>. Phiếu hủy hoàn kho 1 chiếc có <code>qty = +1</code> nên bị cộng thẳng vào cột Nhập mua!
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <b>Lỗi 3: Giao diện Báo cáo Nhập Xuất Tồn</b><br>
+                <span class="stat-desc">Người dùng truy cập phân hệ Báo cáo để theo dõi 76 sản phẩm</span>
+              </td>
+              <td>
+                <span class="tag-error">Không có bảng dữ liệu</span><br>
+                Chỉ hiển thị 4 ô số tổng & đoạn văn text do Gemini sinh.
+              </td>
+              <td>
+                <span class="tag-ok">Bảng thống kê 76 sản phẩm</span><br>
+                Gồm đủ các cột: Mã SP, Tên SP, ĐVT, Tồn đầu, Nhập, Xuất, Tồn cuối, Đơn giá, Thành tiền.
+              </td>
+              <td>
+                File <code>frontend/src/api/client.js:264</code> có hàm <code>reports.getSummary</code> nhưng trong toàn bộ các components frontend <b>không có component nào gọi hàm này</b>!
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <b>Lỗi 4: Xuất file Báo cáo tổng hợp</b><br>
+                <span class="stat-desc">Người dùng yêu cầu tải file Báo cáo Nhập Xuất Tồn định dạng Excel</span>
+              </td>
+              <td>
+                <span class="tag-error">Không có chức năng</span><br>
+                Backend không có API, UI không có nút xuất file cho báo cáo tổng hợp.
+              </td>
+              <td>
+                <span class="tag-ok">Tải file Excel (.xlsx)</span><br>
+                Xuất file Excel bảng Nhập Xuất Tồn theo đúng chuẩn kế toán kho.
+              </td>
+              <td>
+                Backend mới chỉ lập trình xuất Excel cho Thẻ kho (Stock Ledger). Endpoint <code>/reports/inventory-summary</code> chỉ trả về JSON thuần.
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <b>Lỗi 5: Khởi động 1-Click trên máy sạch</b><br>
+                <span class="stat-desc">Máy tính mới clone mã nguồn, chạy <code>run.bat</code> theo README</span>
+              </td>
+              <td>
+                <span class="tag-error">Crash màn hình console</span><br>
+                <code>uvicorn: command not found</code><br>
+                <code>vite: command not found</code>
+              </td>
+              <td>
+                <span class="tag-ok">Tự động cấu hình & Chạy</span><br>
+                Tự tạo venv, tự <code>pip install</code>, tự <code>npm install</code> và khởi động cả 2 server.
+              </td>
+              <td>
+                File <code>run.bat</code> chỉ gõ lệnh khởi động trực tiếp mà không hề kiểm tra hay cài đặt gói phụ thuộc.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- BẢNG CHI TIẾT 16 MẶT HÀNG BỊ SAI SỐ TRÊN CSDL GỐC -->
+      <h3 style="margin-top: 28px; margin-bottom: 12px; color: #f87171;">Danh sách chi tiết 16 lượt mặt hàng bị sai lệch Tồn đầu kỳ trong CSDL gốc</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Kỳ Báo Cáo</th>
+              <th>Mã Hàng (SKU)</th>
+              <th>Tên Hàng Hóa</th>
+              <th>Tồn Đầu (Báo Cáo)</th>
+              <th>Tồn Đầu (Chuẩn Lũy Kế)</th>
+              <th>Tồn Cuối (Báo Cáo)</th>
+              <th>Tồn Cuối (Chuẩn Lũy Kế)</th>
+              <th>Chênh Lệch</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>07/2026</td><td><b>SP012</b></td><td>Bộ phát Wifi Mesh Mercusys Halo H50G</td><td class="tag-error">55</td><td class="tag-ok">53</td><td class="tag-error">55</td><td class="tag-ok">53</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>07/2026</td><td><b>SP015</b></td><td>Tản nhiệt CPU Deepcool Gammaxx 400</td><td class="tag-error">65</td><td class="tag-ok">62</td><td class="tag-error">61</td><td class="tag-ok">58</td><td style="color:#f87171; font-weight:bold;">+3</td></tr>
+            <tr><td>07/2026</td><td><b>SP067</b></td><td>Sạc dự phòng Xiaomi 20000mAh</td><td class="tag-error">60</td><td class="tag-ok">58</td><td class="tag-error">60</td><td class="tag-ok">58</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>08/2026</td><td><b>SP012</b></td><td>Bộ phát Wifi Mesh Mercusys Halo H50G</td><td class="tag-error">55</td><td class="tag-ok">53</td><td class="tag-error">52</td><td class="tag-ok">50</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>08/2026</td><td><b>SP017</b></td><td>Chuột văn phòng Logitech B100</td><td class="tag-error">73</td><td class="tag-ok">72</td><td class="tag-error">117</td><td class="tag-ok">116</td><td style="color:#f87171; font-weight:bold;">+1</td></tr>
+            <tr><td>08/2026</td><td><b>SP032</b></td><td>Oppo A79</td><td class="tag-error">24</td><td class="tag-ok">23</td><td class="tag-error">24</td><td class="tag-ok">23</td><td style="color:#f87171; font-weight:bold;">+1</td></tr>
+            <tr><td>08/2026</td><td><b>SP067</b></td><td>Sạc dự phòng Xiaomi 20000mAh</td><td class="tag-error">60</td><td class="tag-ok">58</td><td class="tag-error">60</td><td class="tag-ok">58</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>09/2026</td><td><b>SP032</b></td><td>Oppo A79</td><td class="tag-error">24</td><td class="tag-ok">23</td><td class="tag-error">24</td><td class="tag-ok">23</td><td style="color:#f87171; font-weight:bold;">+1</td></tr>
+            <tr><td>09/2026</td><td><b>SP048</b></td><td>Mini PC Intel NUC</td><td class="tag-error">23</td><td class="tag-ok">21</td><td class="tag-error">22</td><td class="tag-ok">20</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>09/2026</td><td><b>SP067</b></td><td>Sạc dự phòng Xiaomi 20000mAh</td><td class="tag-error">60</td><td class="tag-ok">58</td><td class="tag-error">60</td><td class="tag-ok">58</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>10/2026</td><td><b>SP032</b></td><td>Oppo A79</td><td class="tag-error">24</td><td class="tag-ok">23</td><td class="tag-error">24</td><td class="tag-ok">23</td><td style="color:#f87171; font-weight:bold;">+1</td></tr>
+            <tr><td>10/2026</td><td><b>SP043</b></td><td>Lenovo Legion 5</td><td class="tag-error">14</td><td class="tag-ok">11</td><td class="tag-error">14</td><td class="tag-ok">11</td><td style="color:#f87171; font-weight:bold;">+3</td></tr>
+            <tr><td>10/2026</td><td><b>SP055</b></td><td>LG UltraGear 27GP850</td><td class="tag-error">34</td><td class="tag-ok">29</td><td class="tag-error">34</td><td class="tag-ok">29</td><td style="color:#f87171; font-weight:bold;">+5</td></tr>
+            <tr><td>10/2026</td><td><b>SP067</b></td><td>Sạc dự phòng Xiaomi 20000mAh</td><td class="tag-error">60</td><td class="tag-ok">58</td><td class="tag-error">60</td><td class="tag-ok">58</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>10/2026</td><td><b>SP070</b></td><td>Sạc nhanh 20W Apple</td><td class="tag-error">75</td><td class="tag-ok">73</td><td class="tag-error">73</td><td class="tag-ok">71</td><td style="color:#f87171; font-weight:bold;">+2</td></tr>
+            <tr><td>10/2026</td><td><b>SP071</b></td><td>Ốp lưng iPhone 16 silicon</td><td class="tag-error">56</td><td class="tag-ok">51</td><td class="tag-error">56</td><td class="tag-ok">51</td><td style="color:#f87171; font-weight:bold;">+5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PHẦN 3: SO SÁNH TRƯỚC / SAU CẠNH NHAU (SIDE-BY-SIDE DIFF) -->
+    <section id="diff-view">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+          3. SO SÁNH TRƯỚC / SAU CẠNH NHAU (VISUAL CODE DIFF)
+        </div>
+      </div>
+
+      <!-- DIFF 1: inventory_service.py -->
+      <h3 style="margin-bottom: 8px; color: #38bdf8;">3.1 Sửa hàm tính Tồn đầu kỳ & Phân tách Nghiệp vụ (<code>inventory_service.py</code>)</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        Chuyển từ đọc <code>balance_after</code> của 1 dòng sang tính tổng đại số <code>SUM(quantity_change)</code>; phân tách giao dịch Hủy phiếu & Kiểm kê khỏi Nhập/Xuất thương mại.
+      </p>
+
+      <div class="diff-wrapper">
+        <div class="diff-pane">
+          <div class="diff-header before">❌ TRƯỚC: Code hiện tại (Bị sai số liệu & sai nghiệp vụ)</div>
+          <div class="code-body">
+<span class="code-comment"># 1. Tồn đầu kỳ: Lấy balance_after của dòng gần nhất</span>
+<span class="line-error">last_entry_before = (</span>
+<span class="line-error">    db.query(StockLedger)</span>
+<span class="line-error">    .filter(</span>
+<span class="line-error">        StockLedger.product_id == product.id,</span>
+<span class="line-error">        StockLedger.transaction_date &lt; from_date,</span>
+<span class="line-error">    )</span>
+<span class="line-error">    .order_by(StockLedger.transaction_date.desc(), StockLedger.id.desc())</span>
+<span class="line-error">    .first()</span>
+<span class="line-error">)</span>
+<span class="line-error">opening_stock = last_entry_before.balance_after if last_entry_before else 0</span>
+
+<span class="code-comment"># 2. Gom nhóm trong kỳ: Gom thuần túy theo dấu âm dương</span>
+<span class="line-error">period_import = sum(e.quantity_change for e in period_entries if e.quantity_change > 0)</span>
+<span class="line-error">period_export = sum(abs(e.quantity_change) for e in period_entries if e.quantity_change &lt; 0)</span>
+
+closing_stock = opening_stock + period_import - period_export
+          </div>
+        </div>
+
+        <div class="diff-pane">
+          <div class="diff-header after">✅ SAU: Đề xuất khắc phục (Toán học bất biến & Chuẩn kế toán kho)</div>
+          <div class="code-body">
+<span class="code-comment"># 1. Tồn đầu kỳ: Tính tổng đại số lũy kế trước kỳ bằng SQL aggregation</span>
+<span class="line-fixed">opening_stock = (</span>
+<span class="line-fixed">    db.query(func.coalesce(func.sum(StockLedger.quantity_change), 0))</span>
+<span class="line-fixed">    .filter(</span>
+<span class="line-fixed">        StockLedger.product_id == product.id,</span>
+<span class="line-fixed">        StockLedger.transaction_date &lt; from_date,</span>
+<span class="line-fixed">    )</span>
+<span class="line-fixed">    .scalar()</span>
+<span class="line-fixed">)</span>
+
+<span class="code-comment"># 2. Gom nhóm trong kỳ: Bóc tách đúng bản chất giao dịch kho</span>
+<span class="line-fixed">comm_import = sum(e.quantity_change for e in period_entries if e.transaction_type == 'IMPORT')</span>
+<span class="line-fixed">comm_export = sum(abs(e.quantity_change) for e in period_entries if e.transaction_type == 'EXPORT')</span>
+<span class="line-fixed">adjustments = sum(e.quantity_change for e in period_entries if e.transaction_type == 'ADJUSTMENT')</span>
+
+<span class="line-fixed"># Hoàn trả phiếu hủy không làm thổi phồng nhập mua/xuất bán</span>
+<span class="line-fixed">closing_stock = opening_stock + comm_import - comm_export + adjustments</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIFF 2: seed_data.py -->
+      <h3 style="margin-top: 32px; margin-bottom: 8px; color: #38bdf8;">3.2 Sửa thứ tự nạp giao dịch trong <code>seed_data.py</code></h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        Chuyển từ việc nạp từng nhóm nhập/xuất rời rạc sang hàng đợi sự kiện (Event Queue) sắp xếp tuần tự theo trục thời gian.
+      </p>
+
+      <div class="diff-wrapper">
+        <div class="diff-pane">
+          <div class="diff-header before">❌ TRƯỚC: Nạp nhập trước, nạp xuất sau lệch ngày</div>
+          <div class="code-body">
+<span class="code-comment"># Nạp các phiếu nhập trước (ngày 5, 14, 22)</span>
+<span class="line-error">record_import("PN-202606-001", ..., datetime(2026, 6, 5))</span>
+<span class="line-error">record_import("PN-202606-002", ..., datetime(2026, 6, 14))</span>
+<span class="line-error">record_import("PN-202606-003", ..., datetime(2026, 6, 22))</span>
+
+<span class="code-comment"># Sau đó mới chạy vòng lặp xuất từ ngày mùng 2!</span>
+<span class="line-error">for day in [2, 5, 7, 10, ...]:</span>
+<span class="line-error">    record_export(f"PX-202606-{day:02d}", ..., datetime(2026, 6, day))</span>
+          </div>
+        </div>
+
+        <div class="diff-pane">
+          <div class="diff-header after">✅ SAU: Gom tất cả vào Event Queue & Sắp xếp theo ngày</div>
+          <div class="code-body">
+<span class="code-comment"># Đưa tất cả sự kiện nhập/xuất vào 1 danh sách</span>
+<span class="line-fixed">events = []</span>
+<span class="line-fixed">events.extend(generate_all_import_events())</span>
+<span class="line-fixed">events.extend(generate_all_export_events())</span>
+
+<span class="code-comment"># Sắp xếp tuần tự nghiêm ngặt theo thời gian tăng dần</span>
+<span class="line-fixed">events.sort(key=lambda x: x["note_date"])</span>
+
+<span class="code-comment"># Thực thi tuần tự: ID và timestamp luôn tăng dần đơn điệu</span>
+<span class="line-fixed">for ev in events:</span>
+<span class="line-fixed">    execute_event(ev)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIFF 3: run.bat -->
+      <h3 style="margin-top: 32px; margin-bottom: 8px; color: #38bdf8;">3.3 Nâng cấp kịch bản khởi động 1-Click (<code>run.bat</code>)</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        Tự động phát hiện môi trường ảo Python và thư mục <code>node_modules</code>, tự cài đặt thư viện trước khi khởi động.
+      </p>
+
+      <div class="diff-wrapper">
+        <div class="diff-pane">
+          <div class="diff-header before">❌ TRƯỚC: Chạy mù, crash nếu chưa cài packages</div>
+          <div class="code-body">
+<span class="line-error">start "WMS Backend" cmd /k "cd /d %~dp0backend && uvicorn app.main:app --reload --port 8000"</span>
+<span class="line-error">start "WMS Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"</span>
+          </div>
+        </div>
+
+        <div class="diff-pane">
+          <div class="diff-header after">✅ SAU: Tự kiểm tra & Cài đặt tự động</div>
+          <div class="code-body">
+<span class="line-fixed">cd /d %~dp0backend</span>
+<span class="line-fixed">if not exist ".venv" python -m venv .venv</span>
+<span class="line-fixed">call .venv\Scriptsctivate</span>
+<span class="line-fixed">pip install -r requirements.txt</span>
+<span class="line-fixed">start "WMS Backend" cmd /k "uvicorn app.main:app --reload --port 8000"</span>
+
+<span class="line-fixed">cd /d %~dp0frontend</span>
+<span class="line-fixed">if not exist "node_modules" call npm install</span>
+<span class="line-fixed">start "WMS Frontend" cmd /k "npm run dev"</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHẦN 4: DANH SÁCH LỖI THEO THỨ TỰ ƯU TIÊN & ĐỀ XUẤT GIẢI PHÁP -->
+    <section id="roadmap">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          4. DANH SÁCH LỖI THEO MỨC ĐỘ ƯU TIÊN & KẾ HOẠCH HÀNH ĐỘNG
+        </div>
+      </div>
+
+      <div class="plan-grid">
+
+        <!-- LỖI 1: P0 CRITICAL -->
+        <div class="plan-card p0">
+          <div class="plan-top">
+            <span class="badge badge-danger">Ưu tiên P0 (Khẩn cấp)</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--danger);">BUG-INV-01</span>
+          </div>
+          <div class="plan-title">Sửa Lỗi Tính Tồn Đầu Kỳ & Nghiệp Vụ ADJUSTMENT trong Backend</div>
+          <div class="plan-desc">
+            Ảnh hưởng trực tiếp đến tính đúng đắn của toàn bộ báo cáo kho và số liệu cung cấp cho Trợ lý AI.
+          </div>
+          <ul class="plan-steps">
+            <li><b>File tác động:</b> <code>backend/app/services/inventory_service.py</code> (hàm <code>get_inventory_summary_report</code>).</li>
+            <li><b>Bước 1:</b> Thay thế đoạn code lấy <code>last_entry_before.balance_after</code> bằng truy vấn SQL tổng lũy kế: <code>db.query(func.coalesce(func.sum(StockLedger.quantity_change), 0)).filter(transaction_date < from_date)</code>.</li>
+            <li><b>Bước 2:</b> Bóc tách phân loại giao dịch: Nhập thương mại (<code>IMPORT</code>), Xuất thương mại (<code>EXPORT</code>), và Điều chỉnh kiểm kê/hủy phiếu (<code>ADJUSTMENT</code>).</li>
+            <li><b>Tiêu chí nghiệm thu:</b> Chạy lại kiểm thử đối chiếu 6 tháng dữ liệu (05/2026 - 10/2026) đạt tỷ lệ khớp <b>76/76 (100%)</b> cho cả 6 tháng. Không còn bất kỳ mặt hàng nào bị lệch số.</li>
+          </ul>
+        </div>
+
+        <!-- LỖI 2: P0 CRITICAL -->
+        <div class="plan-card p0">
+          <div class="plan-top">
+            <span class="badge badge-danger">Ưu tiên P0 (Khẩn cấp)</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--danger);">BUG-FE-02</span>
+          </div>
+          <div class="plan-title">Bổ Sung Giao Diện Bảng Báo Cáo Nhập Xuất Tồn & Nút Xuất Excel</div>
+          <div class="plan-desc">
+            Đáp ứng đầy đủ tiêu chí đề bài mục 3.1.8 ("Thống kê nhập xuất tồn và xuất báo cáo") và mục 5 ("Đầu ra quản lý: Báo cáo nhập xuất tồn").
+          </div>
+          <ul class="plan-steps">
+            <li><b>Backend:</b> Thêm endpoint <code>GET /api/v1/reports/inventory-summary/export-excel</code> tại <code>backend/app/api/v1/endpoints/reports.py</code> sử dụng thư viện <code>openpyxl</code> để xuất bảng tổng hợp 76 mặt hàng ra file <code>.xlsx</code>.</li>
+            <li><b>Frontend:</b>
+              - Tại <code>frontend/src/pages/AIAssistant.jsx</code> (hoặc tab Báo cáo riêng): Thêm bảng dữ liệu DataTable hiển thị danh sách 76 mặt hàng với đủ các cột: Mã hàng, Tên hàng, ĐVT, Tồn đầu, Tổng nhập, Tổng xuất, Tồn cuối, Đơn giá, Thành tiền.
+              - Gọi hàm <code>reports.getSummary(fromDate, toDate)</code> từ <code>api/client.js</code>.
+              - Đặt nút <b>"Xuất Excel Báo Cáo Nhập Xuất Tồn"</b> tải file trực tiếp về máy.
+            </li>
+            <li><b>Tiêu chí nghiệm thu:</b> Người dùng chọn tháng bất kỳ trên giao diện, bảng dữ liệu hiển thị tức thì, bấm nút xuất tải được file Excel mở ra xem được đầy đủ 76 dòng.</li>
+          </ul>
+        </div>
+
+        <!-- LỖI 3: P1 HIGH -->
+        <div class="plan-card p1">
+          <div class="plan-top">
+            <span class="badge badge-warning">Ưu tiên P1 (Quan trọng)</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--warning);">BUG-SEED-03</span>
+          </div>
+          <div class="plan-title">Chuẩn Hóa Bộ Sinh Dữ Liệu Mẫu (seed_data.py) Tuần Tự Theo Thời Gian</div>
+          <div class="plan-desc">
+            Đảm bảo khi tạo mới hoàn toàn CSDL trên môi trường sạch, dữ liệu luôn sạch, có tính nhất quán cao, không phát sinh bất thường đảo ngược ngày.
+          </div>
+          <ul class="plan-steps">
+            <li><b>File tác động:</b> <code>backend/seed_data.py</code>.</li>
+            <li><b>Giải pháp:</b> Gom toàn bộ các sự kiện nhập và xuất vào hàng đợi sự kiện (Event Queue), thiết lập cố định <code>random.seed(42)</code> để kết quả có tính tái lập (reproducible), và sắp xếp tuần tự theo trục thời gian trước khi commit vào database.</li>
+            <li><b>Tiêu chí nghiệm thu:</b> Chạy <code>python seed_data.py</code> trên database trắng, kiểm tra truy vấn <code>SELECT * FROM stock_ledger</code> có <b>0 cặp ngày nào bị nghịch thứ tự</b> so với ID.</li>
+          </ul>
+        </div>
+
+        <!-- LỖI 4: P2 MEDIUM -->
+        <div class="plan-card p2">
+          <div class="plan-top">
+            <span class="badge badge-primary">Ưu tiên P2 (Trung bình)</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--primary);">BUG-OPS-04</span>
+          </div>
+          <div class="plan-title">Hoàn Thiện Kịch Bản run.bat & Hướng Dẫn Cài Đặt Trong README.md</div>
+          <div class="plan-desc">
+            Giúp giám khảo hoặc người chấm thi clone project về là khởi chạy được ngay mà không cần tra cứu thủ công.
+          </div>
+          <ul class="plan-steps">
+            <li><b>File tác động:</b> <code>run.bat</code>, <code>README.md</code>.</li>
+            <li><b>Giải pháp:</b> Bổ sung logic tự động kích hoạt/cài đặt venv, <code>pip install -r requirements.txt</code> (đã bao gồm <code>openpyxl</code>), kiểm tra và <code>npm install</code> cho frontend. Cập nhật README phần cấu hình <code>.env</code> (GEMINI_API_KEY).</li>
+            <li><b>Tiêu chí nghiệm thu:</b> Xóa thử thư mục <code>node_modules</code> và <code>.venv</code>, nhấp đúp <code>run.bat</code>, ứng dụng tự tải dependencies và mở trình duyệt thành công.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- NOTICE CAM KẾT CHƯA SỬA CODE -->
+      <div class="notice-box">
+        <div class="notice-icon">⚠️</div>
+        <div>
+          <b>CAM KẾT BẢO TOÀN NGUYÊN TRẠNG MÃ NGUỒN:</b><br>
+          Báo cáo này chỉ thực hiện phân tích, trích xuất dữ liệu thực nghiệm và lập mô hình trực quan. 
+          <b>Chưa có bất kỳ dòng code nào của dự án bị chỉnh sửa.</b> Các bước khắc phục nêu trên đang ở trạng thái chờ người dùng phê duyệt trước khi tiến hành triển khai.
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
