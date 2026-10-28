@@ -16,9 +16,13 @@ import Modal from '../components/Modal';
 import ProductSelect from '../components/ProductSelect';
 import Loader from '../components/Loader';
 import useDelayedLoading from '../hooks/useDelayedLoading';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 export const ImportNotes = ({ isActive = true }) => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const { confirm } = useConfirm();
   const [importNotes, setImportNotes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -266,24 +270,28 @@ export const ImportNotes = ({ isActive = true }) => {
       setSelectedNote(res.data);
       setIsDetailOpen(true);
     } catch (err) {
-      alert('Không thể tải chi tiết phiếu nhập');
+      showError('Không thể tải chi tiết phiếu nhập');
     }
   };
 
   const handleCancelNote = async (note) => {
-    if (
-      !window.confirm(
-        `Xác nhận hủy phiếu nhập ${note.code}? Hệ thống sẽ hoàn trừ tồn kho tương ứng nếu đủ điều kiện.`
-      )
-    )
-      return;
+    const res = await confirm({
+      title: `Hủy phiếu nhập ${note.code}?`,
+      message: 'Hệ thống sẽ hoàn trừ lại tồn kho các mặt hàng tương ứng và lưu vết phiếu đã hủy (với điều kiện tồn kho thực tế chưa bị xuất âm).',
+      confirmText: 'Xác nhận hủy',
+      cancelText: 'Giữ lại',
+      variant: 'danger',
+      showReasonInput: true,
+      reasonPlaceholder: 'Nhập lý do hủy phiếu nhập (ví dụ: Nhà cung cấp giao nhầm hàng, nhập trùng...)...',
+    });
+    if (!res.confirmed) return;
 
     try {
-      await apiClient.importNotes.cancel(note.id);
-      alert('Đã hủy phiếu nhập và hoàn trừ tồn kho thành công!');
+      await apiClient.importNotes.cancel(note.id, res.reason);
+      showSuccess('Đã hủy phiếu nhập và hoàn trừ tồn kho thành công!');
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Không thể hủy phiếu nhập');
+      showError(err.response?.data?.detail || 'Không thể hủy phiếu nhập');
     }
   };
 

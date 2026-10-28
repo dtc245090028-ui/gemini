@@ -1,0 +1,70 @@
+flowchart TD
+    %% Khởi đầu
+    Start([Bắt đầu thao tác kho]) --> SelectAction{Chọn thao tác nghiệp vụ}
+
+    %% ==========================================
+    %% PHÂN NHÁNH 1: LUỒNG NHẬP KHO (IMPORT)
+    %% ==========================================
+    SelectAction -->|Nhập kho| Imp_Start[Gửi POST /api/v1/import-notes/<br/>Kèm Header X-Idempotency-Key và chi tiết]
+    Imp_Start --> Imp_CheckIdem{Kiểm tra<br/>Idempotency Key?}
+    Imp_CheckIdem -->|Đã tồn tại| Imp_ReturnIdem[Trả về bản ghi phiếu nhập cũ<br/>HTTP 200 OK - Không ghi trùng]
+    Imp_CheckIdem -->|Chưa có| Imp_ValSupplier{Nhà cung cấp<br/>hợp lệ?}
+
+    Imp_ValSupplier -->|Không tồn tại| Imp_ErrSupplier[Trả về HTTP 400 Bad Request<br/>Nhà cung cấp không tồn tại]
+    Imp_ValSupplier -->|Hợp lệ| Imp_ValProducts{Sản phẩm tồn tại &<br/>ACTIVE?}
+
+    Imp_ValProducts -->|Không có hoặc DISCONTINUED| Imp_ErrProduct[Trả về HTTP 400 Bad Request<br/>Sản phẩm không hợp lệ/đã ngừng KD]
+    Imp_ValProducts -->|Hợp lệ| Imp_ValQty{Số lượng > 0 &<br/>Đơn giá >= 0?}
+
+    Imp_ValQty -->|Vi phạm| Imp_ErrValidation[Trả về HTTP 422 Unprocessable Content<br/>Lỗi Schema Pydantic]
+    Imp_ValQty -->|Hợp lệ| Imp_TxStart[Bắt đầu Transaction ACID<br/>Vòng lặp Retry tối đa 7 lần]
+
+    Imp_TxStart --> Imp_GenCode[Sinh mã PN-YYYYMMDD-XXXX<br/>Backoff + Jitter nếu đụng độ]
+    Imp_GenCode --> Imp_InsertNote[Lưu ImportNote: status=COMPLETED<br/>Lưu ImportNoteDetail: lưu giá vốn unit_price]
+    Imp_InsertNote --> Imp_AtomicSQL[Cập nhật tồn kho nguyên tử:<br/>UPDATE products SET current_stock = current_stock + qty<br/>WHERE id = :id RETURNING current_stock]
+    Imp_AtomicSQL --> Imp_InsertLedger[Ghi Thẻ kho StockLedger:<br/>type=IMPORT, quantity_change=+qty,<br/>balance_after=new_balance]
+    Imp_InsertLedger --> Imp_Commit[COMMIT Transaction<br/>Trả về HTTP 201 Created]
+
+    %% Nhánh Hủy phiếu nhập
+    SelectAction -->|Hủy phiếu nhập| Imp_CancelStart[Gửi POST /import-notes/id/cancel<br/>Kèm lý do hủy]
+    Imp_CancelStart --> Imp_GuardCheck{Guard-check:<br/>current_stock < qty_da_nhap?}
+    Imp_GuardCheck -->|ĐÚNG: Thiếu tồn kho để trừ| Imp_GuardReject[TỪ CHỐI HỦY - Trả về HTTP 400<br/>'Hàng đã bị xuất bán tiếp sau đó.<br/>Vui lòng dùng phiếu Điều chỉnh kiểm kê']
+    Imp_GuardCheck -->|SAI: Đủ tồn kho để trừ| Imp_CancelTx[Mở Transaction hoàn tác:<br/>1. Trừ tồn kho nguyên tử qua SQL<br/>2. Ghi Thẻ kho ADJUSTMENT CANCEL-PN<br/>3. Đổi status = CANCELLED]
+    Imp_CancelTx --> Imp_CancelDone[COMMIT Transaction<br/>Trả về HTTP 200 OK]
+
+    %% ==========================================
+    %% PHÂN NHÁNH 2: LUỒNG XUẤT KHO (EXPORT)
+    %% ==========================================
+    SelectAction -->|Xuất kho| Exp_Start[Gửi POST /api/v1/export-notes/<br/>Kèm Header X-Idempotency-Key và chi tiết]
+    Exp_Start --> Exp_CheckIdem{Kiểm tra<br/>Idempotency Key?}
+    Exp_CheckIdem -->|Đã tồn tại| Exp_ReturnIdem[Trả về bản ghi phiếu xuất cũ<br/>HTTP 200 OK - Không ghi trùng]
+    Exp_CheckIdem -->|Chưa có| Exp_ValProducts{Sản phẩm hợp lệ &<br/>Đang kinh doanh?}
+
+    Exp_ValProducts -->|Không hợp lệ| Exp_ErrProd[Trả về HTTP 400 Bad Request]
+    Exp_ValProducts -->|Hợp lệ| Exp_CheckStock{Kiểm tra tồn kho:<br/>current_stock < quantity_xuat?}
+
+    Exp_CheckStock -->|ĐÚNG: Không đủ tồn kho| Exp_ErrNegStock[CHẶN TỒN ÂM - Trả về HTTP 400<br/>Thông báo chi tiết số tồn và số thiếu<br/>Tự động ROLLBACK - Kho không đổi]
+    Exp_CheckStock -->|SAI: Đủ hàng| Exp_CreateConfirmed[Mở Transaction tạo phiếu:<br/>1. Sinh mã PX-YYYYMMDD-XXXX<br/>2. Lưu ExportNote: status=CONFIRMED<br/>3. Lưu ExportNoteDetail<br/>CHƯA TRỪ TỒN KHO - KHÔNG GIAM HÀNG ẢO]
+    Exp_CreateConfirmed --> Exp_ConfirmedDone[COMMIT - Trả về HTTP 201 Created<br/>Phiếu ở bước Xác nhận]
+
+    %% Các bước tiếp của xuất kho
+    Exp_ConfirmedDone --> Exp_NextAction{Hành động tiếp theo?}
+    
+    %% Bắt đầu giao (Ship)
+    Exp_NextAction -->|Bắt đầu giao| Exp_ShipReq[Gửi POST /export-notes/id/ship]
+    Exp_ShipReq --> Exp_ShipGuard{Guard-check lần 2:<br/>current_stock >= quantity?}
+    Exp_ShipGuard -->|Không đủ tồn kho| Exp_ShipReject[Trả về HTTP 400 Bad Request<br/>Hàng đã bị đơn khác lấy mất]
+    Exp_ShipGuard -->|Đủ tồn kho| Exp_ShipTx[Mở Transaction chuyển giao:<br/>1. UPDATE products SET current_stock = current_stock - qty<br/>WHERE current_stock >= qty RETURNING current_stock<br/>2. Ghi Thẻ kho StockLedger type=EXPORT quantity_change=-qty<br/>3. Đổi status = SHIPPING]
+    Exp_ShipTx --> Exp_ShipDone[COMMIT - Trả về HTTP 200 OK<br/>Hàng chính thức rời kho vật lý]
+
+    %% Hoàn tất (Complete)
+    Exp_ShipDone --> Exp_CompleteReq[Gửi POST /export-notes/id/complete<br/>Khách đã ký nhận biên bản]
+    Exp_CompleteReq --> Exp_CompleteDone[Đổi status = COMPLETED<br/>Khóa sửa / xóa vĩnh viễn<br/>HTTP 200 OK]
+
+    %% Hủy phiếu xuất
+    Exp_NextAction -->|Hủy khi CONFIRMED| Exp_CancelConf[Gửi POST /export-notes/id/cancel<br/>hoặc DELETE /export-notes/id]
+    Exp_CancelConf --> Exp_HardDelete[Xóa cứng Hard Delete khỏi CSDL<br/>Không ảnh hưởng tồn hay thẻ kho<br/>HTTP 200 OK]
+
+    Exp_ShipDone -->|Hủy khi SHIPPING| Exp_CancelShip[Gửi POST /export-notes/id/cancel<br/>Giao hàng thất bại / Khách trả]
+    Exp_CancelShip --> Exp_RestoreStock[Mở Transaction hoàn kho:<br/>1. Cộng lại tồn kho nguyên tử<br/>2. Ghi Thẻ kho ADJUSTMENT CANCEL-PX<br/>3. Đổi status = CANCELLED]
+    Exp_RestoreStock --> Exp_CancelShipDone[COMMIT - Hoàn trả tồn 100%<br/>HTTP 200 OK]

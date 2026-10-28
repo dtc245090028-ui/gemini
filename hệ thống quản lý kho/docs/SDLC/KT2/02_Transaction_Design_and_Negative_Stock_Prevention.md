@@ -32,7 +32,7 @@ Toàn bộ các thao tác Nhập, Xuất và Điều chỉnh kho đều được
                   ┌────────────────────────────────────────┐
                   │    InventoryService (Transaction)      │
                   ├────────────────────────────────────────┤
-                  │  1. Kiểm tra điều kiện nghiệp vụ       │
+                  │  1. Kiểm tra Idempotency Key (nếu có)  │
                   │  2. Chặn tồn âm (Nếu Xuất kho)         │
                   │  3. Tạo Phiếu & Chi tiết chứng từ      │
                   │  4. Cập nhật current_stock sản phẩm    │
@@ -53,11 +53,38 @@ Toàn bộ các thao tác Nhập, Xuất và Điều chỉnh kho đều được
 
 ---
 
-## 3. CƠ CHẾ CHỐNG TỒN KHO ÂM (NEGATIVE STOCK PREVENTION)
+## 3. CỖ MÁY TRẠNG THÁI XUẤT KHO 3 BƯỚC & CHỐNG TỒN KHO ÂM (ATOMIC SQL)
 
-### 3.1. Luồng xuất kho (Atomic Stock Check)
+Khác với quy trình xuất kho giản đơn, hệ thống triển khai **Cỗ máy trạng thái 3 bước** phản ánh chính xác quy trình vận hành kho chuyên nghiệp:
 
-Khi người dùng gửi yêu cầu xuất kho (`POST /api/v1/export-notes`):
+```mermaid
+stateDiagram-v2
+    [*] --> CONFIRMED: Tạo phiếu (Chờ xuất / Giữ chỗ kiểm tra)
+    CONFIRMED --> SHIPPING: Xác nhận giao hàng (Trừ kho nguyên tử bằng SQL RETURNING)
+    CONFIRMED --> CANCELLED: Hủy phiếu (Không động chạm tồn kho)
+    CONFIRMED --> [*]: Xóa phiếu (DELETE /export-notes/{id})
+    SHIPPING --> COMPLETED: Giao hàng thành công (Chốt phiếu)
+    SHIPPING --> CANCELLED: Hủy giao hàng (Hoàn trả tồn kho & Ghi thẻ kho hoàn)
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+```
+
+### 3.1. Giai đoạn 1: Tạo phiếu xuất kho (`CONFIRMED`)
+
+- Khi gọi `POST /api/v1/export-notes`, hệ thống tạo phiếu ở trạng thái `CONFIRMED`.
+- **Chưa trừ tồn kho vật lý**.
+- **Quyền xóa phiếu:** Người dùng có quyền xóa phiếu xuất (`DELETE /api/v1/export-notes/{id}`) khi phiếu còn ở trạng thái `CONFIRMED`. Do tồn kho chưa bị trừ, thao tác xóa diễn ra an toàn mà không cần bù trừ hay làm sai lệch Thẻ kho.
+
+### 3.2. Giai đoạn 2: Trừ tồn kho nguyên tử khi giao hàng (`SHIPPING`)
+
+Khi hàng thực sự xuất kho, người dùng gọi `PUT /api/v1/export-notes/{id}/status` với trạng thái `SHIPPING`. Lúc này, hệ thống thực thi câu lệnh SQL trừ kho nguyên tử:
+
+```sql
+UPDATE products
+SET current_stock = current_stock - :qty
+WHERE id = :product_id AND current_stock >= :qty
+RETURNING current_stock;
+```
 
 ```mermaid
 sequenceDiagram
@@ -67,27 +94,29 @@ sequenceDiagram
     participant S as InventoryService
     participant DB as SQLite Database
 
-    U->>API: Gửi yêu cầu xuất kho (danh sách items)
-    API->>S: create_export_note(note_in)
+    U->>API: PUT /export-notes/{id}/status (status=SHIPPING)
+    API->>S: update_export_note_status(id, SHIPPING)
     Note over S,DB: Bắt đầu Transaction ACID
-    loop Với từng sản phẩm yêu cầu
-        S->>DB: Truy vấn current_stock tức thời
-        alt current_stock < quantity_xuat
-            S-->>API: Ném HTTPException(400, "Không đủ hàng tồn kho...")
+    loop Với từng sản phẩm trong phiếu xuất
+        S->>DB: Thực thi UPDATE ... WHERE current_stock >= :qty RETURNING current_stock
+        alt Không đủ hàng (RETURNING trả về None)
+            S-->>API: Ném HTTPException(400, "Sản phẩm ID X không đủ tồn kho...")
             Note over S,DB: Tự động ROLLBACK toàn bộ Transaction
-            API-->>U: Trả về HTTP 400 (Chi tiết số thiếu, kho không đổi)
-        else current_stock >= quantity_xuat
-            Note over S: Đủ hàng -> Tiếp tục kiểm tra
+            API-->>U: Trả về HTTP 400 (Tồn kho giữ nguyên 100%)
+        else Đủ hàng (Cập nhật thành công)
+            S->>DB: Ghi nhận bản ghi Thẻ kho (StockLedger, type=EXPORT, qty=-quantity)
         end
     end
-    Note over S: Tất cả sản phẩm đều đủ hàng
-    S->>DB: Tạo ExportNote & ExportNoteDetail
-    S->>DB: Giảm current_stock của từng sản phẩm
-    S->>DB: Ghi nhận bản ghi Thẻ kho (StockLedger, type=EXPORT)
+    Note over S: Tất cả sản phẩm trừ kho thành công
+    S->>DB: Cập nhật ExportNote.status = SHIPPING
     Note over S,DB: COMMIT Transaction
-    S-->>API: Trả về ExportNote hoàn thành
-    API-->>U: HTTP 201 Created (Kèm mã PX-YYYYMMDD-XXXX)
+    S-->>API: Trả về ExportNote ở trạng thái SHIPPING
+    API-->>U: HTTP 200 OK
 ```
+
+### 3.3. Cơ chế Khóa chống trùng lặp (Idempotency Key)
+
+Để ngăn chặn việc client bị lag mạng hoặc người dùng click đúp gửi 2 yêu cầu xuất/nhập kho cùng lúc, hệ thống trang bị trường `idempotency_key` (chuỗi UUID duy nhất từ client). Nếu một yêu cầu thứ hai gửi đến có cùng `idempotency_key`, hệ thống sẽ trả về ngay kết quả của lần tạo trước đó mà không thực hiện trừ kho lần thứ hai.
 
 ---
 
@@ -97,7 +126,6 @@ sequenceDiagram
 
 Một lỗ hổng nghiệp vụ nguy hiểm:
 > **Tình huống:**
->
 > - Ngày 01: Nhập 100 sản phẩm A (Tồn kho = 100).
 > - Ngày 05: Xuất 90 sản phẩm A cho khách hàng (Tồn kho còn 10).
 > - Ngày 10: Người dùng bấm "Hủy phiếu nhập Ngày 01".
@@ -149,3 +177,13 @@ $$\text{Tồn cuối kỳ} = \text{Tồn đầu kỳ} + \text{Tổng Nhập tron
 - **Tổng Xuất:** Tổng giá trị tuyệt đối các biến động `quantity_change < 0` trong khoảng `[from_date, to_date]`.
 - **Tồn cuối kỳ:** Số lượng thực tế tại thời điểm `to_date`.
 - Công thức này bảo đảm **tính cân đối kế toán 100%**, sẵn sàng giải trình thuyết phục trước hội đồng đánh giá đồ án.
+
+---
+
+## 7. LỊCH SỬ ĐỒNG BỘ
+
+- **Ngày đồng bộ:** 2026-10-28
+- **Nội dung điều chỉnh theo thực tế mã nguồn:**
+  - **Cập nhật luồng xuất kho 3 bước:** Bổ sung mô tả cỗ máy trạng thái `CONFIRMED` $\rightarrow$ `SHIPPING` $\rightarrow$ `COMPLETED` và quyền xóa phiếu ở trạng thái `CONFIRMED` (`DELETE /api/v1/export-notes/{id}`).
+  - **Cơ chế trừ tồn kho nguyên tử:** Cập nhật kỹ thuật trừ kho bằng câu lệnh Atomic SQL `RETURNING current_stock` tại bước `SHIPPING`, loại bỏ hoàn toàn khả năng race condition hoặc tồn kho âm.
+  - **Bổ sung Idempotency Key:** Ghi nhận cơ chế chống duplicate submit khi client retry.

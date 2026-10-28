@@ -24,13 +24,14 @@ Tại các doanh nghiệp vừa và nhỏ (SMEs) hoặc hộ kinh doanh thương
 Hệ thống quản lý kho tích hợp AI (Đề tài 07) được xây dựng nhằm giải quyết triệt để các vấn đề trên với các mục tiêu cốt lõi:
 
 1. **Quản lý dữ liệu tập trung & minh bạch:** Chuẩn hóa quản lý danh mục hàng hóa, nhà cung cấp và lịch sử giao dịch.
-2. **Đảm bảo tính toàn vẹn 100% bằng Database Transaction (ACID):** Chặn đứng hoàn toàn nguy cơ tồn kho âm ở cả cấp độ mã nguồn lẫn ràng buộc cơ sở dữ liệu (`CHECK (current_stock >= 0)`). Tự động ghi chép Thẻ kho (`stock_ledger`) cho từng biến động số lượng.
+2. **Đảm bảo tính toàn vẹn 100% bằng Database Transaction (ACID):** Chặn đứng hoàn toàn nguy cơ tồn kho âm ở cả cấp độ mã nguồn lẫn ràng buộc cơ sở dữ liệu (`CHECK (current_stock >= 0)`). Áp dụng cỗ máy trạng thái xuất kho 3 bước (`CONFIRMED` $\rightarrow$ `SHIPPING` $\rightarrow$ `COMPLETED`). Tự động ghi chép Thẻ kho (`stock_ledger`) cho từng biến động số lượng.
 3. **Phân quyền người dùng chặt chẽ (RBAC):** Định rõ trách nhiệm giữa Quản trị viên, Thủ kho và Kế toán.
-4. **Trợ lý AI hỗ trợ ra quyết định:** Ứng dụng mô hình ngôn ngữ lớn (Google Gemini) để:
-   - Tự động sinh báo cáo tổng kết Nhập - Xuất - Tồn theo tháng.
-   - Gợi ý số lượng đặt hàng tối ưu dựa trên ngưỡng an toàn và tốc độ bán/xuất.
+4. **Trợ lý AI hỗ trợ ra quyết định (Google Gemini 3.5 Flash Lite):**
+   - Tự động sinh báo cáo tổng kết Nhập - Xuất - Tồn theo tháng kèm nhận xét chuyên sâu.
+   - Gợi ý số lượng đặt hàng tối ưu dựa trên ngưỡng an toàn và tốc độ bán/xuất 30 ngày.
    - Tóm tắt biến động bất thường (xuất đột biến >200% hoặc tồn ứ đọng >30 ngày).
-5. **Cơ chế dự phòng an toàn (Heuristic Fallback):** Khi mất kết nối Internet hoặc hết hạn mức API, hệ thống tự động chuyển sang cơ chế phân tích bằng thuật toán quy tắc nội bộ, bảo đảm hệ thống luôn vận hành liên tục.
+   - Mở rộng tính năng hỏi đáp tự do SmartKho Copilot (`/ai/ask`) và sinh đơn hàng xuất kho (`/ai/generate-order`).
+5. **Cơ chế dự phòng an toàn (Heuristic Fallback Engine & AI Cache):** Tự động chuyển sang cơ chế phân tích bằng thuật toán quy tắc nội bộ khi ngoại tuyến hoặc hết hạn mức API, kết hợp bộ đệm AI In-Day Cache tối ưu chi phí token.
 
 ---
 
@@ -46,57 +47,56 @@ graph TD
         C[Kế toán - Accountant]
     end
 
-    A -->|Quản trị toàn quyền| M1[Quản lý người dùng & Hệ thống]
-    A -->|Cấu hình| M2[Ngưỡng tồn kho & API Key AI]
-    A -->|Giám sát| M3[Xem toàn bộ Báo cáo tổng hợp]
+    A -->|Quản trị toàn quyền| M1[Quản trị Người dùng & Toàn hệ thống]
+    A -->|Giám sát| M2[Xem toàn bộ Báo cáo tổng hợp & Thẻ kho]
 
-    W -->|Nghiệp vụ kho thực tế| M4[Lập & Duyệt Phiếu Nhập kho]
-    W -->|Kiểm tra tồn kho| M5[Lập & Duyệt Phiếu Xuất kho]
-    W -->|Theo dõi trực quan| M6[Cảnh báo hàng sắp hết & Thẻ kho]
-    W -->|Tương tác AI| M7[Xem gợi ý nhập hàng & Biến động từ AI]
+    W -->|Nghiệp vụ kho thực tế| M3[Lập Phiếu Nhập & Quản lý Danh mục]
+    W -->|Quy trình 3 bước| M4[Lập & Chuyển trạng thái Phiếu Xuất]
+    W -->|Theo dõi trực quan| M5[Cảnh báo tồn thấp & Thẻ kho]
+    W -->|Tương tác AI| M6[Gợi ý nhập hàng & Bất thường từ AI]
 
-    C -->|Đối soát chứng từ| M8[Tra cứu lịch sử nhập xuất & NCC]
-    C -->|Kế toán kho| M9[Báo cáo Nhập-Xuất-Tồn & Giá trị kho]
-    C -.->|Nghiêm cấm| M10[Không được can thiệp sửa đổi tồn kho vật lý]
+    C -->|Đối soát chứng từ| M7[Tra cứu lịch sử nhập xuất & Thẻ kho]
+    C -->|Kế toán kho| M8[Báo cáo Nhập-Xuất-Tồn & Xuất Excel]
+    C -.->|Nghiêm cấm| M9[Không can thiệp sửa đổi tồn kho vật lý]
 ```
 
 ### 2.1. Chi tiết quyền hạn từng Actor
 
 #### 1. Quản trị viên (`ADMIN`)
 
-- **Quản trị người dùng:** Tạo mới tài khoản, phân vai trò, đặt lại mật khẩu, kích hoạt hoặc khóa tài khoản nhân viên.
-- **Cấu hình tham số:** Cài đặt thông tin doanh nghiệp, cấu hình kết nối AI API Key (Gemini), cấu hình ngưỡng cảnh báo tồn kho mặc định.
-- **Giám sát toàn diện:** Truy cập mọi màn hình, xem toàn bộ nhật ký hệ thống, danh mục hàng hóa và báo cáo tổng hợp.
+- **Quản trị người dùng:** Tạo mới tài khoản qua API (`POST /api/v1/auth/users`), phân vai trò hệ thống (`ADMIN`, `WAREHOUSE_KEEPER`, `ACCOUNTANT`).
+- **Cấu hình tham số:** Cài đặt thông số hệ thống, kết nối API Key và model Gemini thông qua file môi trường `.env`.
+- **Giám sát toàn diện:** Truy cập mọi màn hình chức năng, quản lý toàn bộ danh mục hàng hóa, nhà cung cấp, phiếu nhập, phiếu xuất và báo cáo.
 
 #### 2. Thủ kho (`WAREHOUSE_KEEPER`)
 
-- **Quản lý danh mục & nhà cung cấp:** Thêm mới, chỉnh sửa thông tin hàng hóa (mã SKU, tên, đơn vị tính, ngưỡng tồn tối thiểu `min_stock`), nhóm hàng và nhà cung cấp.
-- **Lập phiếu nhập kho:** Tạo phiếu nhập từ nhà cung cấp, nhập chi tiết mặt hàng, số lượng và giá nhập. Xác nhận nhập kho để tăng tồn kho và ghi thẻ kho.
-- **Lập phiếu xuất kho:** Tạo phiếu xuất kho cho khách hàng/bộ phận. Hệ thống tự động kiểm tra số lượng tồn; nếu không đủ hàng sẽ từ chối xuất kho.
-- **Theo dõi kho:** Nhận cảnh báo tức thời các mặt hàng chạm hoặc dưới ngưỡng tồn tối thiểu (`current_stock <= min_stock`). Tra cứu thẻ kho chi tiết theo từng sản phẩm.
-- **Ứng dụng AI:** Xem gợi ý số lượng cần nhập thêm từ AI và tóm tắt cảnh báo các mặt hàng có nguy cơ đọng vốn hoặc tăng đột biến.
+- **Quản lý danh mục:** Thêm mới, chỉnh sửa thông tin hàng hóa (SKU, tên, đơn vị tính, ngưỡng tồn tối thiểu `min_stock`), nhóm hàng, nhà cung cấp và tải ảnh sản phẩm.
+- **Lập phiếu nhập kho:** Tạo phiếu nhập từ nhà cung cấp, ghi nhận số lượng và đơn giá nhập. Xác nhận nhập kho để tăng tồn kho và ghi thẻ kho.
+- **Lập & điều phối phiếu xuất kho:** Quản lý quy trình xuất kho 3 bước (`CONFIRMED` $\rightarrow$ `SHIPPING` $\rightarrow$ `COMPLETED`). Trừ tồn kho tại bước giao hàng (`SHIPPING`), cho phép xóa phiếu ở bước `CONFIRMED` nếu chưa giao.
+- **Theo dõi kho:** Nhận cảnh báo tức thời các mặt hàng chạm hoặc dưới ngưỡng tồn tối thiểu (`current_stock <= min_stock`). Tra cứu thẻ kho chi tiết theo từng sản phẩm, xuất file Excel Thẻ kho.
+- **Ứng dụng AI:** Xem gợi ý số lượng cần nhập thêm từ AI, cảnh báo bất thường và tương tác với trợ lý hỏi đáp.
 
 #### 3. Kế toán (`ACCOUNTANT`)
 
-- **Đối soát chứng từ:** Tra cứu và tìm kiếm chi tiết các phiếu nhập, phiếu xuất theo khoảng thời gian, số chứng từ, đối tác hoặc người lập.
-- **Báo cáo tài chính kho:** Xem báo cáo Nhập - Xuất - Tồn theo kỳ kế toán (tháng/quý), theo dõi giá trị hàng tồn kho và doanh số/chi phí xuất kho.
-- **Ranh giới an toàn:** Chỉ có quyền đọc (Read-only) đối với số lượng tồn kho; tuyệt đối không có quyền can thiệp làm thay đổi trực tiếp số lượng tồn kho vật lý.
+- **Đối soát chứng từ:** Tra cứu và tìm kiếm chi tiết các phiếu nhập, phiếu xuất theo thời gian, số chứng từ, nhà cung cấp.
+- **Báo cáo tài chính kho:** Xem báo cáo Nhập - Xuất - Tồn theo kỳ kế toán (gộp tại phân hệ Trợ lý AI), theo dõi giá trị hàng tồn kho và xuất báo cáo ra file Excel.
+- **Ranh giới an toàn (Read-Only):** Kế toán có quyền xem toàn bộ danh mục và chứng từ, nhưng **tuyệt đối không có quyền can thiệp tạo, sửa, xóa hoặc thay đổi trực tiếp số lượng tồn kho vật lý**.
 
 ### 2.2. Ma trận phân quyền chi tiết (RBAC Matrix)
 
 | Chức năng / Tài nguyên | Admin | Thủ kho | Kế toán | Ghi chú |
 | :--- | :---: | :---: | :---: | :--- |
-| Đăng nhập / Đổi mật khẩu | ✅ | ✅ | ✅ | Tất cả người dùng có tài khoản hợp lệ |
-| Quản lý tài khoản người dùng | ✅ | ❌ | ❌ | Chỉ Admin được tạo/khóa tài khoản |
+| Đăng nhập hệ thống | ✅ | ✅ | ✅ | Xác thực JWT qua `/api/v1/auth/login` |
+| Quản lý tài khoản người dùng | ✅ | ❌ | ❌ | Tạo tài khoản qua `POST /api/v1/auth/users` |
 | Quản lý Nhóm hàng (Category) | ✅ | ✅ | 👁️ (Chỉ xem) | Admin & Thủ kho quản lý danh mục |
-| Quản lý Hàng hóa (Product) | ✅ | ✅ | 👁️ (Chỉ xem) | Admin & Thủ kho quản lý hàng hóa |
+| Quản lý Hàng hóa (Product) & Ảnh | ✅ | ✅ | 👁️ (Chỉ xem) | Thêm, sửa, tải ảnh sản phẩm |
 | Quản lý Nhà cung cấp (Supplier) | ✅ | ✅ | 👁️ (Chỉ xem) | Admin & Thủ kho quản lý đối tác |
 | Lập Phiếu nhập kho (Import Note) | ✅ | ✅ | ❌ | Kế toán chỉ đối soát chứng từ |
-| Lập Phiếu xuất kho (Export Note) | ✅ | ✅ | ❌ | Yêu cầu kiểm tra tồn kho nghiêm ngặt |
-| Tra cứu Thẻ kho (`stock_ledger`) | ✅ | ✅ | ✅ | Minh bạch số liệu kiểm toán |
-| Báo cáo Nhập - Xuất - Tồn | ✅ | ✅ | ✅ | Kế toán đối soát giá trị |
-| Sử dụng Trợ lý AI (3 tính năng) | ✅ | ✅ | ✅ | Hỗ trợ phân tích số liệu |
-| Cấu hình Hệ thống & AI Key | ✅ | ❌ | ❌ | Bảo vệ an toàn bí mật API Key |
+| Lập & Điều phối Phiếu xuất kho | ✅ | ✅ | ❌ | Quy trình 3 bước: Chờ xuất -> Đang giao -> Hoàn thành |
+| Xóa Phiếu xuất chưa giao | ✅ | ✅ | ❌ | Chỉ áp dụng khi phiếu ở trạng thái `CONFIRMED` |
+| Tra cứu Thẻ kho & Xuất Excel | ✅ | ✅ | ✅ | Minh bạch số liệu kiểm toán (không hiển thị đơn giá) |
+| Báo cáo Nhập-Xuất-Tồn & Xuất Excel| ✅ | ✅ | ✅ | Tích hợp tại Tab 1 trang Trợ lý AI |
+| Sử dụng Trợ lý AI (Gemini Copilot) | ✅ | ✅ | ✅ | Hỗ trợ phân tích dữ liệu kho |
 
 ---
 
@@ -115,11 +115,11 @@ flowchart LR
     subgraph Chức năng Hệ thống
         UC01[Đăng nhập & Xác thực JWT]
         UC02[Quản lý Tài khoản & Phân quyền]
-        UC03[Quản lý Danh mục & Hàng hóa]
+        UC03[Quản lý Danh mục & Upload ảnh]
         UC04[Lập Phiếu Nhập kho]
-        UC05[Lập Phiếu Xuất kho & Chặn tồn âm]
-        UC06[Tra cứu Thẻ kho & Lịch sử biến động]
-        UC07[Báo cáo Nhập - Xuất - Tồn]
+        UC05[Lập & Điều phối Phiếu Xuất kho 3 bước]
+        UC06[Tra cứu Thẻ kho & Xuất Excel]
+        UC07[Báo cáo Nhập - Xuất - Tồn & Xuất Excel]
         UC08[Trợ lý AI & Cảnh báo thông minh]
     end
 
@@ -150,104 +150,133 @@ flowchart LR
 1. **Tác nhân:** Thủ kho / Admin.
 2. **Điều kiện tiên quyết:** Người dùng đã đăng nhập; Danh mục hàng hóa và nhà cung cấp đã tồn tại.
 3. **Các bước thực hiện:**
-   - Bước 1: Thủ kho chọn Nhà cung cấp, nhập ngày lập phiếu và ghi chú.
+   - Bước 1: Thủ kho chọn Nhà cung cấp, ngày lập phiếu và ghi chú. Có thể cung cấp `idempotency_key` để chống tạo trùng phiếu.
    - Bước 2: Thêm từng dòng sản phẩm cần nhập: chọn mặt hàng, nhập số lượng ($>0$) và đơn giá nhập ($\ge 0$).
-   - Bước 3: Hệ thống tính tổng tiền phiếu nhập.
+   - Bước 3: Hệ thống tự động tính tổng tiền phiếu nhập.
    - Bước 4: Thủ kho nhấn "Xác nhận Nhập kho".
-   - Bước 5: Hệ thống mở một **Database Transaction**:
+   - Bước 5: Hệ thống thực hiện **Database Transaction**:
      - Tạo bản ghi `import_notes` và các dòng chi tiết `import_note_details`.
      - Cập nhật tăng số lượng tồn `current_stock = current_stock + quantity` của từng sản phẩm.
      - Tạo bản ghi Thẻ kho `stock_ledger` với loại `IMPORT`, ghi nhận số lượng thay đổi dương và số dư tồn tức thời sau khi nhập.
      - Commit Transaction thành công.
-4. **Kết quả:** Phiếu nhập chuyển trạng thái `COMPLETED`. Tồn kho tăng chính xác, thẻ kho được ghi nhận.
+4. **Kết quả:** Phiếu nhập chuyển trạng thái `COMPLETED`. Tồn kho tăng chính xác, thẻ kho được ghi nhận tức thời.
 
-#### Luồng 2: Lập Phiếu Xuất kho & Kiểm soát Chống tồn kho âm
+#### Luồng 2: Quy trình Xuất kho 3 Bước & Kiểm soát Chống tồn kho âm
 
-1. **Tác nhân:** Thủ kho / Admin.
-2. **Điều kiện tiên quyết:** Người dùng đã đăng nhập; kho có sẵn hàng hóa.
-3. **Các bước thực hiện:**
-   - Bước 1: Thủ kho chọn người nhận/khách hàng, ngày xuất, ghi chú.
-   - Bước 2: Chọn danh sách hàng hóa và số lượng cần xuất.
-   - Bước 3: Hệ thống kiểm tra số lượng tồn thời gian thực:
-     - Giao diện hiển thị cảnh báo đỏ nếu số lượng yêu cầu xuất $> current\_stock$.
-   - Bước 4: Thủ kho gửi yêu cầu xác nhận xuất kho.
-   - Bước 5: Hệ thống thực hiện giao dịch ACID tại Backend:
-     - Khóa bản ghi (hoặc kiểm tra đồng thời) điều kiện: `current_stock >= requested_quantity`.
-     - **Nếu có bất kỳ mặt hàng nào không đủ tồn kho:** Hủy bỏ toàn bộ giao dịch (**ROLLBACK**), ném lỗi HTTP 400 kèm thông báo chi tiết: *"Mặt hàng [Tên SP] chỉ còn tồn [X], không đủ để xuất [Y]!"*. Số lượng tồn kho và thẻ kho được giữ nguyên 100%.
-     - **Nếu tất cả đều đủ tồn kho:**
-       - Trừ tồn kho: `current_stock = current_stock - quantity`.
-       - Tạo bản ghi `export_notes` và `export_note_details`.
-       - Ghi bản ghi Thẻ kho `stock_ledger` với loại `EXPORT`, ghi nhận số lượng âm và số dư tồn sau xuất.
-       - Commit Transaction.
-4. **Kết quả:** Xuất kho an toàn, triệt tiêu hoàn toàn khả năng xảy ra tồn kho âm.
+Hệ thống áp dụng cỗ máy trạng thái (State Machine) 3 bước cho phiếu xuất kho:
+
+```mermaid
+stateDiagram-v2
+    [*] --> CONFIRMED: Tạo phiếu xuất kho (Chờ xuất / Giữ chỗ kiểm tra)
+    CONFIRMED --> SHIPPING: Xác nhận giao hàng (Trừ tồn kho nguyên tử & Ghi thẻ kho)
+    CONFIRMED --> CANCELLED: Hủy phiếu (Không động chạm tồn kho)
+    CONFIRMED --> [*]: Xóa phiếu (DELETE /export-notes/{id})
+    SHIPPING --> COMPLETED: Giao hàng thành công (Chốt phiếu)
+    SHIPPING --> CANCELLED: Hủy giao hàng (Hoàn trả tồn kho & Ghi thẻ kho hoàn)
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+```
+
+1. **Giai đoạn 1 - Lập phiếu (`CONFIRMED`):**
+   - Thủ kho chọn người nhận, ngày xuất, danh sách mặt hàng và số lượng xuất.
+   - Giao diện kiểm tra số lượng tồn hiện có; cảnh báo đỏ nếu số lượng xuất $> current\_stock$.
+   - Khi bấm lưu, hệ thống tạo bản ghi `export_notes` ở trạng thái `CONFIRMED`. **Chưa trừ tồn kho**, chưa ghi thẻ kho.
+   - Trong trạng thái này, nếu phát hiện sai sót, thủ kho có thể **Xóa phiếu** (`DELETE /api/v1/export-notes/{id}`) hoặc Hủy phiếu mà không ảnh hưởng đến số lượng tồn kho vật lý.
+2. **Giai đoạn 2 - Xuất kho & Giao hàng (`SHIPPING`):**
+   - Khi hàng bắt đầu rời kho, thủ kho bấm chuyển trạng thái sang `SHIPPING`.
+   - Hệ thống thực thi câu lệnh SQL trừ kho nguyên tử:
+     ```sql
+     UPDATE products
+     SET current_stock = current_stock - :qty
+     WHERE id = :product_id AND current_stock >= :qty
+     RETURNING current_stock;
+     ```
+   - Nếu tồn kho không đủ, câu lệnh không cập nhật dòng nào $\rightarrow$ Hệ thống lập tức Rollback transaction, ném lỗi HTTP 400 và giữ nguyên trạng thái cũ.
+   - Nếu đủ hàng: Trừ tồn kho thành công, tự động ghi chép bản ghi Thẻ kho `stock_ledger` với loại `EXPORT` (số lượng âm và số tồn sau xuất `balance_after`).
+3. **Giai đoạn 3 - Hoàn tất hoặc Hủy phiếu (`COMPLETED` / `CANCELLED`):**
+   - Khi giao nhận thành công: Chuyển sang `COMPLETED` để kết thúc vòng đời phiếu xuất.
+   - Nếu đơn hàng bị giao thất bại hoặc khách trả: Chuyển sang `CANCELLED`, hệ thống mở transaction hoàn lại số lượng tồn kho (`current_stock = current_stock + qty`) và ghi bản ghi thẻ kho hoàn trả.
 
 #### Luồng 3: Cảnh báo hàng dưới mức tồn tối thiểu (`min_stock`)
 
-1. **Nguyên lý:** Mỗi mặt hàng có một chỉ số `min_stock` do thủ kho cấu hình.
+1. **Nguyên lý:** Mỗi mặt hàng có chỉ số `min_stock` an toàn do thủ kho cấu hình.
 2. **Quy trình kích hoạt:**
-   - Ngay sau mỗi giao dịch xuất kho hoặc khi mở màn hình Dashboard / Danh mục hàng hóa:
-   - Hệ thống tự động đánh giá biểu thức: `is_low_stock = (current_stock <= min_stock)`.
-   - Nếu điều kiện thỏa mãn:
-     - Gắn cờ cảnh báo (Badge màu đỏ: *Hàng sắp hết*).
-     - Đưa vào danh sách cần ưu tiên nhập hàng trên Dashboard.
+   - Trường tính toán `@computed_field is_low_stock` trong Pydantic schema tự động đánh giá: `current_stock <= min_stock`.
+   - Khi thỏa mãn điều kiện:
+     - Giao diện hiển thị Badge màu đỏ cảnh báo *Hàng sắp hết*.
+     - Tự động hiển thị nổi bật trên Bảng cảnh báo của Dashboard và danh mục sản phẩm.
 
 #### Luồng 4: Tra cứu Thẻ kho (Stock Ledger Audit Trail)
 
-1. **Mục đích:** Đảm bảo tính kiểm toán và giải trình trước thanh tra/hội đồng.
+1. **Mục đích:** Đảm bảo tính kiểm toán và giải trình minh bạch.
 2. **Nội dung hiển thị:**
    - Mã giao dịch / Mã phiếu tham chiếu (`PN-XXXX` hoặc `PX-XXXX`).
    - Thời gian chính xác đến từng giây.
    - Người thực hiện giao dịch.
-   - Loại biến động: Nhập kho (`+`), Xuất kho (`-`), hoặc Điều chỉnh kiểm kê.
+   - Loại biến động: Nhập kho (`IMPORT`), Xuất kho (`EXPORT`), hoặc Điều chỉnh kiểm kê (`ADJUSTMENT`).
    - Số lượng thay đổi và Số dư tồn kho tức thời tại thời điểm đó (`balance_after`).
+   - **Lưu ý nghiệp vụ:** Thẻ kho chuyên trách theo dõi số lượng vật lý và số dư tồn sau giao dịch, không hiển thị đơn giá hoặc thành tiền.
+   - Hỗ trợ xuất dữ liệu ra file Excel phục vụ lưu trữ kế toán (`GET /api/v1/reports/stock-ledger-excel/{product_id}`).
 
 ---
 
-## 4. Đặc tả 3 Chức năng Trí tuệ Nhân tạo (AI Engine)
+## 4. Đặc tả Phân hệ Trí tuệ Nhân tạo (AI Engine)
 
-Để đáp ứng đầy đủ yêu cầu bài toán Đề tài 07, hệ thống xây dựng 3 chức năng phân tích thông minh sử dụng Google Gemini API kết hợp lớp lọc an toàn dữ liệu:
+Hệ thống ứng dụng mô hình ngôn ngữ lớn **Google Gemini 3.5 Flash Lite** kết hợp lớp tiền xử lý dữ liệu và Heuristic Fallback Engine:
 
 ```mermaid
 flowchart TD
     DB[(CSDL Kho - SQLite)] -->|SQL Pre-processing| Agg[Pipeline Tổng hợp Chỉ số Thống kê]
-    Agg -->|Loại bỏ giá mua nhạy cảm| Clean[Dữ liệu Kho Sạch & Ẩn danh]
-    Clean --> Decision{Kiểm tra Kết nối & API Key?}
-    Decision -->|Hợp lệ & Online| Gemini[Google Gemini API]
-    Decision -->|Mất mạng / Lỗi Quota| Fallback[Heuristic Fallback Engine]
-    Gemini --> Result[Báo cáo & Gợi ý Thông minh]
+    Agg -->|Loại bỏ 100% giá mua| Clean[Dữ liệu Kho Sạch & Ẩn danh]
+    Clean --> CacheCheck{Kiểm tra AI Cache trong ngày?}
+    CacheCheck -->|Cache HIT| ReturnCache[Trả kết quả từ Bộ đệm Cache]
+    CacheCheck -->|Cache MISS| Decision{Kiểm tra Kết nối & Quota API?}
+    Decision -->|Hợp lệ & Online| Gemini[Google Gemini 3.5 Flash Lite]
+    Decision -->|Mất mạng / 429 Quota| Fallback[Heuristic Fallback Engine]
+    Gemini --> SaveCache[Lưu vào Cache] --> Result[Báo cáo & Gợi ý Trực quan]
     Fallback --> Result
 ```
 
 ### 4.1. Chức năng 1: AI Sinh báo cáo Nhập - Xuất - Tồn theo tháng
 
-- **Đầu vào (Data Input):** Bảng tổng hợp số lượng tồn đầu kỳ, tổng nhập trong tháng, tổng xuất trong tháng, tồn cuối kỳ và tỷ lệ quay vòng hàng hóa. Tuyệt đối **không gửi giá nhập/chi phí vốn** để bảo mật dữ liệu kinh doanh.
-- **Prompt kỹ thuật:**
-  - *System Prompt:* "Bạn là chuyên gia tư vấn quản lý kho chuỗi cung ứng. Hãy phân tích bảng số liệu luân chuyển hàng hóa thực tế được cung cấp dưới đây. Chỉ đưa ra nhận xét dựa trên số liệu thực tế, tuyệt đối không suy đoán hoặc bịa số liệu."
-  - *User Prompt:* Gửi bảng số liệu tổng hợp dưới định dạng Markdown.
-- **Đầu ra (Output):** Đoạn nhận xét súc tích (3-4 đoạn): Tình hình luân chuyển hàng hóa trong tháng, nhóm hàng tiêu thụ nhanh nhất, nhóm hàng luân chuyển chậm và khuyến nghị quản lý.
+- **Đầu vào:** Bảng tổng hợp số lượng tồn đầu kỳ, tổng nhập trong tháng, tổng xuất trong tháng, tồn cuối kỳ và tỷ lệ quay vòng hàng hóa. Tuyệt đối **không gửi giá nhập/chi phí vốn** để bảo mật dữ liệu kinh doanh.
+- **Mô hình & Fallback:** Sử dụng `gemini-3.5-flash-lite`. Khi lỗi 429 chuyển sang `gemini-3.1-flash-lite` $\rightarrow$ `gemini-3.6-flash`.
+- **Đầu ra:** Nhận xét phân tích luân chuyển hàng hóa, đánh giá nhóm hàng tiêu thụ nhanh và đề xuất tối ưu.
 
 ### 4.2. Chức năng 2: AI Gợi ý số lượng đặt hàng tối ưu (Restock Suggestions)
 
-- **Đầu vào (Data Input):** Danh sách các mặt hàng có `current_stock <= min_stock` kết hợp với tốc độ xuất kho trung bình trong 30 ngày qua (`daily_velocity`).
-- **Nghiệp vụ gợi ý:**
-  - Công thức tham chiếu: `So_luong_goi_y = max(min_stock * 2 - current_stock, daily_velocity * 15)`.
-- **Đầu ra (Output):** Danh sách có cấu trúc (JSON / Bảng) gồm: Mã hàng, Tên hàng, Tồn hiện tại, Ngưỡng an toàn, Số lượng đề xuất nhập bổ sung và lý do ngắn gọn.
+- **Đầu vào:** Danh sách hàng có `current_stock <= min_stock` kết hợp tốc độ xuất kho trung bình 30 ngày (`daily_velocity`).
+- **Nghiệp vụ gợi ý:** `suggested_qty = max(min_stock * 2 - current_stock, daily_velocity * 15)`.
+- **Đầu ra:** Danh sách có cấu trúc JSON gồm mã hàng, tồn hiện tại, ngưỡng an toàn, số lượng đề xuất nhập bổ sung và lý do cụ thể. Tích hợp nút tạo nhanh đơn hàng xuất/nhập.
 
 ### 4.3. Chức năng 3: AI Tóm tắt Biến động Bất thường (Anomaly Detection)
 
-- **Đầu vào (Data Input):**
-  - Nhóm 1: Các mặt hàng có lượng xuất trong tuần gần nhất tăng vượt $200\%$ so với mức trung bình 4 tuần trước đó (Nguy cơ thiếu hụt cục bộ).
-  - Nhóm 2: Các mặt hàng có tồn kho nhưng không phát sinh bất kỳ giao dịch xuất nào trong suốt 30 ngày qua (Nguy cơ hàng chết / ứ đọng vốn).
-- **Đầu ra (Output):** Bản thông cáo cảnh báo ngắn gọn giúp Thủ kho và Quản lý nắm bắt ngay các nguy cơ tiềm ẩn để có kế hoạch xả hàng hoặc chuẩn bị nguồn cung dự phòng.
+- **Đầu vào:** Nhóm hàng có lượng xuất tuần gần nhất tăng vượt $200\%$ so với bình quân (`SURGE_EXPORT`) và nhóm hàng tồn lâu $>30$ ngày không xuất (`DEAD_STOCK`).
+- **Đầu ra:** Thông cáo cảnh báo nguy cơ thiếu hụt cục bộ hoặc ứ đọng vốn để thủ kho kịp thời xử lý.
 
-### 4.4. Cơ chế Dự phòng An toàn (Heuristic Fallback Engine)
+### 4.4. Chức năng Mở rộng: Trợ lý SmartKho Copilot (`/ai/ask`) & Tạo đơn tự động (`/ai/generate-order`)
 
-- Khi `GEMINI_API_KEY` chưa được cấu hình, mạng nội bộ bị ngắt kết nối, hoặc dịch vụ API gặp lỗi rate limit (HTTP 429):
-- Hệ thống tự động kích hoạt module thuật toán quy tắc (Rule-based Fallback) tính toán trực tiếp từ dữ liệu thống kê SQL.
-- Kết quả trả về giao diện vẫn tuân thủ 100% định dạng chuẩn, không gây lỗi giao diện người dùng, giúp sinh viên demo trơn tru và tự tin trong mọi hoàn cảnh.
+- Cho phép người dùng chat tương tác trực tiếp với trợ lý kho để tra cứu nhanh thông tin tồn kho hoặc yêu cầu AI tự động soạn thảo đơn hàng theo yêu cầu ngôn ngữ tự nhiên.
+
+### 4.5. Cơ chế Dự phòng An toàn (Heuristic Fallback Engine)
+
+- Khi không có API Key, mất mạng hoặc dịch vụ API gặp lỗi rate limit:
+- Hệ thống tự động chuyển mạch sang module quy tắc nội bộ tính toán từ SQL, thời gian phản hồi $< 50$ms. Kết quả trả về giữ nguyên cấu trúc JSON chuẩn, đảm bảo giao diện vận hành liên tục 100%.
 
 ---
 
 ## 5. Kết luận & Tiêu chí nghiệm thu mốc KT1
 
-Tài liệu SRS này xác lập đầy đủ phạm vi, vai trò người dùng, quy tắc toàn vẹn dữ liệu ACID và kiến trúc AI cho hệ thống. Đây là cơ sở nền tảng để tiến hành thiết kế chi tiết CSDL (ERD) và xây dựng mã nguồn các giai đoạn tiếp theo.
+Tài liệu SRS này xác lập đầy đủ phạm vi, vai trò người dùng, quy tắc toàn vẹn dữ liệu ACID, quy trình xuất kho 3 bước và kiến trúc AI cho hệ thống. Đây là cơ sở nền tảng để tiến hành thiết kế chi tiết CSDL (ERD) và xây dựng mã nguồn các giai đoạn tiếp theo.
+
+---
+
+## 6. Lịch sử đồng bộ
+
+- **Ngày đồng bộ:** 2026-10-28
+- **Nội dung điều chỉnh theo thực tế mã nguồn:**
+  - **Cập nhật luồng xuất kho 3 bước:** Bổ sung mô tả cỗ máy trạng thái `CONFIRMED` $\rightarrow$ `SHIPPING` $\rightarrow$ `COMPLETED` và quyền xóa phiếu ở trạng thái `CONFIRMED` (`DELETE /api/v1/export-notes/{id}`).
+  - **Đồng bộ ma trận RBAC:** Làm rõ quyền của Admin (quản trị user qua API, cấu hình qua file `.env`), ranh giới Read-Only của Kế toán, và bỏ chức năng đổi mật khẩu (không có trong code).
+  - **Gộp giao diện Báo cáo:** Xác nhận chức năng Báo cáo Nhập-Xuất-Tồn và xuất file Excel được tích hợp tại Tab 1 trang Trợ lý AI (`AIAssistant.jsx`).
+  - **Đồng bộ Thẻ kho:** Xác nhận Thẻ kho chỉ ghi nhận số lượng thay đổi và số tồn sau giao dịch (`balance_after`), không có cột đơn giá/thành tiền.
+  - **Cập nhật mô hình AI:** Nâng cấp mô hình chính thức sang `gemini-3.5-flash-lite`, bổ sung chuỗi fallback, bộ đệm AI Cache và 2 endpoints `/ai/ask`, `/ai/generate-order`.

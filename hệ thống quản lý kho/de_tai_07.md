@@ -90,3 +90,21 @@ Không gửi thông tin giá mua nhạy cảm nếu báo cáo AI không cần ph
 ## 5. Mức độ khó
 
 Trung bình: Nghiệp vụ kho yêu cầu tính nhất quán dữ liệu và báo cáo số liệu. Chức năng AI chủ yếu là sinh báo cáo và gợi ý dựa trên dữ liệu tổng hợp.
+
+---
+
+## 6. Phụ lục: Ghi chú triển khai thực tế của Hệ thống (Implementation Notes)
+
+Để đáp ứng và tối ưu hóa 100% các yêu cầu trên trong thực tiễn công nghệ, nhóm phát triển đã hiện thực hóa các nội dung như sau:
+
+1. **Tra cứu lịch sử theo Nhà cung cấp (Yêu cầu 3.1.6):**
+   - Phiếu nhập kho (`import_notes`) có trường `supplier_id` và hỗ trợ lọc trực tiếp theo Nhà cung cấp trên cả API (`GET /api/v1/import-notes?supplier_id=...`) và giao diện `ImportNotes.jsx`.
+   - Đối với phiếu xuất kho (`export_notes`), nghiệp vụ xuất hàng gắn liền với người nhận/khách hàng (`recipient_name`), vì kho xuất ra không liên kết trực tiếp với nhà cung cấp.
+2. **Thống kê Nhập - Xuất - Tồn và Xuất báo cáo (Yêu cầu 3.1.8):**
+   - Phân hệ Thống kê Nhập - Xuất - Tồn được bố trí tích hợp tại **Tab 1 của trang Trợ lý AI (`pages/AIAssistant.jsx`)**, kết hợp bảng số liệu kế toán và phân tích của AI trên cùng một màn hình điều hành.
+   - Hỗ trợ xuất file Excel chuẩn định dạng cho cả Báo cáo Nhập-Xuất-Tồn (`/reports/inventory-summary-excel`) và Thẻ kho (`/reports/stock-ledger-excel/{product_id}`).
+3. **Mô hình AI & Fallback (Yêu cầu 3.2 & 4):**
+   - Hệ thống triển khai mô hình **Google Gemini 3.5 Flash Lite** (`gemini-3.5-flash-lite`) với cơ chế chuỗi Fallback Model (`3.1-flash-lite` $\rightarrow$ `3.6-flash`), bộ đệm AI In-Day Cache (`ai_cache.py`), kết hợp **Heuristic Fallback Engine** phản hồi $< 50$ms khi offline.
+4. **Bộ kiểm thử & Dữ liệu mẫu (Yêu cầu 4):**
+   - Bộ kiểm thử tự động đạt **70/70 ca test PASS 100%** (bao gồm cả kiểm thử dữ liệu rỗng cho AI, tồn âm, ACID, và phân quyền RBAC), code coverage đạt 83%.
+   - Dữ liệu mẫu `seed_data.py` gồm **76 sản phẩm**, **7 danh mục**, **10 nhà cung cấp** và lịch sử giao dịch liên tục **5 tháng (150 ngày)**.

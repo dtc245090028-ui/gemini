@@ -10,11 +10,13 @@
 
 ## 1. Giới thiệu Module Trí tuệ Nhân tạo
 
-Trong khuôn khổ Đề tài 07, Trí tuệ Nhân tạo (AI) đóng vai trò là một **Trợ lý phân tích & ra quyết định (Decision Support Assistant)**, phục vụ trực tiếp cho chủ doanh nghiệp, thủ kho và kế toán. AI hỗ trợ giải quyết 3 bài toán nghiệp vụ kho:
+Trong khuôn khổ Đề tài 07, Trí tuệ Nhân tạo (AI) đóng vai trò là một **Trợ lý phân tích & ra quyết định (Decision Support Assistant)**, phục vụ trực tiếp cho chủ doanh nghiệp, thủ kho và kế toán. AI hỗ trợ giải quyết 3 bài toán nghiệp vụ kho cốt lõi cùng 2 tính năng mở rộng:
 
 1. **Sinh báo cáo Nhập - Xuất - Tồn theo tháng:** Phân tích tốc độ luân chuyển hàng hóa và đánh giá hiệu quả lưu kho.
-2. **Gợi ý nhập hàng thông minh (Restock Suggestions):** Tự động tính toán nhu cầu đặt hàng bổ sung dựa trên mức tồn an toàn và vận tốc xuất kho.
-3. **Tóm tắt biến động bất thường (Anomaly Detection):** Nhận diện nhanh các mặt hàng xuất tăng vọt bất thường hoặc hàng tồn ứ đọng lâu ngày không xuất.
+2. **Gợi ý nhập hàng thông minh (Restock Suggestions):** Tự động tính toán nhu cầu đặt hàng bổ sung dựa trên mức tồn an toàn và vận tốc xuất kho 30 ngày.
+3. **Tóm tắt biến động bất thường (Anomaly Detection):** Nhận diện nhanh các mặt hàng xuất tăng vọt bất thường ($>200\%$) hoặc hàng tồn ứ đọng lâu ngày không xuất ($>30$ ngày).
+4. **Trợ lý hỏi đáp tự do SmartKho Copilot (`/ai/ask`):** Tra cứu dữ liệu kho bằng ngôn ngữ tự nhiên.
+5. **Sinh đơn hàng xuất kho theo ngữ cảnh (`/ai/generate-order`):** Trợ giúp soạn thảo nhanh phiếu xuất theo kịch bản xuất hàng.
 
 ---
 
@@ -31,13 +33,16 @@ flowchart TD
 
     subgraph "Data Pre-processing Pipeline (Backend)"
         SQL[Truy vấn SQL Tổng hợp Chỉ số Thống kê]
-        Sanitize[Lọc bỏ Giá mua / Thông tin nhạy cảm]
+        Sanitize[Lọc bỏ 100% Giá mua / Thông tin nhạy cảm]
         Format[Chuẩn hóa thành Bảng Markdown / JSON]
     end
 
     subgraph "Tầng Xử lý Thông minh"
+        CacheCheck{Kiểm tra AI In-Day Cache}
+        ReturnCache[Trả kết quả từ Cache < 5ms]
         Check{Kiểm tra Kết nối & Gemini API Key}
-        Gemini[Google Gemini 1.5 Flash / 2.5]
+        Gemini[Google Gemini 3.5 Flash Lite]
+        FallbackChain[Fallback: 3.1 Flash Lite -> 3.6 Flash]
         Fallback[Heuristic Fallback Engine - Rule Based]
     end
 
@@ -48,10 +53,14 @@ flowchart TD
     T1 & T2 & T3 & T4 --> SQL
     SQL --> Sanitize
     Sanitize --> Format
-    Format --> Check
+    Format --> CacheCheck
+    CacheCheck -->|Cache HIT| ReturnCache --> UI
+    CacheCheck -->|Cache MISS| Check
     Check -->|Online & Có Key| Gemini
-    Check -->|Offline / Lỗi API / Không Key| Fallback
+    Gemini -.->|Lỗi 429| FallbackChain
+    Check -->|Offline / Hết Quota / Không Key| Fallback
     Gemini --> UI
+    FallbackChain --> UI
     Fallback --> UI
 ```
 
@@ -60,10 +69,11 @@ flowchart TD
 - **Tuyệt đối không gửi giá nhập/chi phí vốn vào Context AI:** Để bảo vệ bí mật kinh doanh, pipeline tiền xử lý chỉ trích xuất số lượng luân chuyển (tồn đầu, số nhập, số xuất, tồn cuối, vận tốc xuất), loại bỏ hoàn toàn các trường giá mua và thông tin nhạy cảm.
 - **Ràng buộc Grounding trong System Prompt:** Yêu cầu mô hình AI chỉ được đưa ra nhận định dựa trên đúng bảng dữ liệu số liệu cụ thể được cấp trong prompt. Nghiêm cấm mô hình suy diễn số liệu ngoài đời thực.
 - **AI không được can thiệp sửa đổi số liệu kho:** AI hoàn toàn đóng vai trò Read-only; mọi gợi ý nhập hàng chỉ mang tính tham khảo và quyền quyết định lập phiếu thuộc về con người (Thủ kho).
+- **Bộ đệm AI In-Day Cache (`ai_cache.py`):** Lưu kết quả phân tích theo Data Fingerprint trong ngày, giảm thiểu gọi lặp lại API, tiết kiệm chi phí và tăng tốc phản hồi.
 
 ---
 
-## 3. Bộ Prompt Mẫu Chuẩn Hóa cho 3 Bài toán
+## 3. Bộ Prompt Mẫu Chuẩn Hóa cho các Bài toán AI
 
 ### 3.1. Bài toán 1: AI Sinh Báo cáo Nhập - Xuất - Tồn theo tháng
 
@@ -109,7 +119,7 @@ Dưới đây là danh sách các mặt hàng đang có số lượng tồn kho 
 
 Quy tắc:
 1. Dựa trên số liệu thực tế, hãy đề xuất số lượng cần nhập thêm cho từng sản phẩm để đảm bảo kho vận hành đủ trong 15 - 30 ngày tới.
-2. Trả về kết quả dưới định dạng danh sách có cấu trúc rõ ràng:
+2. Trả về kết quả dưới định dạng danh sách có cấu trúc JSON rõ ràng:
    - Tên mặt hàng (Mã SKU)
    - Tồn hiện tại / Ngưỡng an toàn
    - Số lượng đề xuất nhập thêm
@@ -137,7 +147,7 @@ Hãy đưa ra gợi ý nhập hàng tối ưu.
 Bạn là hệ thống kiểm toán và cảnh báo sớm rủi ro kho bãi.
 Dưới đây là 2 nhóm dữ liệu biến động bất thường được trích xuất tự động từ hệ thống:
 - Nhóm A (Xuất tăng đột biến): Lượng xuất tuần này tăng trên 200% so với trung bình các tuần trước.
-- Nhóm B (Hàng ứ đọng/chết): Hàng có số lượng tồn kho lớn nhưng không phát sinh bất kỳ phiếu xuất nào trong hơn 30 ngày qua.
+- Nhóm B (Hàng ứ đọng/chết): Hàng có số lượng tồn kho nhưng không phát sinh bất kỳ phiếu xuất nào trong hơn 30 ngày qua.
 
 Quy tắc:
 1. Tóm tắt ngắn gọn các cảnh báo thành các gạch đầu dòng rõ ràng.
@@ -158,3 +168,13 @@ Quy tắc:
 | **Tóm tắt bất thường** | Bộ lọc SQL trả về trực tiếp bảng cảnh báo:<br>• Nếu `weekly_export > 2 * avg_export`: Cảnh báo nguy cơ thiếu hàng.<br>• Nếu `days_no_export >= 30` và `current_stock > 0`: Cảnh báo hàng tồn lâu ngày. |
 
 Nhờ cơ chế này, hệ thống luôn sẵn sàng 100% khi sinh viên bảo vệ đồ án trước hội đồng.
+
+---
+
+## 5. Lịch sử đồng bộ
+
+- **Ngày đồng bộ:** 2026-10-28
+- **Nội dung điều chỉnh theo thực tế mã nguồn:**
+  - **Cập nhật mô hình AI chính thức:** Chuẩn hóa sang `gemini-3.5-flash-lite`, chuỗi fallback chain (`gemini-3.1-flash-lite` $\rightarrow$ `gemini-3.6-flash`).
+  - **Bổ sung AI In-Day Cache:** Thêm cơ chế lưu cache kết quả phân tích trong ngày theo Data Fingerprint (`ai_cache.py`).
+  - **Bổ sung 2 tính năng AI nâng cao:** Thêm mô tả cho endpoint Trợ lý hỏi đáp SmartKho Copilot (`/ai/ask`) và Sinh đơn hàng xuất kho tự động (`/ai/generate-order`).

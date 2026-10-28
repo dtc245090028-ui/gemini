@@ -34,31 +34,39 @@
 1. **Lập Phiếu Nhập**:
 
    ```python
-   # Thực thi trong 1 transaction duy nhất
+   # Thực thi trong 1 transaction duy nhất (kèm Idempotency Key)
    with db.begin():
-       # 1. Tạo phiếu nhập (ImportNote)
-       # 2. Tạo các dòng chi tiết (ImportNoteDetail)
-       # 3. Cập nhật tăng current_stock của từng sản phẩm
-       # 4. Ghi bản ghi vào StockLedger (type='IMPORT', qty_change=+X, balance_after=...)
+       # 1. Kiểm tra Idempotency Key chống tạo trùng
+       # 2. Tạo phiếu nhập (ImportNote, status='COMPLETED')
+       # 3. Tạo các dòng chi tiết (ImportNoteDetail)
+       # 4. Cập nhật tăng current_stock của từng sản phẩm
+       # 5. Ghi bản ghi vào StockLedger (type='IMPORT', qty_change=+X, balance_after=...)
    ```
 
-2. **Lập Phiếu Xuất (Chống tồn kho âm)**:
+2. **Lập Phiếu Xuất (Cỗ máy Trạng thái 3 Bước & Chống tồn kho âm)**:
 
-   ```python
-   # Thực thi trong 1 transaction duy nhất
-   with db.begin():
-       # 1. Với từng sản phẩm yêu cầu xuất:
-       #    Kiểm tra: product.current_stock >= item.quantity
-       #    Nếu KHÔNG đủ: raise HTTPException(400, "Không đủ hàng trong kho!") -> Tự động ROLLBACK
-       # 2. Trừ tồn kho: product.current_stock -= item.quantity
-       # 3. Tạo phiếu xuất và chi tiết
-       # 4. Ghi bản ghi vào StockLedger (type='EXPORT', qty_change=-Y, balance_after=...)
-   ```
+   - **Bước 1: Tiếp nhận đơn xuất (`create_export_note`)**:
+     - Kiểm tra nguyên tử: `product.current_stock >= item.quantity`. Nếu thiếu $\rightarrow$ ném HTTP 400 và Rollback 100%.
+     - Tạo `ExportNote` ở trạng thái `CONFIRMED` và các dòng `ExportNoteDetail`.
+     - *Lưu ý:* Chưa trừ tồn kho vật lý và chưa ghi Thẻ kho để tránh hiện tượng giam giữ hàng ảo.
+     - Cho phép xóa vĩnh viễn phiếu (`DELETE /api/v1/export-notes/{id}`) nếu phiếu còn ở `CONFIRMED`.
+   - **Bước 2: Bắt đầu giao hàng (`ship_export_note`)**:
+     - Kiểm tra lại tồn kho tức thời tại thời điểm xuất kho vật lý.
+     - Trừ tồn kho bằng biểu thức SQL nguyên tử: `UPDATE products SET current_stock = current_stock - :qty WHERE id = :id AND current_stock >= :qty RETURNING current_stock`.
+     - Chuyển trạng thái sang `SHIPPING`.
+     - Ghi nhận bản ghi Thẻ kho `StockLedger` (type='EXPORT', qty_change=-Y, balance_after lấy từ RETURNING SQL).
+   - **Bước 3: Hoàn thành hoặc Hủy đơn**:
+     - `complete_export_note`: Chuyển sang `COMPLETED` khi khách ký nhận (phiếu bị khóa).
+     - `cancel_export_note`: Nếu phiếu đang `SHIPPING` mà bị hủy, hoàn lại 100% số lượng về kho và ghi Thẻ kho hoàn tác `ADJUSTMENT`.
 
 ### 2.3. Tra cứu Thẻ kho & Báo cáo Nhập - Xuất - Tồn
 
-- `GET /api/v1/stock-ledger`: Tra cứu lịch sử thẻ kho theo mặt hàng, thời gian.
+- `GET /api/v1/stock-ledger`: Tra cứu lịch sử thẻ kho theo mặt hàng, khoảng thời gian (sổ kiểm toán số lượng, không lưu giá tiền hay nhà cung cấp).
+- `GET /api/v1/stock-ledger/adjust`: Endpoint lập phiếu điều chỉnh kiểm kê cân bằng kho.
+- `GET /api/v1/stock-ledger/export-excel`: Xuất Sổ cái Thẻ kho ra file Excel (.xlsx).
 - `GET /api/v1/reports/inventory-summary`: Báo cáo Nhập - Xuất - Tồn theo khoảng thời gian (`from_date`, `to_date`).
+- `GET /api/v1/reports/inventory-summary/export-excel`: Xuất Báo cáo Nhập - Xuất - Tồn ra file Excel (.xlsx).
+- `GET /api/v1/reports/low-stock`: Cảnh báo danh sách hàng hóa dưới định mức tồn an toàn.
 
 ---
 
@@ -144,5 +152,20 @@ Sau khi hoàn thành bước này, mở file [docs/plans/TIEN-DO.md](file:///E:/
   - Hoàn thành `docs/SDLC/KT2/02_Transaction_Design_and_Negative_Stock_Prevention.md`.
   - Hoàn thành `docs/architecture.md` (Kiến trúc phân tầng và sơ đồ luồng dữ liệu).
 - **Kiểm thử tự động:**
-  - Viết `backend/tests/test_stock_transactions.py` (6 bài test lớn bao quát trọn vẹn mọi luồng).
-  - Kết quả: **24/24 test cases toàn dự án PASS 100%**.
+  - Viết `backend/tests/test_stock_transactions.py` (12 bài test lớn bao quát trọn vẹn mọi luồng: ACID, idempotency key, hủy phiếu guard-check, điều chỉnh kiểm kê, hoàn kho shipping, xuất excel thẻ kho).
+  - Kết quả: **12/12 test cases PASS 100%**.
+
+---
+
+## 7. Lịch sử đồng bộ (Reconciliation History)
+
+- **Ngày thực hiện:** 2026-10-28
+- **Căn cứ:** Báo cáo sai lệch [`docs_evidence/09_bao_cao_sai_lech.md`](file:///e:/gemini/docs_evidence/09_bao_cao_sai_lech.md) (Mục #7, #10, #11, #15, #17, #26, #32; Điểm Nghi ngờ 1 & 3).
+- **Nội dung điều chỉnh:**
+  1. *[Mục #10 - Nhóm A]:* Bỏ trạng thái `DRAFT`; chuẩn hóa trạng thái thực tế trong `import_notes` (`COMPLETED`, `CANCELLED`) và `export_notes` (`CONFIRMED`, `SHIPPING`, `COMPLETED`, `CANCELLED`) theo [`backend/app/models/export_note.py` L19](file:///e:/gemini/hệ thống quản lý kho/backend/app/models/export_note.py#L19).
+  2. *[Mục #26, #32 - Nhóm C, D]:* Đồng bộ cỗ máy trạng thái xuất kho 3 bước: `POST /export-notes` chỉ tạo phiếu `CONFIRMED` (chưa trừ kho), khi gọi `POST /export-notes/{id}/ship` mới trừ kho và ghi Thẻ kho theo [`backend/app/services/inventory_service.py` L258-277 & L391-440](file:///e:/gemini/hệ thống quản lý kho/backend/app/services/inventory_service.py#L258-L277).
+  3. *[Điểm Nghi ngờ 1]:* Ghi nhận endpoint `DELETE /api/v1/export-notes/{id}` cho phép xóa cứng phiếu xuất nếu còn ở trạng thái `CONFIRMED` theo [`backend/app/api/v1/endpoints/export_notes.py` L135-168](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/export_notes.py#L135-L168).
+  4. *[Mục #15 - Nhóm B]:* Bổ sung cơ chế `idempotency_key` chống trùng lặp chứng từ theo [`backend/app/services/inventory_service.py` L196-204](file:///e:/gemini/hệ thống quản lý kho/backend/app/services/inventory_service.py#L196-L204).
+  5. *[Mục #17 - Nhóm B & Mục #11 - Nhóm A]:* Bổ sung 2 endpoint xuất file Excel (`.xlsx`) cho Thẻ kho và Báo cáo Nhập-Xuất-Tồn theo [`backend/app/api/v1/endpoints/stock_ledger.py` L85](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/stock_ledger.py#L85) và [`backend/app/api/v1/endpoints/reports.py` L125](file:///e:/gemini/hệ thống quản lý kho/backend/app/api/v1/endpoints/reports.py#L125). Ghi nhận hệ thống chỉ xuất file Excel, không xuất PDF.
+  6. *[Mục #7 - Nhóm A & Điểm Nghi ngờ 3]:* Xác nhận Thẻ kho chỉ theo dõi số lượng thuần và số dư tức thời, không lọc theo NCC và không lưu đơn giá.
+- **Lý do:** Đồng bộ tài liệu thiết kế nghiệp vụ kho cốt lõi khớp 100% với mã nguồn và dịch vụ thực tế.

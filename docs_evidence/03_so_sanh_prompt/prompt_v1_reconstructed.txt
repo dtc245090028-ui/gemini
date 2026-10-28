@@ -1,0 +1,18 @@
+# PROMPT V1: NAIVE UNSTRUCTURED PROMPT
+# Phân loại nhãn: [DỰNG LẠI TỪ MÔ TẢ, KHÔNG PHẢI BẢN GỐC]
+# Nguồn mô tả: docs/SDLC/KT3/01_Prompt_Engineering_and_Evaluation.md (Mục 2.1, Dòng 32-38)
+# Ghi chú: Không tìm thấy bản gốc trong lịch sử git. Được dựng lại dựa trên cấu trúc mô tả.
+
+Hãy viết báo cáo nhập xuất tồn kho tháng này cho tôi dựa vào dữ liệu sau:
+Kỳ báo cáo: 10/2026 (2026-10-01 đến 2026-10-31)
+- Tổng số mặt hàng quản lý: 76
+- Số mặt hàng có giao dịch: 25
+- Tổng lượng nhập kho: 96
+- Tổng lượng xuất kho: 165
+- Số mặt hàng dưới tồn tối thiểu: 4
+- Top mặt hàng xuất nhiều nhất:
+  - SP002: Chuột không dây Logitech G304 (xuất 39 đơn vị)
+  - SP036: Dell Inspiron 15 3520 i5 (xuất 23 đơn vị)
+  - SP016: Cáp mạng bấm sẵn Cat6 UTP 10 mét (xuất 20 đơn vị)
+  - SP050: Logitech M185 (xuất 18 đơn vị)
+  - SP023: iPhone 16 128GB (xuất 16 đơn vị)
