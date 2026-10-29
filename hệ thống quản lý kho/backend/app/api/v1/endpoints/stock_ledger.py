@@ -620,6 +620,7 @@ def create_stock_adjustment(
     request: Request,
     adj_in: StockAdjustmentCreate,
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
+    x_client_id: Optional[str] = Header(None, alias="X-Client-Id", description="Định danh phiên client"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
@@ -635,6 +636,7 @@ def create_stock_adjustment(
             current_user_id=current_user.id,
             idempotency_key=x_idempotency_key,
             stage_timing=st,
+            client_id=x_client_id,
         )
     if st:
         st.t_handler_exit = time.perf_counter()

@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     reports,
     stock_ledger,
     suppliers,
+    events,
 )
 
 api_router = APIRouter()
@@ -25,4 +26,5 @@ api_router.include_router(export_notes.router)
 api_router.include_router(stock_ledger.router)
 api_router.include_router(reports.router)
 api_router.include_router(ai.router)
+api_router.include_router(events.router)
 

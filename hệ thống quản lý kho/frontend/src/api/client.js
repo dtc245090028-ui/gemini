@@ -9,13 +9,17 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: Tự động gán JWT Bearer Token
+// Khởi tạo mã phiên Client ID duy nhất để phân biệt sự kiện tự sinh vs ngoại vi
+export const CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 10);
+
+// Request interceptor: Tự động gán JWT Bearer Token và Client ID
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['X-Client-Id'] = CLIENT_ID;
     return config;
   },
   (error) => Promise.reject(error)
@@ -42,7 +46,8 @@ const cache = new Map();
 const inFlightRequests = new Map();
 
 // TTL 60s chỉ áp dụng cho GET suppliers, categories, products
-const CACHE_TTL_MS = 60 * 1000;
+// Gỡ bỏ hard cache 60s: chỉ giữ micro-cache 500ms cho khử trùng lặp render cùng tick
+const CACHE_TTL_MS = 500;
 const CACHEABLE_PATTERNS = ['/suppliers', '/categories', '/products'];
 
 /**

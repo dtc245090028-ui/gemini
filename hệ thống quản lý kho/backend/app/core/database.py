@@ -3,16 +3,26 @@
 from typing import Generator
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.pool import QueuePool
 from app.core.config import settings
 
-# Cấu hình tham số kết nối engine
+# Cấu hình tham số kết nối engine và Connection Pool tường minh
 connect_args = {}
+pool_kwargs = {}
+
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
+    pool_kwargs["poolclass"] = QueuePool
+    pool_kwargs["pool_size"] = 20
+    pool_kwargs["max_overflow"] = 20
+    pool_kwargs["pool_timeout"] = 30.0
+    pool_kwargs["pool_recycle"] = 1800
+    pool_kwargs["pool_pre_ping"] = True
 
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args=connect_args,
+    **pool_kwargs,
     echo=False,
 )
 

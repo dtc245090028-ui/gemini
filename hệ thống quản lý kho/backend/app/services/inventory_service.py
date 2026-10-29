@@ -1,4 +1,5 @@
 from app.core.metrics import write_metrics
+from app.core.events import broadcaster
 """Dịch vụ nghiệp vụ Quản lý Kho: Nhập kho, Xuất kho, Thẻ kho và Giao dịch ACID."""
 
 import random
@@ -51,6 +52,7 @@ def create_import_note(
     current_user_id: int,
     idempotency_key: Optional[str] = None,
     stage_timing: Optional[Any] = None,
+    client_id: Optional[str] = None,
 ) -> ImportNote:
     """Lập phiếu nhập kho trong một Transaction ACID duy nhất.
 
@@ -178,6 +180,12 @@ def create_import_note(
                 commit_time_ms=(t_now - t_com_start) * 1000
             )
             db.refresh(import_note)
+            broadcaster.publish_after_commit(
+                resource="import_notes",
+                action="CREATE",
+                client_id=client_id,
+                metadata={"code": import_note.code}
+            )
             return import_note
 
         except IntegrityError as exc:
@@ -205,6 +213,7 @@ def create_export_note(
     current_user_id: int,
     idempotency_key: Optional[str] = None,
     stage_timing: Optional[Any] = None,
+    client_id: Optional[str] = None,
 ) -> ExportNote:
     """Lập phiếu xuất kho trong một Transaction ACID duy nhất.
 
@@ -304,6 +313,12 @@ def create_export_note(
             if stage_timing:
                 stage_timing.t_commit_end = t_now
             db.refresh(export_note)
+            broadcaster.publish_after_commit(
+                resource="export_notes",
+                action="CREATE",
+                client_id=client_id,
+                metadata={"code": export_note.code}
+            )
             return export_note
 
         except IntegrityError as exc:
@@ -423,6 +438,7 @@ def ship_export_note(
     export_note_id: int,
     current_user_id: int,
     stage_timing: Optional[Any] = None,
+    client_id: Optional[str] = None,
 ) -> ExportNote:
     """Chuyển trạng thái phiếu xuất sang Đang Giao Hàng (SHIPPING).
 
@@ -523,6 +539,12 @@ def ship_export_note(
         commit_time_ms=(t_now - t_com_start) * 1000
     )
     db.refresh(export_note)
+    broadcaster.publish_after_commit(
+        resource="export_notes",
+        action="SHIP",
+        client_id=client_id,
+        metadata={"code": export_note.code}
+    )
     return export_note
 
 
@@ -563,6 +585,11 @@ def complete_export_note(
         commit_time_ms=(t_now - t_com_start) * 1000
     )
     db.refresh(export_note)
+    broadcaster.publish_after_commit(
+        resource="export_notes",
+        action="COMPLETE",
+        metadata={"code": export_note.code}
+    )
     return export_note
 
 
@@ -678,6 +705,7 @@ def adjust_stock(
     current_user_id: int,
     idempotency_key: Optional[str] = None,
     stage_timing: Optional[Any] = None,
+    client_id: Optional[str] = None,
 ) -> StockAdjustmentResponse:
     """Lối thoát kiểm kê / Điều chỉnh tồn kho thủ công (Hỗ trợ Idempotency Key & Safe Retry)."""
     clean_key = idempotency_key.strip() if idempotency_key and idempotency_key.strip() else None
@@ -746,6 +774,12 @@ def adjust_stock(
             write_metrics.exit_transaction(
                 tx_time_ms=(t_now - t_tx_start) * 1000,
                 commit_time_ms=(t_now - t_com_start) * 1000,
+            )
+            broadcaster.publish_after_commit(
+                resource="stock_ledger",
+                action="ADJUST",
+                client_id=client_id,
+                metadata={"product_id": product.id}
             )
 
             return StockAdjustmentResponse(

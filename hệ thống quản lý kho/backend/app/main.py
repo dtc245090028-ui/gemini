@@ -14,14 +14,19 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import time
 from app.core.config import settings
 from app.core.metrics import write_metrics, StageTiming
+from app.core.events import broadcaster
 from app.core.database import engine, Base, SessionLocal
 from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
 from app.api.v1.api import api_router
+from app.core.http_cache import ETagMiddleware, SelectiveGZipMiddleware
+from fastapi.encoders import jsonable_encoder
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+    broadcaster.set_loop(asyncio.get_running_loop())
     """Quản lý vòng đời ứng dụng: Tự động khởi tạo cấu trúc bảng CSDL và nạp dữ liệu ban đầu."""
     # Tự động tạo các bảng CSDL nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
@@ -86,6 +91,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Bước E2: Tối ưu đọc với GZip & ETag Middleware
+app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
+app.add_middleware(ETagMiddleware)
+
 
 # Global Exception Handlers chuẩn hóa định dạng lỗi trả về tiếng Việt
 @app.exception_handler(StarletteHTTPException)
@@ -108,7 +117,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "detail": "Dữ liệu gửi lên không đúng định dạng hợp lệ.",
-            "errors": exc.errors(),
+            "errors": jsonable_encoder(exc.errors()),
             "error_code": "VALIDATION_ERROR",
         },
     )

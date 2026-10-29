@@ -131,6 +131,7 @@ def create_new_export_note(
     request: Request,
     note_in: ExportNoteCreate,
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
+    x_client_id: Optional[str] = Header(None, alias="X-Client-Id", description="Định danh phiên client"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
@@ -146,6 +147,7 @@ def create_new_export_note(
             current_user_id=current_user.id,
             idempotency_key=x_idempotency_key,
             stage_timing=st,
+            client_id=x_client_id,
         )
     resp = _serialize_export_note(note)
     if st:
@@ -161,6 +163,7 @@ def create_new_export_note(
 def ship_existing_export_note(
     export_note_id: int,
     request: Request,
+    x_client_id: Optional[str] = Header(None, alias="X-Client-Id"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
@@ -175,6 +178,7 @@ def ship_existing_export_note(
             export_note_id=export_note_id,
             current_user_id=current_user.id,
             stage_timing=st,
+            client_id=x_client_id,
         )
     resp = _serialize_export_note(note)
     if st:
