@@ -15,6 +15,7 @@ from app.schemas.import_note import (
     ImportNoteResponse,
 )
 from app.services.inventory_service import cancel_import_note, create_import_note
+from app.core.write_gate import WriteGateContext
 
 router = APIRouter(prefix="/import-notes", tags=["Phiếu nhập kho (Import Notes)"])
 
@@ -134,13 +135,15 @@ def create_new_import_note(
     st = getattr(request.state, "stage_timing", None)
     if st:
         st.t_handler_enter = time.perf_counter()
-    note = create_import_note(
-        db=db,
-        note_in=note_in,
-        current_user_id=current_user.id,
-        idempotency_key=x_idempotency_key,
-        stage_timing=st,
-    )
+    arrival_t = getattr(request.state, "arrival_time", None)
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = create_import_note(
+            db=db,
+            note_in=note_in,
+            current_user_id=current_user.id,
+            idempotency_key=x_idempotency_key,
+            stage_timing=st,
+        )
     resp = _serialize_import_note(note)
     if st:
         st.t_handler_exit = time.perf_counter()

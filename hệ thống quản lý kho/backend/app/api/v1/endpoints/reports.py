@@ -1,4 +1,5 @@
 from app.core.metrics import write_metrics
+from app.core.write_gate import write_gate
 """API Endpoints cho Báo cáo Nhập - Xuất - Tồn và Cảnh báo Tồn kho."""
 
 import io
@@ -300,4 +301,14 @@ def get_write_metrics():
 @router.post("/write-metrics/reset", summary="Reset thống kê hiệu năng ghi")
 def reset_write_metrics():
     write_metrics.reset()
+    return {"status": "ok"}
+
+
+@router.get("/write-gate", summary="Thống kê cổng điều phối ghi & backpressure")
+def get_write_gate_stats():
+    return write_gate.get_stats()
+
+@router.post("/write-gate/reset", summary="Reset thống kê cổng ghi")
+def reset_write_gate_stats():
+    write_gate.reset_stats()
     return {"status": "ok"}

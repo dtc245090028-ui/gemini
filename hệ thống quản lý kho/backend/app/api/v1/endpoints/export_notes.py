@@ -14,6 +14,7 @@ from app.schemas.export_note import (
     ExportNoteDetailResponse,
     ExportNoteResponse,
 )
+from app.core.write_gate import WriteGateContext
 from app.services.inventory_service import (
     cancel_export_note,
     complete_export_note,
@@ -137,13 +138,15 @@ def create_new_export_note(
     st = getattr(request.state, "stage_timing", None)
     if st:
         st.t_handler_enter = time.perf_counter()
-    note = create_export_note(
-        db=db,
-        note_in=note_in,
-        current_user_id=current_user.id,
-        idempotency_key=x_idempotency_key,
-        stage_timing=st,
-    )
+    arrival_t = getattr(request.state, "arrival_time", None)
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = create_export_note(
+            db=db,
+            note_in=note_in,
+            current_user_id=current_user.id,
+            idempotency_key=x_idempotency_key,
+            stage_timing=st,
+        )
     resp = _serialize_export_note(note)
     if st:
         st.t_handler_exit = time.perf_counter()
@@ -165,12 +168,14 @@ def ship_existing_export_note(
     st = getattr(request.state, "stage_timing", None)
     if st:
         st.t_handler_enter = time.perf_counter()
-    note = ship_export_note(
-        db=db,
-        export_note_id=export_note_id,
-        current_user_id=current_user.id,
-        stage_timing=st,
-    )
+    arrival_t = getattr(request.state, "arrival_time", None)
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = ship_export_note(
+            db=db,
+            export_note_id=export_note_id,
+            current_user_id=current_user.id,
+            stage_timing=st,
+        )
     resp = _serialize_export_note(note)
     if st:
         st.t_handler_exit = time.perf_counter()

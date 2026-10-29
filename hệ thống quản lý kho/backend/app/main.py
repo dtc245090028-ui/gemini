@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     from sqlalchemy import inspect, text
     with engine.connect() as conn:
         inspector = inspect(conn)
-        for table_name in ["import_notes", "export_notes"]:
+        for table_name in ["import_notes", "export_notes", "stock_ledger"]:
             if inspector.has_table(table_name):
                 columns = [c["name"] for c in inspector.get_columns(table_name)]
                 if "idempotency_key" not in columns:

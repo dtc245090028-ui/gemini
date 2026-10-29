@@ -676,8 +676,30 @@ def adjust_stock(
     db: Session,
     adj_in: StockAdjustmentCreate,
     current_user_id: int,
+    idempotency_key: Optional[str] = None,
+    stage_timing: Optional[Any] = None,
 ) -> StockAdjustmentResponse:
-    """Lối thoát kiểm kê / Điều chỉnh tồn kho thủ công (Phương án A lối thoát khi guard check từ chối)."""
+    """Lối thoát kiểm kê / Điều chỉnh tồn kho thủ công (Hỗ trợ Idempotency Key & Safe Retry)."""
+    clean_key = idempotency_key.strip() if idempotency_key and idempotency_key.strip() else None
+
+    # 1. Kiểm tra Idempotency trước khi thực thi
+    if clean_key:
+        existing = db.query(StockLedger).filter(StockLedger.idempotency_key == clean_key).first()
+        if existing:
+            prod = db.query(Product).filter(Product.id == existing.product_id).first()
+            return StockAdjustmentResponse(
+                success=True,
+                product_id=existing.product_id,
+                product_code=prod.code if prod else "",
+                product_name=prod.name if prod else "",
+                old_stock=existing.balance_after - existing.quantity_change,
+                actual_stock=existing.balance_after,
+                difference=existing.quantity_change,
+                reference_code=existing.reference_code,
+                message="Giao dịch điều chỉnh kiểm kê đã được ghi nhận trước đó (Idempotent response).",
+                idempotency_key=existing.idempotency_key,
+            )
+
     product = db.query(Product).filter(Product.id == adj_in.product_id).first()
     if not product:
         raise HTTPException(
@@ -690,32 +712,88 @@ def adjust_stock(
     now = datetime.now(timezone.utc)
     ref_code = f"ADJ-{now.strftime('%Y%m%d%H%M%S')}-{product.id}"
 
-    product.current_stock = adj_in.actual_stock
+    # Thực thi với retry pattern chỉ dành riêng cho lỗi tranh chấp khóa tạm thời (locked/busy)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            t_tx_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_tx_start = t_tx_start
+            write_metrics.enter_transaction()
 
-    ledger_entry = StockLedger(
-        product_id=product.id,
-        transaction_type="ADJUSTMENT",
-        reference_code=ref_code,
-        quantity_change=difference,
-        balance_after=adj_in.actual_stock,
-        created_by=current_user_id,
-        transaction_date=now,
-        note=f"Điều chỉnh kiểm kê: {adj_in.reason.strip()}",
-    )
-    db.add(ledger_entry)
-    db.commit()
+            product.current_stock = adj_in.actual_stock
 
-    return StockAdjustmentResponse(
-        success=True,
-        product_id=product.id,
-        product_code=product.code,
-        product_name=product.name,
-        old_stock=old_stock,
-        actual_stock=adj_in.actual_stock,
-        difference=difference,
-        reference_code=ref_code,
-        message=f"Đã điều chỉnh tồn kho sản phẩm '{product.name}' từ {old_stock} sang {adj_in.actual_stock} (Chênh lệch: {difference:+d}).",
-    )
+            ledger_entry = StockLedger(
+                product_id=product.id,
+                transaction_type="ADJUSTMENT",
+                reference_code=ref_code,
+                quantity_change=difference,
+                balance_after=adj_in.actual_stock,
+                created_by=current_user_id,
+                transaction_date=now,
+                note=f"Điều chỉnh kiểm kê: {adj_in.reason.strip()}",
+                idempotency_key=clean_key,
+            )
+            db.add(ledger_entry)
+
+            t_com_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_start = t_com_start
+            db.commit()
+            t_now = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_end = t_now
+            write_metrics.exit_transaction(
+                tx_time_ms=(t_now - t_tx_start) * 1000,
+                commit_time_ms=(t_now - t_com_start) * 1000,
+            )
+
+            return StockAdjustmentResponse(
+                success=True,
+                product_id=product.id,
+                product_code=product.code,
+                product_name=product.name,
+                old_stock=old_stock,
+                actual_stock=adj_in.actual_stock,
+                difference=difference,
+                reference_code=ref_code,
+                message=f"Đã điều chỉnh tồn kho sản phẩm '{product.name}' từ {old_stock} sang {adj_in.actual_stock} (Chênh lệch: {difference:+d}).",
+                idempotency_key=clean_key,
+            )
+
+        except IntegrityError as exc:
+            db.rollback()
+            write_metrics.exit_transaction(0, 0)
+            if clean_key:
+                existing = db.query(StockLedger).filter(StockLedger.idempotency_key == clean_key).first()
+                if existing:
+                    return StockAdjustmentResponse(
+                        success=True,
+                        product_id=existing.product_id,
+                        product_code=product.code,
+                        product_name=product.name,
+                        old_stock=existing.balance_after - existing.quantity_change,
+                        actual_stock=existing.balance_after,
+                        difference=existing.quantity_change,
+                        reference_code=existing.reference_code,
+                        message="Giao dịch điều chỉnh kiểm kê đã được ghi nhận trước đó (Idempotent response).",
+                        idempotency_key=existing.idempotency_key,
+                    )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dữ liệu điều chỉnh kiểm kê vi phạm ràng buộc toàn vẹn cơ sở dữ liệu.",
+            )
+
+        except Exception as exc:
+            db.rollback()
+            write_metrics.exit_transaction(0, 0)
+            err_msg = str(exc).lower()
+            if ("locked" in err_msg or "busy" in err_msg) and attempt < max_retries - 1:
+                delay = 0.05 * (2 ** attempt) + random.uniform(0.02, 0.05)
+                write_metrics.record_retry(delay * 1000)
+                time.sleep(delay)
+                continue
+            raise
 
 
 def get_inventory_summary_report(

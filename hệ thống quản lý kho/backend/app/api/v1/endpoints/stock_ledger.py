@@ -4,7 +4,8 @@ import calendar
 from datetime import date, datetime, timedelta, timezone
 import io
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import time
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -27,6 +28,7 @@ from app.schemas.stock_ledger import (
     StockLedgerSummary,
 )
 from app.services.inventory_service import adjust_stock
+from app.core.write_gate import WriteGateContext
 
 router = APIRouter(prefix="/stock-ledger", tags=["Thẻ kho & Điều chỉnh (Stock Ledger)"])
 
@@ -615,9 +617,25 @@ def export_stock_ledger_excel(
     summary="Lập phiếu điều chỉnh kiểm kê tồn kho (Lối thoát khi hủy phiếu bị chặn hoặc kiểm kê thực tế)",
 )
 def create_stock_adjustment(
+    request: Request,
     adj_in: StockAdjustmentCreate,
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
-    """Điều chỉnh số lượng tồn kho theo số lượng thực tế sau kiểm kê."""
-    return adjust_stock(db=db, adj_in=adj_in, current_user_id=current_user.id)
+    """Điều chỉnh số lượng tồn kho theo số lượng thực tế sau kiểm kê (Hỗ trợ Idempotency Key & Write Gate)."""
+    arrival_t = getattr(request.state, "arrival_time", None)
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_handler_enter = time.perf_counter()
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        resp = adjust_stock(
+            db=db,
+            adj_in=adj_in,
+            current_user_id=current_user.id,
+            idempotency_key=x_idempotency_key,
+            stage_timing=st,
+        )
+    if st:
+        st.t_handler_exit = time.perf_counter()
+    return resp

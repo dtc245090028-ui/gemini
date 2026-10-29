@@ -30,6 +30,7 @@ class StockLedgerResponse(BaseModel):
     qty_out: int = 0
     balance_before: int = 0
     min_stock: int = 0
+    idempotency_key: Optional[str] = None
     summary: Optional[StockLedgerSummary] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -97,3 +98,4 @@ class StockAdjustmentResponse(BaseModel):
     difference: int
     reference_code: str
     message: str
+    idempotency_key: Optional[str] = None
