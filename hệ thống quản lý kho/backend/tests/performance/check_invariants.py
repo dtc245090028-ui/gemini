@@ -20,8 +20,9 @@ if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
         capture_output=True, text=True, check=False
     )
     if chk.returncode == 0 and chk.stdout.strip():
+        db_arg = [sys.argv[1]] if len(sys.argv) > 1 else []
         res = subprocess.run(
-            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/check_invariants.py", "/app/warehouse.db"],
+            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/check_invariants.py", *db_arg],
             check=False
         )
         sys.exit(res.returncode)
@@ -229,6 +230,8 @@ def check_invariants(db_path):
     return invariants_passed
 
 if __name__ == "__main__":
-    db_file = sys.argv[1] if len(sys.argv) > 1 else "warehouse.db"
+    db_env = os.environ.get("DATABASE_URL", "")
+    default_db = db_env.replace("sqlite:///", "") if db_env.startswith("sqlite:///") else "warehouse.db"
+    db_file = sys.argv[1] if len(sys.argv) > 1 else default_db
     res = check_invariants(db_file)
     sys.exit(0 if res else 1)

@@ -1,3 +1,4 @@
+from app.core.metrics import write_metrics
 """API Endpoints cho Báo cáo Nhập - Xuất - Tồn và Cảnh báo Tồn kho."""
 
 import io
@@ -290,3 +291,13 @@ def get_kpi_summary(
         "total_import_notes": total_import_notes,
         "total_export_notes": total_export_notes,
     }
+
+
+@router.get("/write-metrics", summary="Thống kê hiệu năng ghi & tranh chấp khóa")
+def get_write_metrics():
+    return write_metrics.get_stats()
+
+@router.post("/write-metrics/reset", summary="Reset thống kê hiệu năng ghi")
+def reset_write_metrics():
+    write_metrics.reset()
+    return {"status": "ok"}

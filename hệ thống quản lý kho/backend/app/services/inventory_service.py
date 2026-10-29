@@ -1,3 +1,4 @@
+from app.core.metrics import write_metrics
 """Dịch vụ nghiệp vụ Quản lý Kho: Nhập kho, Xuất kho, Thẻ kho và Giao dịch ACID."""
 
 import random
@@ -109,6 +110,8 @@ def create_import_note(
             else:
                 note_code = generate_note_code(db, "PN", ImportNote, ImportNote.code)
 
+            t_tx_start = time.perf_counter()
+            write_metrics.enter_transaction()
             import_note = ImportNote(
                 code=note_code,
                 supplier_id=note_in.supplier_id,
@@ -160,7 +163,13 @@ def create_import_note(
                 )
                 db.add(ledger_entry)
 
+            t_com_start = time.perf_counter()
             db.commit()
+            t_now = time.perf_counter()
+            write_metrics.exit_transaction(
+                tx_time_ms=(t_now - t_tx_start) * 1000,
+                commit_time_ms=(t_now - t_com_start) * 1000
+            )
             db.refresh(import_note)
             return import_note
 
@@ -177,7 +186,9 @@ def create_import_note(
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
+            write_metrics.exit_transaction(0, 0)
             delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
+            write_metrics.record_retry(delay * 1000)
             time.sleep(delay)
 
 
@@ -291,7 +302,9 @@ def create_export_note(
                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
                 )
             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
+            write_metrics.exit_transaction(0, 0)
             delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
+            write_metrics.record_retry(delay * 1000)
             time.sleep(delay)
 
 
@@ -436,6 +449,8 @@ def ship_export_note(
             )
 
     # 2. Trừ tồn kho và ghi Thẻ kho
+    t_tx_start = time.perf_counter()
+    write_metrics.enter_transaction()
     now = datetime.now(timezone.utc)
     export_note.status = "SHIPPING"
 
@@ -476,7 +491,13 @@ def ship_export_note(
         )
         db.add(ledger_entry)
 
+    t_com_start = time.perf_counter()
     db.commit()
+    t_now = time.perf_counter()
+    write_metrics.exit_transaction(
+        tx_time_ms=(t_now - t_tx_start) * 1000,
+        commit_time_ms=(t_now - t_com_start) * 1000
+    )
     db.refresh(export_note)
     return export_note
 
@@ -510,7 +531,13 @@ def complete_export_note(
         )
 
     export_note.status = "COMPLETED"
+    t_com_start = time.perf_counter()
     db.commit()
+    t_now = time.perf_counter()
+    write_metrics.exit_transaction(
+        tx_time_ms=(t_now - t_tx_start) * 1000,
+        commit_time_ms=(t_now - t_com_start) * 1000
+    )
     db.refresh(export_note)
     return export_note
 
@@ -587,7 +614,13 @@ def cancel_export_note(
         )
         db.add(ledger_entry)
 
+    t_com_start = time.perf_counter()
     db.commit()
+    t_now = time.perf_counter()
+    write_metrics.exit_transaction(
+        tx_time_ms=(t_now - t_tx_start) * 1000,
+        commit_time_ms=(t_now - t_com_start) * 1000
+    )
     db.refresh(export_note)
     return export_note, False
 

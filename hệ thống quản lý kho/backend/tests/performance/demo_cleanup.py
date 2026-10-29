@@ -70,7 +70,11 @@ if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
 
 PERF_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.abspath(os.path.join(PERF_DIR, "..", ".."))
-DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "warehouse.db")
+db_env = os.environ.get("DATABASE_URL", "")
+if db_env.startswith("sqlite:///"): 
+    DEFAULT_DB_PATH = db_env.replace("sqlite:///", "")
+else:
+    DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "warehouse.db")
 PRE_DEMO_BACKUP_PATH = os.path.join(BACKEND_DIR, "backups", "warehouse_pre_demo_backup.db")
 AI_CACHE_PATH = os.path.join(BACKEND_DIR, "ai_cache.json")
 MANIFEST_PATH = os.path.join(PERF_DIR, "demo_manifest.json")

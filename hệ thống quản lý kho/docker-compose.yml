@@ -9,9 +9,10 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=sqlite:///./warehouse.db
+      - DATABASE_URL=sqlite:////var/lib/warehouse/warehouse.db
     volumes:
       - ./backend:/app
+      - warehouse_data:/var/lib/warehouse
     restart: unless-stopped
 
   frontend:
@@ -24,3 +25,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  warehouse_data:
+    external: true
