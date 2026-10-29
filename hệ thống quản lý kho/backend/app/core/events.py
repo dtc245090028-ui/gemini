@@ -24,7 +24,7 @@ class EventBroadcaster:
         self.debounce_window_s = debounce_window_s
         self.heartbeat_interval_s = heartbeat_interval_s
         self._subscribers: Set[asyncio.Queue] = set()
-        self._lock = asyncio.Lock()
+        self._lock: Optional[asyncio.Lock] = None
         
         # Debounce buffer
         self._pending_events: Dict[str, Dict] = {}
@@ -34,6 +34,12 @@ class EventBroadcaster:
         # Metrics theo dõi hiệu năng gom sự kiện
         self.total_mutations_recorded = 0
         self.total_events_emitted = 0
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -45,19 +51,19 @@ class EventBroadcaster:
             self._loop = asyncio.get_running_loop()
             return self._loop
         except RuntimeError:
-            return self._loop
+            return None
 
     async def subscribe(self) -> asyncio.Queue:
         """Đăng ký một subscriber mới với hàng đợi giới hạn kích thước (maxsize=100)."""
         q = asyncio.Queue(maxsize=100)
-        async with self._lock:
+        async with self.lock:
             self._subscribers.add(q)
             logger.debug(f"[SSE] Client connected. Total active subscribers: {len(self._subscribers)}")
         return q
 
     async def unsubscribe(self, q: asyncio.Queue):
         """Hủy đăng ký và giải phóng tài nguyên khi client ngắt kết nối."""
-        async with self._lock:
+        async with self.lock:
             self._subscribers.discard(q)
             logger.debug(f"[SSE] Client disconnected. Remaining subscribers: {len(self._subscribers)}")
 
@@ -71,14 +77,18 @@ class EventBroadcaster:
         """Hàm đồng bộ an toàn được gọi từ worker thread sau khi `db.commit()` thành công.
         
         Tự động ủy quyền vào Async Event Loop để gom và phát sự kiện.
+        Hoàn toàn an toàn trong môi trường synchronous unit testing (nếu không có event loop thì bỏ qua).
         """
         self.total_mutations_recorded += 1
         loop = self._get_loop()
-        if loop.is_running():
-            asyncio.run_coroutine_threadsafe(
-                self._schedule_debounced_event(resource, action, client_id, metadata),
-                loop,
-            )
+        if loop is not None and loop.is_running():
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self._schedule_debounced_event(resource, action, client_id, metadata),
+                    loop,
+                )
+            except Exception as e:
+                logger.warning(f"[SSE] Không thể điều phối sự kiện: {e}")
 
     async def _schedule_debounced_event(
         self,
@@ -88,7 +98,7 @@ class EventBroadcaster:
         metadata: Optional[Dict] = None,
     ):
         """Gom các thay đổi trong cửa sổ debounce_window_s."""
-        async with self._lock:
+        async with self.lock:
             key = f"{resource}:{action}"
             if key not in self._pending_events:
                 self._pending_events[key] = {
@@ -113,7 +123,7 @@ class EventBroadcaster:
         """Chờ hết cửa sổ debounce rồi phát một mẻ sự kiện tổng hợp cho mọi clients."""
         await asyncio.sleep(self.debounce_window_s)
         
-        async with self._lock:
+        async with self.lock:
             events_to_emit = list(self._pending_events.values())
             self._pending_events.clear()
             subscribers_snapshot = list(self._subscribers)

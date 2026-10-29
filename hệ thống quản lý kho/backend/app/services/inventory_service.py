@@ -430,6 +430,11 @@ def cancel_import_note(
 
     db.commit()
     db.refresh(import_note)
+    broadcaster.publish_after_commit(
+        resource="import_notes",
+        action="CANCEL",
+        metadata={"code": import_note.code}
+    )
     return import_note
 
 
@@ -576,6 +581,7 @@ def complete_export_note(
             detail=f"Phiếu xuất '{export_note.code}' đang ở trạng thái '{export_note.status}'. Chỉ có thể hoàn thành từ trạng thái 'SHIPPING' (Đang giao).",
         )
 
+    t_tx_start = time.perf_counter()
     export_note.status = "COMPLETED"
     t_com_start = time.perf_counter()
     db.commit()
@@ -629,6 +635,7 @@ def cancel_export_note(
         return None, True
 
     # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
+    t_tx_start = time.perf_counter()
     now = datetime.now(timezone.utc)
     export_note.status = "CANCELLED"
     if reason and reason.strip():
@@ -673,6 +680,11 @@ def cancel_export_note(
         commit_time_ms=(t_now - t_com_start) * 1000
     )
     db.refresh(export_note)
+    broadcaster.publish_after_commit(
+        resource="export_notes",
+        action="CANCEL",
+        metadata={"code": export_note.code}
+    )
     return export_note, False
 
 

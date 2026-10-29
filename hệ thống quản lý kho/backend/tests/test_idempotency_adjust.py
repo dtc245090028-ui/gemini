@@ -1,37 +1,41 @@
-import concurrent.futures
+"""Kiểm thử tính đúng đắn của cơ chế Idempotency Key cho API Điều chỉnh tồn kho (Stock Adjustment).
+
+Kiểm tra:
+1. Gửi 2 request tuần tự cùng Idempotency Key -> Chỉ ghi 1 dòng vào Thẻ kho, trả về cùng dữ liệu.
+2. Gửi 5 request đồng thời cùng Idempotency Key -> Chỉ duy nhất 1 request thực hiện ghi DB, các request còn lại nhận bản ghi đã tồn tại.
+3. Gửi request KHÔNG có Idempotency Key -> Hoạt động bình thường, ghi sổ cái như cũ.
+4. Gửi request vi phạm logic nghiệp vụ (tồn âm, sản phẩm không tồn tại) -> Bị từ chối ngay lập tức, không retry oan.
+"""
+
 import os
 import sys
+import time
+import uuid
 import requests
+import concurrent.futures
+
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
 
-BASE_URL = "http://127.0.0.1:8000"
-
 def get_admin_token():
-    res = requests.post(
-        f"{BASE_URL}/api/v1/auth/login",
-        json={"username": "admin", "password": "admin123"}
-    )
-    if res.status_code != 200:
-        raise RuntimeError(f"Login failed: {res.text}")
+    res = requests.post(f"{BASE_URL}/api/v1/auth/login", json={"username": "admin", "password": "admin123"})
+    assert res.status_code == 200, f"Login failed: {res.text}"
     return res.json()["access_token"]
 
 def count_ledger_entries(token, product_id):
-    res = requests.get(
-        f"{BASE_URL}/api/v1/stock-ledger/?product_id={product_id}&limit=1000",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    data = res.json()
-    items = data["items"] if isinstance(data, dict) and "items" in data else data
-    return len(items)
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(f"{BASE_URL}/api/v1/stock-ledger/?product_id={product_id}", headers=headers)
+    assert res.status_code == 200
+    return len(res.json())
 
 def test_idempotency():
     token = get_admin_token()
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     # Lay product id = 1 de test
     p_res = requests.get(f"{BASE_URL}/api/v1/products/1", headers=headers)
     assert p_res.status_code == 200, f"Cannot get product 1: {p_res.text}"
@@ -43,7 +47,7 @@ def test_idempotency():
     n_before = count_ledger_entries(token, 1)
     
     # --- TEST 1: Gửi cùng key 2 lần liên tiếp ---
-    key1 = f"IDEM-TEST-SEQ-{os.getpid()}-1"
+    key1 = f"IDEM-TEST-SEQ-{time.time()}-{uuid.uuid4().hex[:6]}"
     h1 = {**headers, "X-Idempotency-Key": key1}
     payload1 = {
         "product_id": 1,
@@ -71,7 +75,7 @@ def test_idempotency():
     print("=> PASS TEST 1: Gửi cùng key 2 lần liên tiếp chỉ ghi đúng 1 lần vào ledger!")
     
     # --- TEST 2: Gửi cùng key song song từ 5 luồng đồng thời ---
-    key2 = f"IDEM-TEST-CONCUR-{os.getpid()}-2"
+    key2 = f"IDEM-TEST-CONCUR-{time.time()}-{uuid.uuid4().hex[:6]}"
     h2 = {**headers, "X-Idempotency-Key": key2}
     payload2 = {
         "product_id": 1,
@@ -87,40 +91,41 @@ def test_idempotency():
         results = [f.result() for f in futures]
         
     for idx, r in enumerate(results):
-        assert r.status_code == 200, f"Concurrent worker {idx} failed: {r.status_code} {r.text}"
+        assert r.status_code == 200, f"Concurrent request {idx} failed: {r.text}"
         
-    ref_codes = set(r.json()["reference_code"] for r in results)
-    assert len(ref_codes) == 1, f"Expected 1 unique reference code, got: {ref_codes}"
+    refs = [r.json()["reference_code"] for r in results]
+    # Toàn bộ 5 request phải nhận được cùng một reference code
+    assert len(set(refs)) == 1, f"Expected identical reference codes across 5 threads, got {refs}"
     
-    n_after_concur = count_ledger_entries(token, 1)
-    assert n_after_concur == n_after_seq + 1, f"Expected exactly 1 new ledger entry for concurrent calls, got {n_after_concur - n_after_seq}"
+    n_after_conc = count_ledger_entries(token, 1)
+    assert n_after_conc == n_after_seq + 1, f"Expected exactly 1 new ledger entry for concurrent batch, got {n_after_conc - n_after_seq}"
     print("=> PASS TEST 2: Gửi cùng key song song từ 5 luồng chỉ ghi đúng 1 lần vào ledger!")
     
-    # --- TEST 3: Không key (chạy bình thường) ---
+    # --- TEST 3: Gửi request không có Idempotency Key -> Bình thường ---
     payload3 = {
         "product_id": 1,
-        "actual_stock": curr_stock,
-        "reason": "Test Không Key Khôi Phục Tồn Cũ"
+        "actual_stock": target_stock_1 + 2,
+        "reason": "Test Non-Idempotent Request"
     }
     r3 = requests.post(f"{BASE_URL}/api/v1/stock-ledger/adjust", json=payload3, headers=headers)
-    assert r3.status_code == 200, f"Request 3 failed: {r3.text}"
-    n_after_no_key = count_ledger_entries(token, 1)
-    assert n_after_no_key == n_after_concur + 1, "Expected 1 new entry when no key provided"
+    assert r3.status_code == 200
+    n_after_non_idem = count_ledger_entries(token, 1)
+    assert n_after_non_idem == n_after_conc + 1
     print("=> PASS TEST 3: Không key vẫn chạy bình thường và ghi ledger như cũ!")
     
-    # --- TEST 4: Dữ liệu vi phạm ràng buộc (tồn âm < 0) ---
+    # --- TEST 4: Vi phạm ràng buộc nghiệp vụ (tồn âm) -> Từ chối ngay lập tức không retry oan ---
     payload4 = {
         "product_id": 1,
         "actual_stock": -50,
-        "reason": "Test Vi Pham Rang Buoc"
+        "reason": "Test Invalid Negative Stock"
     }
-    r4 = requests.post(f"{BASE_URL}/api/v1/stock-ledger/adjust", json=payload4, headers=headers)
-    assert r4.status_code in (400, 422), f"Expected 400 or 422, got {r4.status_code}"
+    r4 = requests.post(f"{BASE_URL}/api/v1/stock-ledger/adjust", json=payload4, headers=h1)
+    assert r4.status_code == 400 or r4.status_code == 422
     print("=> PASS TEST 4: Vi phạm ràng buộc dữ liệu bị từ chối ngay lập tức!")
 
-    print("\n=======================================================")
+    print("\n" + "="*55)
     print(" TẤT CẢ 4 KIỂM THỬ IDEMPOTENCY CHO ADJUST ĐỀU ĐẠT 100%!")
-    print("=======================================================")
+    print("="*55 + "\n")
 
 if __name__ == "__main__":
     test_idempotency()
