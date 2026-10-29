@@ -165,6 +165,10 @@ def ask_ai_question(
         month=payload.month,
         year=payload.year,
         include_smartkho=payload.include_smartkho,
+        period_type=payload.period_type,
+        target_date=payload.target_date,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
     )
 
 

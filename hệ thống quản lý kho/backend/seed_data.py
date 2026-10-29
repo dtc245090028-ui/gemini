@@ -53,6 +53,15 @@ def seed_database():
     print("===============================================================================")
     random.seed(42)
     Base.metadata.create_all(bind=engine)
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector = inspect(conn)
+        if inspector.has_table("products"):
+            prod_cols = [c["name"] for c in inspector.get_columns("products")]
+            if "supplier_id" not in prod_cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_supplier_id ON products (supplier_id)"))
+                conn.commit()
     db: Session = SessionLocal()
 
     try:
@@ -127,6 +136,17 @@ def seed_database():
             ("NCC_GEARVN", "Công ty TNHH Thương mại Gearvn", "18006975", "cskh@gearvn.com", "TP. Hồ Chí Minh"),
             ("NCC_ANPHAT", "Công ty Cổ phần Tin học An Phát", "19000323", "cskh@anphatpc.com.vn", "Hà Nội"),
             ("NCC_HOANGHA", "Hệ thống Bán lẻ Di động Hoàng Hà Mobile", "19002091", "cskh@hoanghamobile.com", "Hà Nội"),
+            ("SUP_E2E_160432804590", "văn phòng khánh hòa", "0988776655", "khanhhoa.office@partner.vn", "Khánh Hòa"),
+            ("SUP_E2E_154720745019", "phong đà vân sơn", "0988776655", "phongdavanson@partner.vn", "Đà Nẵng"),
+            ("SUP_E2E_151733885016", "dâm dồ diệc tu tiên hội nhóm", "0988776655", "damdodiec@partner.vn", "Hà Nội"),
+            ("SUP_E2E_132517808823", "trường đại học lưu văn trú", "0988776655", "luuvantru@edu.vn", "TP. Hồ Chí Minh"),
+            ("SUP_E2E_122956130472", "hội nhóm công nghệ thái nguyên", "0988776655", "thainguyen.tech@partner.vn", "Thái Nguyên"),
+            ("SUP_E2E_121134649607", "nhà cung cấp AL TEST số 7", "0988776655", "altest7@partner.vn", "Hà Nội"),
+            ("SUP_E2E_120920994502", "nhà cung cấp XXXX", "0988776655", "nccxxxx@partner.vn", "TP. Hồ Chí Minh"),
+            ("SUP_E2E_120824350246", "cô ty cổ phần vin", "0988776655", "vin.corp@partner.vn", "Hà Nội"),
+            ("SUP_E2E_130519140787", "VĂN PHÒNG làm việc khánh hòa", "0988776655", "vp.khanhhoa@partner.vn", "Khánh Hòa"),
+            ("SUP_AI", "Nhà phân phối AI Test", "0909112233", "ai.distri@partner.vn", "TP. Hồ Chí Minh"),
+            ("SUP-ACID-TEST", "Nhà cung cấp ACID Test", "0911223344", "acid.test@partner.vn", "Hà Nội"),
         ]
         sup_map = {}
         for code, name, phone, email, addr in suppliers_data:
@@ -136,6 +156,14 @@ def seed_database():
                 db.add(sup)
                 db.commit()
                 db.refresh(sup)
+            else:
+                if not sup.phone:
+                    sup.phone = phone
+                if not sup.email:
+                    sup.email = email
+                if not sup.address:
+                    sup.address = addr
+                db.commit()
             sup_map[code] = sup
 
         # =====================================================================
@@ -219,6 +247,51 @@ def seed_database():
             ("SP074", "Thẻ nhớ SanDisk 128GB", "CAT_LK", "Thẻ", 15, 350000.0),
             ("SP075", "Webcam Logitech C270", "CAT_PK", "Chiếc", 15, 650000.0),
             ("SP076", "Loa Bluetooth JBL Go 3", "CAT_TB", "Chiếc", 15, 690000.0),
+            # 33 mặt hàng bổ sung cho 11 nhà cung cấp (SP077 -> SP109)
+            # NCC 1 (SUP_E2E_160432804590)
+            ("SP077", "SSD Samsung 970 EVO Plus 500GB", "CAT_LK", "Chiếc", 5, 1690000.0),
+            ("SP078", "SSD Kingston NV2 1TB", "CAT_LK", "Chiếc", 5, 1890000.0),
+            ("SP079", "RAM Kingston Fury 8GB DDR4 3200", "CAT_LK", "Thanh", 10, 650000.0),
+            ("SP080", "RAM Corsair Vengeance 16GB DDR4 3200", "CAT_LK", "Thanh", 10, 1150000.0),
+            # NCC 2 (SUP_E2E_154720745019)
+            ("SP081", "Mainboard ASUS H510M-K", "CAT_LK", "Chiếc", 5, 1750000.0),
+            ("SP082", "CPU Intel Core i3-12100F", "CAT_LK", "Chiếc", 5, 2150000.0),
+            ("SP083", "Tản nhiệt khí DeepCool AG400", "CAT_LK", "Chiếc", 10, 450000.0),
+            # NCC 3 (SUP_E2E_151733885016)
+            ("SP084", "Nguồn máy tính Cooler Master 550W", "CAT_LK", "Chiếc", 10, 950000.0),
+            ("SP085", "Ổ cứng HDD Seagate 1TB 7200rpm", "CAT_LK", "Chiếc", 10, 1050000.0),
+            ("SP086", "Card đồ họa GTX 1650 4GB", "CAT_LK", "Chiếc", 5, 3990000.0),
+            # NCC 4 (SUP_E2E_132517808823)
+            ("SP087", "Cáp HDMI 2.0 Ugreen 2m", "CAT_PK", "Sợi", 15, 120000.0),
+            ("SP088", "Cáp sạc USB-C to USB-C 100W 1m", "CAT_PK", "Sợi", 15, 190000.0),
+            ("SP089", "Hub USB-C 7 in 1 Ugreen", "CAT_PK", "Cái", 10, 690000.0),
+            # NCC 5 (SUP_E2E_122956130472)
+            ("SP090", "Củ sạc nhanh Anker 20W", "CAT_PK", "Cái", 15, 290000.0),
+            ("SP091", "Pin sạc dự phòng Xiaomi 10000mAh", "CAT_PK", "Cái", 10, 450000.0),
+            ("SP092", "Ổ cắm điện đa năng Lioa 6 lỗ 3m", "CAT_PK", "Cái", 15, 185000.0),
+            # NCC 6 (SUP_E2E_121134649607)
+            ("SP093", "Đế tản nhiệt laptop có quạt", "CAT_PK", "Cái", 10, 320000.0),
+            ("SP094", "Giá đỡ laptop nhôm gấp gọn", "CAT_PK", "Cái", 15, 280000.0),
+            ("SP095", "Balo laptop chống nước 15.6 inch", "CAT_PK", "Cái", 10, 390000.0),
+            # NCC 7 (SUP_E2E_120920994502)
+            ("SP096", "Chuột không dây Logitech M331 Silent", "CAT_TB", "Chiếc", 15, 290000.0),
+            ("SP097", "Chuột gaming Logitech G102 Lightsync", "CAT_TB", "Chiếc", 10, 420000.0),
+            ("SP098", "Bàn phím cơ Akko 3087 v2 DS Horizon", "CAT_TB", "Chiếc", 5, 1590000.0),
+            # NCC 8 (SUP_E2E_120824350246)
+            ("SP099", "Bàn phím không dây Logitech K380", "CAT_TB", "Chiếc", 10, 790000.0),
+            ("SP100", "Tai nghe Sony WH-CH520", "CAT_TB", "Chiếc", 10, 1290000.0),
+            ("SP101", "Tai nghe Logitech H111 giắc 3.5mm", "CAT_TB", "Chiếc", 15, 190000.0),
+            # NCC 9 (SUP_E2E_130519140787)
+            ("SP102", "Loa vi tính Microlab B77", "CAT_TB", "Bộ", 10, 650000.0),
+            ("SP103", "Webcam Logitech C920 HD Pro", "CAT_TB", "Chiếc", 5, 1890000.0),
+            ("SP104", "Micro thu âm USB Fifine K669", "CAT_TB", "Chiếc", 10, 650000.0),
+            # NCC 10 (SUP_AI)
+            ("SP105", "Màn hình LG 22MK400H 22 inch", "CAT_TB", "Chiếc", 5, 2490000.0),
+            ("SP106", "Màn hình Dell P2422H 24 inch", "CAT_TB", "Chiếc", 5, 3990000.0),
+            ("SP107", "Máy in Canon LBP2900", "CAT_TB", "Chiếc", 5, 3290000.0),
+            # NCC 11 (SUP-ACID-TEST)
+            ("SP108", "Router Wi-Fi TP-Link Archer C6", "CAT_TB", "Chiếc", 10, 790000.0),
+            ("SP109", "Lót chuột Logitech Desk Mat", "CAT_TB", "Cái", 15, 220000.0),
         ]
 
         # Xóa các giao dịch cũ để chuẩn hóa lại chuỗi 5 tháng
@@ -233,19 +306,181 @@ def seed_database():
         db.query(Product).filter(~Product.code.startswith("SP")).delete(synchronize_session=False)
         db.commit()
 
+        product_supplier_map = {
+            "SP001": "NCC_VIENDONG", "SP002": "NCC_VIENDONG", "SP003": "NCC_VIENDONG",
+            "SP016": "NCC_VIENDONG", "SP017": "NCC_VIENDONG", "SP018": "NCC_VIENDONG",
+            "SP019": "NCC_VIENDONG", "SP020": "NCC_VIENDONG", "SP021": "NCC_VIENDONG",
+            "SP004": "NCC_SAIGON", "SP009": "NCC_SAIGON", "SP014": "NCC_SAIGON",
+            "SP022": "NCC_SAIGON", "SP054": "NCC_SAIGON", "SP057": "NCC_SAIGON",
+            "SP075": "NCC_SAIGON",
+            "SP007": "NCC_ACHAU", "SP008": "NCC_ACHAU", "SP012": "NCC_ACHAU",
+            "SP013": "NCC_ACHAU", "SP072": "NCC_ACHAU", "SP073": "NCC_ACHAU",
+            "SP074": "NCC_ACHAU",
+            "SP023": "NCC_FPTSHOP", "SP024": "NCC_FPTSHOP", "SP025": "NCC_FPTSHOP",
+            "SP034": "NCC_FPTSHOP", "SP035": "NCC_FPTSHOP", "SP049": "NCC_FPTSHOP",
+            "SP069": "NCC_FPTSHOP", "SP070": "NCC_FPTSHOP",
+            "SP026": "NCC_TGDD", "SP027": "NCC_TGDD", "SP028": "NCC_TGDD",
+            "SP031": "NCC_TGDD", "SP032": "NCC_TGDD", "SP033": "NCC_TGDD",
+            "SP071": "NCC_TGDD",
+            "SP029": "NCC_CELLPHONES", "SP030": "NCC_CELLPHONES", "SP064": "NCC_CELLPHONES",
+            "SP065": "NCC_CELLPHONES", "SP066": "NCC_CELLPHONES", "SP067": "NCC_CELLPHONES",
+            "SP068": "NCC_CELLPHONES", "SP076": "NCC_CELLPHONES",
+            "SP036": "NCC_PHONGVU", "SP037": "NCC_PHONGVU", "SP040": "NCC_PHONGVU",
+            "SP041": "NCC_PHONGVU", "SP042": "NCC_PHONGVU", "SP047": "NCC_PHONGVU",
+            "SP048": "NCC_PHONGVU", "SP050": "NCC_PHONGVU", "SP053": "NCC_PHONGVU",
+            "SP010": "NCC_GEARVN", "SP039": "NCC_GEARVN", "SP043": "NCC_GEARVN",
+            "SP045": "NCC_GEARVN", "SP046": "NCC_GEARVN", "SP051": "NCC_GEARVN",
+            "SP052": "NCC_GEARVN", "SP055": "NCC_GEARVN", "SP056": "NCC_GEARVN",
+            "SP062": "NCC_GEARVN", "SP063": "NCC_GEARVN",
+            "SP005": "NCC_ANPHAT", "SP006": "NCC_ANPHAT", "SP011": "NCC_ANPHAT",
+            "SP015": "NCC_ANPHAT", "SP058": "NCC_ANPHAT", "SP059": "NCC_ANPHAT",
+            "SP060": "NCC_ANPHAT", "SP061": "NCC_ANPHAT",
+            "SP038": "NCC_HOANGHA", "SP044": "NCC_HOANGHA",
+            # Gắn 33 sản phẩm bổ sung cho 11 nhà cung cấp
+            "SP077": "SUP_E2E_160432804590", "SP078": "SUP_E2E_160432804590",
+            "SP079": "SUP_E2E_160432804590", "SP080": "SUP_E2E_160432804590",
+            "SP081": "SUP_E2E_154720745019", "SP082": "SUP_E2E_154720745019", "SP083": "SUP_E2E_154720745019",
+            "SP084": "SUP_E2E_151733885016", "SP085": "SUP_E2E_151733885016", "SP086": "SUP_E2E_151733885016",
+            "SP087": "SUP_E2E_132517808823", "SP088": "SUP_E2E_132517808823", "SP089": "SUP_E2E_132517808823",
+            "SP090": "SUP_E2E_122956130472", "SP091": "SUP_E2E_122956130472", "SP092": "SUP_E2E_122956130472",
+            "SP093": "SUP_E2E_121134649607", "SP094": "SUP_E2E_121134649607", "SP095": "SUP_E2E_121134649607",
+            "SP096": "SUP_E2E_120920994502", "SP097": "SUP_E2E_120920994502", "SP098": "SUP_E2E_120920994502",
+            "SP099": "SUP_E2E_120824350246", "SP100": "SUP_E2E_120824350246", "SP101": "SUP_E2E_120824350246",
+            "SP102": "SUP_E2E_130519140787", "SP103": "SUP_E2E_130519140787", "SP104": "SUP_E2E_130519140787",
+            "SP105": "SUP_AI", "SP106": "SUP_AI", "SP107": "SUP_AI",
+            "SP108": "SUP-ACID-TEST", "SP109": "SUP-ACID-TEST",
+        }
+
+        product_image_map = {
+            "SP001": "https://tse3.mm.bing.net/th/id/OIP.SCVLCozvpGq4rIxDrNNZ2AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP002": "https://tse1.explicit.bing.net/th/id/OIP.LyDZ0OceJ7hzX65D2lTiIgHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP003": "https://down-vn.img.susercontent.com/file/b80a537a88cf310e1f01cc91381d7347",
+            "SP004": "https://st3.tkcomputer.vn/uploads/dell_ultrasharp_u2422h_1682612567.jpg",
+            "SP005": "https://tse2.mm.bing.net/th/id/OIP.g1xt0Z2tc96c3vLUvSfRowHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP006": "https://th.bing.com/th/id/OIP.a46mlfCpQVKBGaZR9m3OpwHaHa?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP007": "https://tse3.mm.bing.net/th/id/OIP.KMNDjTOO9lSQXglif5VFgwHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP008": "https://tse1.mm.bing.net/th/id/OIP.8WO4MhPqTyYVzhL-C0YSyQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP009": "https://tse1.mm.bing.net/th/id/OIP.oET03HyUCyTd3ccQVTHFdAHaHe?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP010": "https://down-vn.img.susercontent.com/file/vn-11134207-820l4-mguwa37adedk6e",
+            "SP011": "https://salt.tikicdn.com/cache/w1200/ts/product/2c/ce/0a/8acd615a4bc7d56abf7bd2729ea4a288.png",
+            "SP012": "https://tse2.mm.bing.net/th/id/OIP.GGx1oT3PsZCDpcJnfgYsDwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP013": "https://khanhchaudigital.vn/uploads/source/o-cung/ssd-wd-my-pp/thiet-ke-chua-co-ten-16-6234.png",
+            "SP014": "https://cellphones.com.vn/media/wysiwyg/accessories/speaker/loa-microlab-m108-den-1.jpg",
+            "SP015": "https://tse2.mm.bing.net/th/id/OIP.qkFLEv8Kw05Fb40nolZpowHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP016": "https://tse2.mm.bing.net/th/id/OIP.xvG1qB-V3DhFpBguf4viYAHaIy?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP017": "https://th.bing.com/th/id/OIP.ViIdHBxDK7_5CcL1FnEk2gHaHa?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP018": "https://tse1.mm.bing.net/th/id/OIP.7SI7ezowXXD_s3IaDy8VtQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP019": "https://tse3.mm.bing.net/th/id/OIP.uz75uleBVOPpYDq78QMCEQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP020": "https://th.bing.com/th/id/OIP.2P70AQm39QR_bU79k7VsxAHaHa?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP021": "https://tse1.mm.bing.net/th/id/OIP.vQxaAtFgNcTotkfCAMh8-QHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP022": "https://www.lg.com/vn/images/man-hinh-may-tinh/md07527366/gallery/1100-1.jpg",
+            "SP023": "https://www.pricerunner.dk/product/3136271184/Apple-iPhone-16-128GB.jpg",
+            "SP024": "https://tse4.mm.bing.net/th/id/OIP.eMW7SH_D0ChxKcOG482AtwHaFI?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP025": "https://tse3.mm.bing.net/th/id/OIP.pTMGD0hI-xUBuSVFyCq7nAHaFI?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP026": "https://samnews.vn/wp-content/uploads/2026/05/Galaxy-S24-Ultra-hands-on-SamNews.jpg",
+            "SP027": "https://tse2.mm.bing.net/th/id/OIF.L8jmbBxDZJ4qY1k2LTZGFA?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP028": "https://tse4.mm.bing.net/th/id/OIP.xCtSYU_Hm0ZV0n7kEECjywHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP029": "https://tse4.mm.bing.net/th/id/OIP._F1nttXfkUC8bYpTqltTIgHaJa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP030": "https://tse3.mm.bing.net/th/id/OIF.S5dldrYe3gsevTfrHkwFIg?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP031": "https://th.bing.com/th?id=OIF.XftTvyzYT5ME9hKPaKz%2btA&r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP032": "https://tse1.mm.bing.net/th/id/OIP.GpQ-jSuUG3MWipOfP5QRbwHaEI?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP033": "https://tse3.mm.bing.net/th/id/OIP.Uc1AqDD-r7-LTC2u4wHzCAHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP034": "https://tse4.mm.bing.net/th/id/OIP.hrX9V9HvG0HkxeIvFvzPiwHaFR?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP035": "https://tse1.explicit.bing.net/th/id/OIP.zarHFMhZNyJBtL6UeWPfVgHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP036": "https://tse1.mm.bing.net/th/id/OIP.HmZBeDyOP3Pn1lzBIzubUwHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP037": "https://tse4.mm.bing.net/th/id/OIP.-GtYQdMyHelii_6MMf7sYwHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP038": "https://th.bing.com/th/id/OIP.HD-6Qw9USZR_Ahf54y2FCgHaFj?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP039": "https://tse4.mm.bing.net/th/id/OIP.6AfpFmLCswf3j1l2pHFc1QHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP040": "https://tse1.mm.bing.net/th/id/OIP.n5J6U1andlQb0ktkX-qPQAHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP041": "https://tse1.mm.bing.net/th/id/OIP.htkcKQ05vpaPM1KW8XEtywHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP042": "https://tse3.mm.bing.net/th/id/OIP.ViyrevxyJoQnsHDYQMsExgHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP043": "https://tse4.mm.bing.net/th/id/OIP.FYRse55LIFudAChFVyQ6pAHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP044": "https://tse3.mm.bing.net/th/id/OIP.dwWlZq0zA4GrRShGR_Na9wHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP045": "https://tse3.mm.bing.net/th/id/OIP.KQmZd0zuQPmpYTOpeyu8AgHaFt?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP046": "https://tse4.mm.bing.net/th/id/OIP.OpneO1xDmvuH8kkQpPP3iwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP047": "https://tse3.mm.bing.net/th/id/OIP.nX-M1aLPS517brABhUnErAHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP048": "https://tse3.mm.bing.net/th/id/OIP.jMG5WY_xgr8ADp2FG_lNJgHaGO?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP049": "https://tse2.mm.bing.net/th/id/OIP.t31NdllSc-cYMY4AleeLOAHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP050": "https://tse3.mm.bing.net/th/id/OIP.LccnLRD9UtJnFmq0e-vbhAHaGE?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP051": "https://th.bing.com/th/id/OIP.ay3LzoGZCPyjSCpPFjyP7wHaE7?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP052": "https://th.bing.com/th/id/OIP.RvXOCyCOgqKW6AEkXsJQdAHaD4?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP053": "https://tse3.mm.bing.net/th/id/OIP.-RDOsXsLXD7eIWSXbi9i9gHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP054": "https://tse3.mm.bing.net/th/id/OIP.og_BL_OITEewcT1u0MvoGQHaFy?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP055": "https://tse4.mm.bing.net/th/id/OIP.ikNBIrXLsIL9UyE1yNaPNgHaE6?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP056": "https://tse4.mm.bing.net/th/id/OIP.AuAf_Ra0JHH8mFq7JpU5MQHaGQ?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP057": "https://th.bing.com/th/id/OIP.Dc-5b65DnFwG197KHy5ALwHaHa?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP058": "https://tse3.mm.bing.net/th/id/OIP.TnW4LkzeCEHhVxgIeeVqMQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP059": "https://tse4.mm.bing.net/th/id/OIP.HG11wQImeiWAGnrcO8hIfAHaD2?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP060": "https://tse1.mm.bing.net/th/id/OIP.B9Bu2uurx32XQmMp8LgBxAHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP061": "https://tse2.mm.bing.net/th/id/OIP.9IhLm3kM3VHrvvSpxCaJ5gHaDt?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP062": "https://tse4.mm.bing.net/th/id/OIP.hyL0ToVTyrlQsnP-UhTPTQHaFz?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP063": "https://tse2.mm.bing.net/th/id/OIP.rTFqK3KgedID3d9P4RB9UAHaFr?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP064": "https://tse1.mm.bing.net/th/id/OIP.tb27GoM-vd0nkImcM-PR6AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP065": "https://tse1.explicit.bing.net/th/id/OIP.wX_oXPluE8YegrW_lMZoMwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP066": "https://tse1.mm.bing.net/th/id/OIP.TAZgaY69M-AkXKTCpod-4AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP067": "https://tse1.mm.bing.net/th/id/OIP.tk4TnZw2c_fo6IqyDGKZYQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP068": "https://tse1.mm.bing.net/th/id/OIP.-appNsYtxT0hNMU85ANJQQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP069": "https://tse1.explicit.bing.net/th/id/OIP.XP7rboFXaJo6xfquOIZubQHaIx?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP070": "https://tse1.mm.bing.net/th/id/OIP.HUbty0qtRflzsPrguJVuRQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP071": "https://tse1.explicit.bing.net/th/id/OIP.z5yT4TThJZmDNNovhMhm7AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP072": "https://tse2.mm.bing.net/th/id/OIP.eBgS93pccKAOxjeZNiBDxgHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP073": "https://th.bing.com/th/id/OIP.OkL91gRtYP2IldVcrjavRwHaE0?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP074": "https://tse1.mm.bing.net/th/id/OIP.BI2PWsT-1VRJkwBehDkt8wHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP075": "https://th.bing.com/th/id/OIP.kF-DuVY3iSQIU2rPH0ZsHAHaEK?w=329&h=184&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "SP076": "https://th.bing.com/th/id/OIP.PZZ0utZCPKXahnYoUDNWDQHaHa?w=189&h=189&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            # 33 mặt hàng bổ sung (SP077 -> SP109)
+            "SP077": "https://tse1.mm.bing.net/th/id/OIP.B9Bu2uurx32XQmMp8LgBxAHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP078": "https://tse3.mm.bing.net/th/id/OIP.4I0Vs7Lg-WdsiF_ixXzGDwHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP079": "https://tse3.mm.bing.net/th/id/OIP.TnW4LkzeCEHhVxgIeeVqMQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP080": "https://tse4.mm.bing.net/th/id/OIP.HG11wQImeiWAGnrcO8hIfAHaD2?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP081": "https://tse1.mm.bing.net/th/id/OIP.VqaJ7QBd4z7QmKnVD8b1_gHaJ4?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP082": "https://tse4.mm.bing.net/th/id/OIP.3aKKZ5RH5E2dbSLPOa7s3AHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP083": "https://tse2.mm.bing.net/th/id/OIP.qkFLEv8Kw05Fb40nolZpowHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP084": "https://tse3.mm.bing.net/th/id/OIP.c71yHCMxig5IwXw1LnAf-AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP085": "https://tse3.mm.bing.net/th/id/OIP.XHNxTKaY2GtnRKereE3dQwHaFB?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP086": "https://tse3.mm.bing.net/th/id/OIP.qdF5B7GgFG5UHzcVWPMlNgAAAA?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP087": "https://tse1.mm.bing.net/th/id/OIP.OgHytCU2FsmKDOQtbiPFzgHaFO?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP088": "https://tse1.mm.bing.net/th/id/OIP.-appNsYtxT0hNMU85ANJQQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP089": "https://tse1.mm.bing.net/th/id/OIP.LzxheWgBW-EDM3Uxf-IwzAHaD4?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP090": "https://tse4.mm.bing.net/th/id/OIP.GtWWdFLt_KXBRySabtf_NgHaDt?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP091": "https://tse1.mm.bing.net/th/id/OIP.tk4TnZw2c_fo6IqyDGKZYQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP092": "https://tse4.mm.bing.net/th/id/OIP.COPjU3uwtbCuH6HuPc0fHAHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP093": "https://tse3.mm.bing.net/th/id/OIP.hxxZqVIFhAwLiE16Qlt0gQHaCp?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP094": "https://tse2.mm.bing.net/th/id/OIP.mOUGnw8nRMXnqrpZj3dv8gHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP095": "https://tse4.mm.bing.net/th/id/OIP.qnXNL_5Yn0w6R77lB_3EdQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP096": "https://tse1.mm.bing.net/th/id/OIP.nVSw4B0GMzjzpw3q8a64EQHaEB?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP097": "https://th.bing.com/th/id/OIP.ay3LzoGZCPyjSCpPFjyP7wHaE7?r=0&o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP098": "https://tse3.mm.bing.net/th/id/OIP.SCVLCozvpGq4rIxDrNNZ2AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP099": "https://tse1.mm.bing.net/th/id/OIP.DnUR1JHfhVERqNOZxyGLRAHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP100": "https://tse1.mm.bing.net/th/id/OIP.tb27GoM-vd0nkImcM-PR6AHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP101": "https://tse1.explicit.bing.net/th/id/OIP.wX_oXPluE8YegrW_lMZoMwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP102": "https://tse1.mm.bing.net/th/id/OIP.sPiQzY4uNswcLhAIKWsSpgHaDv?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP103": "https://tse1.mm.bing.net/th/id/OIP.oET03HyUCyTd3ccQVTHFdAHaHe?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP104": "https://tse3.mm.bing.net/th/id/OIP.vD13ZGbh4XSV0lim9AsGLgHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP105": "https://tse3.mm.bing.net/th/id/OIP.ilbikfGaPppJwCctywzFbgHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP106": "https://tse3.mm.bing.net/th/id/OIP.og_BL_OITEewcT1u0MvoGQHaFy?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP107": "https://tse1.mm.bing.net/th/id/OIP.2PTZ8zrn6WCVKgE7TxFp3QHaE6?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP108": "https://tse3.mm.bing.net/th/id/OIP.7uIxXZw_cLyr__740eKdHwHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+            "SP109": "https://tse4.mm.bing.net/th/id/OIP.VkUPdQq_Ncjz9ceSEgsWEgHaD4?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+        }
+
         prod_map = {}
         for code, name, cat_code, unit, min_stock, price in products_meta:
+            sup_code = product_supplier_map.get(code, "NCC_VIENDONG")
+            sup_id = sup_map[sup_code].id
+            default_img = product_image_map.get(code, f"/static/products/{code}.jpg")
             p = db.query(Product).filter(Product.code == code).first()
             if not p:
                 p = Product(
                     code=code,
                     name=name,
                     category_id=cat_map[cat_code].id,
+                    supplier_id=sup_id,
                     unit=unit,
                     min_stock=min_stock,
                     current_stock=0,
                     standard_price=price,
-                    image_url=f"/static/products/{code}.jpg",
+                    image_url=default_img,
                     status="ACTIVE",
                 )
                 db.add(p)
@@ -254,13 +489,14 @@ def seed_database():
             else:
                 p.name = name
                 p.category_id = cat_map[cat_code].id
+                p.supplier_id = sup_id
                 p.standard_price = price
                 p.unit = unit
                 p.min_stock = min_stock
                 p.current_stock = 0  # Sẽ được tính lại chuẩn xác qua từng phiếu nhập/xuất
                 p.status = "ACTIVE"
-                if not p.image_url:
-                    p.image_url = f"/static/products/{code}.jpg"
+                if not p.image_url or p.image_url == f"/static/products/{code}.jpg":
+                    p.image_url = default_img
                 db.commit()
             prod_map[code] = p
 
@@ -307,6 +543,17 @@ def seed_database():
                 "items": items,
                 "note_text": note_text,
                 "status": status,
+            })
+
+        def record_adjustment(code: str, sku: str, diff_qty: int, note_date: datetime, note_text: str):
+            events.append({
+                "type": "ADJUSTMENT",
+                "code": code,
+                "sku": sku,
+                "diff_qty": diff_qty,
+                "note_date": note_date,
+                "note_text": note_text,
+                "status": "COMPLETED",
             })
 
         # ---------------------------------------------------------------------
@@ -662,6 +909,87 @@ def seed_database():
             "status": "COMPLETED",
         })
 
+        # Nhập kho & Xuất kho định kỳ cho 11 nhà cung cấp bổ sung (SP077 -> SP109)
+        extra_supplier_batches = [
+            ("PN-202605-004", "SUP_E2E_160432804590", datetime(2026, 5, 23, 8, 30), ["SP077", "SP078", "SP079", "SP080"]),
+            ("PN-202605-005", "SUP_E2E_154720745019", datetime(2026, 5, 23, 9, 30), ["SP081", "SP082", "SP083"]),
+            ("PN-202605-006", "SUP_E2E_151733885016", datetime(2026, 5, 23, 10, 30), ["SP084", "SP085", "SP086"]),
+            ("PN-202605-007", "SUP_E2E_132517808823", datetime(2026, 5, 23, 13, 30), ["SP087", "SP088", "SP089"]),
+            ("PN-202605-008", "SUP_E2E_122956130472", datetime(2026, 5, 23, 14, 30), ["SP090", "SP091", "SP092"]),
+            ("PN-202605-009", "SUP_E2E_121134649607", datetime(2026, 5, 23, 15, 30), ["SP093", "SP094", "SP095"]),
+            ("PN-202605-010", "SUP_E2E_120920994502", datetime(2026, 5, 24, 8, 30), ["SP096", "SP097", "SP098"]),
+            ("PN-202605-011", "SUP_E2E_120824350246", datetime(2026, 5, 24, 9, 30), ["SP099", "SP100", "SP101"]),
+            ("PN-202605-012", "SUP_E2E_130519140787", datetime(2026, 5, 24, 13, 30), ["SP102", "SP103", "SP104"]),
+            ("PN-202605-013", "SUP_AI", datetime(2026, 5, 25, 9, 0), ["SP105", "SP106", "SP107"]),
+            ("PN-202605-014", "SUP-ACID-TEST", datetime(2026, 5, 25, 10, 30), ["SP108", "SP109"]),
+        ]
+        for imp_code, sup_code, dt, skus in extra_supplier_batches:
+            batch_items = []
+            for sku in skus:
+                p = prod_map[sku]
+                batch_items.append((sku, 35, round(p.standard_price * 0.76, -3)))
+            record_import(imp_code, sup_code, dt, batch_items, f"Nhập hàng khởi tạo từ đối tác {sup_map[sup_code].name}")
+
+        # Xuất luân chuyển đều đặn cho SP077 -> SP109 (đảm bảo không bị cảnh báo Dead Stock hoặc Low Stock)
+        record_export(
+            "PX-202607-15",
+            "Công ty Cổ phần Phần mềm VTI Solutions",
+            datetime(2026, 7, 15, 10, 0),
+            [(f"SP{i:03d}", 3) for i in range(77, 94)],
+            "Xuất linh kiện và phụ kiện nâng cấp định kỳ đợt 1",
+        )
+        record_export(
+            "PX-202607-20",
+            "Trường Đại học Công nghệ FPT",
+            datetime(2026, 7, 20, 14, 0),
+            [(f"SP{i:03d}", 3) for i in range(94, 110)],
+            "Xuất thiết bị ngoại vi trang bị phòng thực hành đợt 2",
+        )
+        record_export(
+            "PX-202610-012",
+            "Cửa hàng Bán lẻ Tin học Nguyễn Kim",
+            datetime(2026, 10, 4, 9, 30),
+            [(f"SP{i:03d}", 2) for i in range(77, 94)],
+            "Xuất sỉ linh kiện và phụ kiện bổ sung kệ hàng tháng 10",
+        )
+        record_export(
+            "PX-202610-013",
+            "Hệ thống CyberCore Gaming Stadium",
+            datetime(2026, 10, 6, 15, 0),
+            [(f"SP{i:03d}", 2) for i in range(94, 110)],
+            "Xuất thiết bị ngoại vi và gaming gear đầu tháng 10",
+        )
+
+        # Biên bản kiểm kê kho định kỳ rải qua các tháng (ADJUSTMENT)
+        record_adjustment(
+            "KK-202606-001",
+            "SP017",
+            2,
+            datetime(2026, 6, 30, 17, 30),
+            "Kiểm kê định kỳ cuối tháng 06/2026: Phát hiện dư 2 sản phẩm do nhập sót chứng từ lô phụ kiện",
+        )
+        record_adjustment(
+            "KK-202607-001",
+            "SP068",
+            -1,
+            datetime(2026, 7, 31, 17, 15),
+            "Kiểm kê định kỳ cuối tháng 07/2026: Xuất hủy 1 sản phẩm hỏng bao bì trong quá trình lưu kho",
+        )
+        record_adjustment(
+            "KK-202608-001",
+            "SP016",
+            3,
+            datetime(2026, 8, 31, 17, 45),
+            "Kiểm kê định kỳ mùa tựu trường tháng 08/2026: Điều chỉnh tăng 3 sợi cáp mạng kiểm đếm thực tế tại kệ B2",
+        )
+        record_adjustment(
+            "KK-202609-001",
+            "SP087",
+            -2,
+            datetime(2026, 9, 30, 17, 30),
+            "Kiểm kê định kỳ cuối quý 3/2026: Điều chỉnh giảm 2 sợi cáp HDMI lỗi đầu kết nối khi kiểm tra kỹ thuật",
+        )
+
         # Sắp xếp toàn bộ chuỗi sự kiện theo đúng thứ tự thời gian thực tế
         # Nếu cùng thời điểm, ưu tiên NHẬP trước XUẤT để bảo toàn tồn kho ACID
         events.sort(key=lambda ev: (ev["note_date"], 0 if ev["type"] == "IMPORT" else 1))
@@ -782,6 +1110,25 @@ def seed_database():
                                 )
                             )
                 exp.total_amount = total_amount
+
+            elif ev_type == "ADJUSTMENT":
+                sku = ev["sku"]
+                diff_qty = int(ev["diff_qty"])
+                p = prod_map[sku]
+                if p.current_stock + diff_qty >= 0 and diff_qty != 0:
+                    p.current_stock += diff_qty
+                    db.add(
+                        StockLedger(
+                            product_id=p.id,
+                            transaction_type="ADJUSTMENT",
+                            reference_code=ev["code"],
+                            quantity_change=diff_qty,
+                            balance_after=p.current_stock,
+                            created_by=thukho_user.id,
+                            transaction_date=note_date,
+                            note=ev["note_text"],
+                        )
+                    )
 
         db.commit()
 

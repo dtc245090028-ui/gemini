@@ -35,6 +35,12 @@ async def lifespan(app: FastAPI):
                     conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN idempotency_key VARCHAR(100)"))
                     conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_{table_name}_idempotency_key ON {table_name} (idempotency_key)"))
                     conn.commit()
+        if inspector.has_table("products"):
+            prod_cols = [c["name"] for c in inspector.get_columns("products")]
+            if "supplier_id" not in prod_cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_supplier_id ON products (supplier_id)"))
+                conn.commit()
 
     # Tự động nạp dữ liệu tài khoản mặc định (Idempotent seed an toàn)
     db = SessionLocal()

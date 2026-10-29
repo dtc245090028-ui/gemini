@@ -93,7 +93,7 @@ export const ExportNotes = ({ isActive = true }) => {
   }, [isActive]);
 
   useEffect(() => {
-    if (isActive && isStaleRef.current) {
+    if (isActive) {
       isStaleRef.current = false;
       fetchData(true);
     }
@@ -510,7 +510,7 @@ export const ExportNotes = ({ isActive = true }) => {
                     <td className="py-3.5 px-4 font-mono text-xs text-[var(--text-secondary)]">
                       {new Date(n.note_date).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{n.creator?.full_name || 'Hệ thống'}</td>
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{n.creator_name || n.creator?.full_name || 'Hệ thống'}</td>
                     <td className="py-3.5 px-4 text-right font-mono text-xs font-bold text-[var(--text-primary)]">
                       {n.total_amount?.toLocaleString()} đ
                     </td>
@@ -843,7 +843,7 @@ export const ExportNotes = ({ isActive = true }) => {
               </div>
               <div>
                 <span className="text-[var(--text-muted)] block text-xs">Người lập phiếu:</span>
-                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.creator?.full_name || 'Hệ thống'}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.creator_name || selectedNote.creator?.full_name || 'Hệ thống'}</span>
               </div>
               <div>
                 <span className="text-[var(--text-muted)] block text-xs">Trạng thái:</span>

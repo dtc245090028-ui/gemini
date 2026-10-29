@@ -11,6 +11,7 @@ import random
 import time
 import uuid
 import queue
+import threading
 from locust import HttpUser, task, between, constant, events
 
 # Danh sách 20 tài khoản test tương ứng từng nhóm
@@ -71,18 +72,40 @@ for u in USERS_TARGETED:
     queue_targeted.put(u)
 
 # Cache ID của các SKU-PERF-* để dùng trong test
-# Sẽ được cập nhật động trong init
-PERF_SKU_MAP = {
-    "SKU-PERF-RACE": 86,
-    "SKU-PERF-BULK-01": 87,
-    "SKU-PERF-BULK-02": 88,
-    "SKU-PERF-FLOW": 89,
-    "SKU-PERF-BAD": 90,
-}
+# Được cập nhật động qua API /api/v1/products/?search=SKU-PERF- ngay khi user đầu tiên đăng nhập
+PERF_SKU_MAP = {}
+_sku_map_lock = threading.Lock()
+_sku_map_loaded = False
 
 
 class BaseWarehouseUser(HttpUser):
     abstract = True
+
+    def _ensure_perf_sku_map(self):
+        global _sku_map_loaded
+        if _sku_map_loaded:
+            return
+        with _sku_map_lock:
+            if _sku_map_loaded:
+                return
+            res = self.client.get(
+                "/api/v1/products/?search=SKU-PERF-&limit=50",
+                name="[Init] Lookup SKU-PERF-* IDs",
+            )
+            if res.status_code == 200:
+                for p in res.json():
+                    code = p.get("code")
+                    pid = p.get("id")
+                    if code and pid:
+                        PERF_SKU_MAP[code] = pid
+                if PERF_SKU_MAP:
+                    _sku_map_loaded = True
+                    print(f"[INIT] Đã nạp động PERF_SKU_MAP: {PERF_SKU_MAP}")
+                else:
+                    raise RuntimeError(
+                        "[LỖI] Không tìm thấy sản phẩm SKU-PERF-* trong CSDL! "
+                        "Hãy chạy setup_perf_data.py trước khi chạy Locust."
+                    )
 
     def login_once(self, user_queue, fallback_list):
         """Đăng nhập một lần duy nhất trong on_start và lưu token dùng lại cho mọi task."""
@@ -109,6 +132,7 @@ class BaseWarehouseUser(HttpUser):
             if res.status_code == 200:
                 token = res.json().get("access_token")
                 self.client.headers.update({"Authorization": f"Bearer {token}"})
+                self._ensure_perf_sku_map()
                 return
             time.sleep(0.1 * (attempt + 1))
 

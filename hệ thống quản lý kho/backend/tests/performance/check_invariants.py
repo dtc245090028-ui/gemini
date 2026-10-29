@@ -4,7 +4,27 @@ Sử dụng: python check_invariants.py [đường_dẫn_db]
 
 import sys
 import os
+import subprocess
 import sqlite3
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
+    chk = subprocess.run(
+        ["docker", "ps", "--filter", "name=warehouse_backend", "--filter", "status=running", "-q"],
+        capture_output=True, text=True, check=False
+    )
+    if chk.returncode == 0 and chk.stdout.strip():
+        res = subprocess.run(
+            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/check_invariants.py", "/app/warehouse.db"],
+            check=False
+        )
+        sys.exit(res.returncode)
 
 def check_invariants(db_path):
     if not os.path.exists(db_path):
@@ -111,15 +131,23 @@ def check_invariants(db_path):
             if cur_bal != prev_bal + chg:
                 violations += 1
 
-        cur.execute("""
-            SELECT balance_after, count(*) 
-            FROM stock_ledger 
-            WHERE product_id = ? 
-            GROUP BY balance_after 
-            HAVING count(*) > 1
-        """, (pid,))
-        dups = cur.fetchall()
-        dup_count = len(dups)
+        # Kiểm tra số dư lặp cho mặt hàng kiểm thử tải (SKU-PERF-*) hoặc mặt hàng chỉ biến động 1 chiều
+        changes_after_init = [r[1] for r in ledgers[1:]]
+        is_monotonic_dir = (
+            all(c < 0 for c in changes_after_init) or all(c > 0 for c in changes_after_init)
+        ) if changes_after_init else True
+
+        dup_count = 0
+        if "SKU-PERF-" in pcode or is_monotonic_dir:
+            cur.execute("""
+                SELECT balance_after, count(*) 
+                FROM stock_ledger 
+                WHERE product_id = ? 
+                GROUP BY balance_after 
+                HAVING count(*) > 1
+            """, (pid,))
+            dups = cur.fetchall()
+            dup_count = len(dups)
 
         total_violations += violations
         total_dup_balances += dup_count
@@ -141,23 +169,28 @@ def check_invariants(db_path):
         print(f"  >> KẾT QUẢ BẤT BIẾN 2: KHÔNG ĐẠT (Tổng {total_violations} dòng vi phạm lũy kế, {total_dup_balances} số dư lặp)")
         invariants_passed = False
     else:
-        print("  >> KẾT QUẢ BẤT BIẾN 2: ĐẠT (0 dòng vi phạm, 0 số dư lặp lại)")
+        print("  >> KẾT QUẢ BẤT BIẾN 2: ĐẠT (0 dòng vi phạm lũy kế, 0 số dư lặp bất thường)")
 
     # ---------------------------------------------------------
-    # BẤT BIẾN 3: Số phiếu SHIPPING = Số dòng thẻ kho tương ứng
+    # BẤT BIẾN 3: Tổng dòng chi tiết phiếu xuất đã xuất kho (SHIPPING/COMPLETED) = Số dòng thẻ kho EXPORT
     # ---------------------------------------------------------
-    print("\n--- 3. BẤT BIẾN 3: ĐỐI SOÁT PHIẾU SHIPPING VS THẺ KHO ---")
-    cur.execute("SELECT count(*) FROM export_notes WHERE status = 'SHIPPING'")
-    shipping_notes_count = cur.fetchone()[0]
+    print("\n--- 3. BẤT BIẾN 3: ĐỐI SOÁT DÒNG PHIẾU XUẤT ĐÃ XUẤT KHO VS THẺ KHO ---")
+    cur.execute("""
+        SELECT count(*)
+        FROM export_note_details d
+        JOIN export_notes n ON n.id = d.export_note_id
+        WHERE n.status IN ('SHIPPING', 'COMPLETED')
+    """)
+    shipped_detail_count = cur.fetchone()[0]
 
     cur.execute("SELECT count(*) FROM stock_ledger WHERE transaction_type = 'EXPORT'")
     export_ledger_count = cur.fetchone()[0]
 
-    print(f"  • Số phiếu xuất trạng thái SHIPPING: {shipping_notes_count}")
-    print(f"  • Số dòng Thẻ kho loại EXPORT       : {export_ledger_count}")
-    print(f"  • Độ chênh lệch                      : {shipping_notes_count - export_ledger_count}")
+    print(f"  • Tổng dòng hàng thuộc phiếu SHIPPING/COMPLETED: {shipped_detail_count}")
+    print(f"  • Tổng dòng Thẻ kho loại EXPORT                : {export_ledger_count}")
+    print(f"  • Độ chênh lệch                                : {shipped_detail_count - export_ledger_count}")
 
-    if shipping_notes_count == export_ledger_count:
+    if shipped_detail_count == export_ledger_count:
         print("  >> KẾT QUẢ BẤT BIẾN 3: ĐẠT (Khớp 100% tỷ lệ 1:1)")
     else:
         print("  >> KẾT QUẢ BẤT BIẾN 3: KHÔNG ĐẠT")

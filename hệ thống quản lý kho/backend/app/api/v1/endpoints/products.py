@@ -26,6 +26,7 @@ router = APIRouter(prefix="/products", tags=["Hàng hóa & Tồn kho (Products)"
 def get_products(
     search: Optional[str] = Query(None, description="Tìm theo tên sản phẩm hoặc mã SKU"),
     category_id: Optional[int] = Query(None, description="Lọc theo ID nhóm hàng"),
+    supplier_id: Optional[int] = Query(None, description="Lọc theo ID nhà cung cấp"),
     is_low_stock: Optional[bool] = Query(None, description="Lọc hàng sắp hết (current_stock <= min_stock)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái: ACTIVE, DISCONTINUED"),
     skip: int = Query(0, ge=0, description="Số bản ghi bỏ qua"),
@@ -33,8 +34,8 @@ def get_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Truy vấn danh sách hàng hóa kèm các bộ lọc tìm kiếm, nhóm hàng, cảnh báo tồn và phân trang."""
-    query = db.query(Product).options(joinedload(Product.category))
+    """Truy vấn danh sách hàng hóa kèm các bộ lọc tìm kiếm, nhóm hàng, nhà cung cấp, cảnh báo tồn và phân trang."""
+    query = db.query(Product).options(joinedload(Product.category), joinedload(Product.supplier))
 
     if search:
         pattern = f"%{search.strip()}%"
@@ -42,6 +43,9 @@ def get_products(
 
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
+
+    if supplier_id is not None:
+        query = query.filter(Product.supplier_id == supplier_id)
 
     if status_filter:
         query = query.filter(Product.status == status_filter.strip().upper())
@@ -69,7 +73,7 @@ def get_product_by_id(
     """Lấy thông tin chi tiết một mặt hàng theo ID."""
     product = (
         db.query(Product)
-        .options(joinedload(Product.category))
+        .options(joinedload(Product.category), joinedload(Product.supplier))
         .filter(Product.id == product_id)
         .first()
     )
@@ -111,9 +115,23 @@ def create_product(
             detail=f"Mã SKU '{sku_code}' đã tồn tại trong hệ thống.",
         )
 
-    # 3. Kiểm tra nhà cung cấp nếu có yêu cầu tạo phiếu nhập ban đầu
+    # 3. Kiểm tra nhà cung cấp chính và nhà cung cấp cho phiếu nhập ban đầu (nếu có)
+    chosen_supplier_id = product_in.supplier_id or product_in.initial_supplier_id
+    if chosen_supplier_id is not None:
+        supplier = db.query(Supplier).filter(Supplier.id == chosen_supplier_id).first()
+        if not supplier:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nhà cung cấp với ID {chosen_supplier_id} không tồn tại trong hệ thống.",
+            )
+
+    initial_sup_id = product_in.initial_supplier_id or (
+        product_in.supplier_id
+        if product_in.initial_quantity is not None and product_in.initial_quantity > 0
+        else None
+    )
     has_initial_import = (
-        product_in.initial_supplier_id is not None
+        initial_sup_id is not None
         and product_in.initial_quantity is not None
         and product_in.initial_quantity > 0
     )
@@ -123,12 +141,12 @@ def create_product(
             detail="Số lượng nhập kho ban đầu phải lớn hơn 0 khi chọn nhà cung cấp.",
         )
 
-    if has_initial_import:
-        supplier = db.query(Supplier).filter(Supplier.id == product_in.initial_supplier_id).first()
+    if has_initial_import and initial_sup_id != chosen_supplier_id:
+        supplier = db.query(Supplier).filter(Supplier.id == initial_sup_id).first()
         if not supplier:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nhà cung cấp với ID {product_in.initial_supplier_id} không tồn tại trong hệ thống.",
+                detail=f"Nhà cung cấp với ID {initial_sup_id} không tồn tại trong hệ thống.",
             )
 
     # 4. Tạo sản phẩm mới
@@ -139,6 +157,7 @@ def create_product(
         code=sku_code,
         name=product_in.name.strip(),
         category_id=product_in.category_id,
+        supplier_id=chosen_supplier_id,
         unit=product_in.unit.strip(),
         min_stock=product_in.min_stock,
         current_stock=starting_stock,
@@ -157,7 +176,7 @@ def create_product(
             else product_in.standard_price
         )
         import_note_in = ImportNoteCreate(
-            supplier_id=product_in.initial_supplier_id,
+            supplier_id=initial_sup_id,
             note=product_in.initial_note.strip()
             if product_in.initial_note
             else f"Nhập kho ban đầu khi tạo sản phẩm {product.code}",
@@ -211,6 +230,16 @@ def update_product(
                 detail=f"Nhóm hàng với ID {product_in.category_id} không tồn tại.",
             )
         product.category_id = product_in.category_id
+
+    if "supplier_id" in product_in.model_fields_set:
+        if product_in.supplier_id is not None:
+            supplier = db.query(Supplier).filter(Supplier.id == product_in.supplier_id).first()
+            if not supplier:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Nhà cung cấp với ID {product_in.supplier_id} không tồn tại.",
+                )
+        product.supplier_id = product_in.supplier_id
 
     if product_in.name is not None:
         product.name = product_in.name.strip()

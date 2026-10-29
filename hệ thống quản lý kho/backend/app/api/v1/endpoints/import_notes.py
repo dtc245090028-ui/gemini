@@ -61,7 +61,7 @@ def get_import_notes(
     supplier_id: Optional[int] = Query(None, description="Lọc theo ID nhà cung cấp"),
     status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái (COMPLETED, CANCELLED)"),
     skip: int = Query(0, ge=0, description="Số lượng bỏ qua"),
-    limit: int = Query(50, ge=1, le=200, description="Số lượng lấy tối đa"),
+    limit: int = Query(50, ge=1, le=2000, description="Số lượng lấy tối đa"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

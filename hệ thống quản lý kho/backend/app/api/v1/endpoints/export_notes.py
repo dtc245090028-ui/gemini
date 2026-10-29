@@ -65,7 +65,7 @@ def get_export_notes(
     search: Optional[str] = Query(None, description="Tìm theo mã phiếu xuất hoặc tên người nhận"),
     status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái (CONFIRMED, SHIPPING, COMPLETED, CANCELLED)"),
     skip: int = Query(0, ge=0, description="Số lượng bỏ qua"),
-    limit: int = Query(50, ge=1, le=200, description="Số lượng lấy tối đa"),
+    limit: int = Query(50, ge=1, le=2000, description="Số lượng lấy tối đa"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

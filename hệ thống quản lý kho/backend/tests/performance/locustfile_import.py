@@ -8,6 +8,7 @@ import os
 import random
 import time
 import queue
+import threading
 from locust import HttpUser, task, constant
 
 # Danh sách 20 tài khoản test có quyền kho (ADMIN & WAREHOUSE_KEEPER)
@@ -38,14 +39,39 @@ queue_targeted = queue.Queue()
 for u in USERS_TARGETED:
     queue_targeted.put(u)
 
-PERF_SKU_MAP = {
-    "SKU-PERF-BULK-01": 87,
-    "SKU-PERF-BULK-02": 88,
-}
+PERF_SKU_MAP = {}
+_sku_map_lock = threading.Lock()
+_sku_map_loaded = False
 
 
 class BaseWarehouseUser(HttpUser):
     abstract = True
+
+    def _ensure_perf_sku_map(self):
+        global _sku_map_loaded
+        if _sku_map_loaded:
+            return
+        with _sku_map_lock:
+            if _sku_map_loaded:
+                return
+            res = self.client.get(
+                "/api/v1/products/?search=SKU-PERF-&limit=50",
+                name="[Init] Lookup SKU-PERF-* IDs",
+            )
+            if res.status_code == 200:
+                for p in res.json():
+                    code = p.get("code")
+                    pid = p.get("id")
+                    if code and pid:
+                        PERF_SKU_MAP[code] = pid
+                if PERF_SKU_MAP:
+                    _sku_map_loaded = True
+                    print(f"[INIT] Đã nạp động PERF_SKU_MAP: {PERF_SKU_MAP}")
+                else:
+                    raise RuntimeError(
+                        "[LỖI] Không tìm thấy sản phẩm SKU-PERF-* trong CSDL! "
+                        "Hãy chạy setup_perf_data.py trước khi chạy Locust."
+                    )
 
     def login_once(self, user_queue, fallback_list):
         try:
@@ -70,6 +96,7 @@ class BaseWarehouseUser(HttpUser):
             if res.status_code == 200:
                 token = res.json().get("access_token")
                 self.client.headers.update({"Authorization": f"Bearer {token}"})
+                self._ensure_perf_sku_map()
                 return
             time.sleep(0.1 * (attempt + 1))
 

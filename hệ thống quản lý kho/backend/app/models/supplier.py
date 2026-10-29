@@ -17,4 +17,5 @@ class Supplier(Base):
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships
+    products = relationship("Product", back_populates="supplier")
     import_notes = relationship("ImportNote", back_populates="supplier")

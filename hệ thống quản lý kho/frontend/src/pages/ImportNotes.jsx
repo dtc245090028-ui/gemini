@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Ban,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -34,8 +35,14 @@ export const ImportNotes = ({ isActive = true }) => {
   const isSubmittingRef = useRef(false);
   const isStaleRef = useRef(false);
 
+  // Filter States (Yêu cầu 3.1.6: Tra cứu theo nhà cung cấp, hàng hóa, mã phiếu)
+  const [searchCode, setSearchCode] = useState('');
+  const [filterSupplierId, setFilterSupplierId] = useState('');
+  const [filterProductId, setFilterProductId] = useState('');
+
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [onlySupplierProducts, setOnlySupplierProducts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -87,7 +94,7 @@ export const ImportNotes = ({ isActive = true }) => {
   }, [isActive]);
 
   useEffect(() => {
-    if (isActive && isStaleRef.current) {
+    if (isActive) {
       isStaleRef.current = false;
       fetchData(true);
     }
@@ -122,7 +129,9 @@ export const ImportNotes = ({ isActive = true }) => {
     } else {
       setSupplierId(suppliers[0]?.id || '');
       setNoteText('');
-      const defaultProd = products[0];
+      const firstSupId = suppliers[0]?.id || '';
+      const supProds = products.filter((p) => Number(p.supplier_id) === Number(firstSupId));
+      const defaultProd = supProds[0] || products[0];
       setItems([
         {
           category_id: defaultProd?.category_id || '',
@@ -173,7 +182,10 @@ export const ImportNotes = ({ isActive = true }) => {
 
   const handleAddItemRow = () => {
     if (products.length === 0) return;
-    const defaultProd = products[0];
+    const supProds = onlySupplierProducts && supplierId
+      ? products.filter((p) => Number(p.supplier_id) === Number(supplierId))
+      : [];
+    const defaultProd = supProds[0] || products[0];
     setItems([
       ...items,
       {
@@ -295,6 +307,43 @@ export const ImportNotes = ({ isActive = true }) => {
     }
   };
 
+  const filteredImportNotes = importNotes.filter((n) => {
+    if (searchCode.trim()) {
+      const kw = searchCode.trim().toLowerCase();
+      const matchCode = (n.code || '').toLowerCase().includes(kw);
+      const matchSup = (n.supplier_name || n.supplier?.name || '').toLowerCase().includes(kw);
+      if (!matchCode && !matchSup) return false;
+    }
+    if (filterSupplierId && Number(n.supplier_id) !== Number(filterSupplierId)) {
+      return false;
+    }
+    if (filterProductId) {
+      const hasProd = (n.details || []).some((d) => Number(d.product_id) === Number(filterProductId));
+      if (!hasProd) return false;
+    }
+    return true;
+  });
+
+  const handleSupplierChangeInModal = (newSupId) => {
+    setSupplierId(newSupId);
+    if (onlySupplierProducts && newSupId) {
+      const supProds = products.filter((p) => Number(p.supplier_id) === Number(newSupId));
+      if (supProds.length > 0) {
+        setItems((prev) =>
+          prev.map((row, idx) => {
+            const picked = supProds[idx % supProds.length];
+            return {
+              ...row,
+              category_id: picked.category_id || '',
+              product_id: picked.id,
+              unit_price: Math.round((picked.standard_price || 100000) * 0.75),
+            };
+          })
+        );
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -315,6 +364,48 @@ export const ImportNotes = ({ isActive = true }) => {
         )}
       </div>
 
+      {/* Filter Bar (Tra cứu theo Nhà cung cấp, Hàng hóa, Mã phiếu) */}
+      <div className="card-wood p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              placeholder="Tìm theo mã phiếu (PN-...) hoặc tên nhà cung cấp..."
+              className="w-full pl-9 pr-3.5 py-2 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] placeholder:text-[var(--text-muted)]"
+            />
+          </div>
+
+          <select
+            value={filterSupplierId}
+            onChange={(e) => setFilterSupplierId(e.target.value)}
+            className="w-full sm:w-auto py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shrink-0"
+          >
+            <option value="">Tất cả nhà cung cấp</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterProductId}
+            onChange={(e) => setFilterProductId(e.target.value)}
+            className="w-full sm:w-auto py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shrink-0 max-w-xs"
+          >
+            <option value="">Tất cả mặt hàng nhập</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                [{p.code}] {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Import Notes Table */}
       <div className="card-wood overflow-hidden">
         <div className="overflow-x-auto">
@@ -333,21 +424,23 @@ export const ImportNotes = ({ isActive = true }) => {
             <tbody className="divide-y divide-[var(--border-subtle)] font-sans">
               {showTableLoader ? (
                 <Loader variant="table" columns={7} rows={8} />
-              ) : importNotes.length === 0 ? (
+              ) : filteredImportNotes.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-10 text-[var(--text-muted)]">
-                    Chưa có phiếu nhập kho nào.
+                    Không tìm thấy phiếu nhập kho nào phù hợp.
                   </td>
                 </tr>
               ) : (
-                importNotes.map((n) => (
+                filteredImportNotes.map((n) => (
                   <tr key={n.id} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
                     <td className="py-3.5 px-4 font-mono font-semibold text-[var(--wood-500)]">{n.code}</td>
-                    <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">{n.supplier?.name || 'N/A'}</td>
+                    <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">
+                      {n.supplier_name || n.supplier?.name || suppliers.find((s) => s.id === n.supplier_id)?.name || 'N/A'}
+                    </td>
                     <td className="py-3.5 px-4 font-mono text-xs text-[var(--text-secondary)]">
                       {new Date(n.note_date).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{n.creator?.full_name || 'Hệ thống'}</td>
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{n.creator_name || n.creator?.full_name || 'Hệ thống'}</td>
                     <td className="py-3.5 px-4 text-right font-mono text-xs font-bold text-[var(--text-primary)]">
                       {n.total_amount?.toLocaleString()} đ
                     </td>
@@ -418,7 +511,7 @@ export const ImportNotes = ({ isActive = true }) => {
               <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Nhà cung cấp đối tác</label>
               <select
                 value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
+                onChange={(e) => handleSupplierChangeInModal(e.target.value)}
                 className="input-wood cursor-pointer"
                 required
               >
@@ -444,7 +537,18 @@ export const ImportNotes = ({ isActive = true }) => {
           {/* Chi tiết mặt hàng */}
           <div className="border border-[var(--border-medium)] rounded-card p-3 sm:p-3.5 bg-[var(--bg-surface-warm)]">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-              <h4 className="text-xs font-bold text-[var(--text-primary)]">Danh mục sản phẩm nhập kho</h4>
+              <div className="flex flex-wrap items-center gap-3">
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">Danh mục sản phẩm nhập kho</h4>
+                <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlySupplierProducts}
+                    onChange={(e) => setOnlySupplierProducts(e.target.checked)}
+                    className="rounded accent-[var(--wood-500)] cursor-pointer"
+                  />
+                  <span>Chỉ hiện SP của nhà cung cấp này</span>
+                </label>
+              </div>
               <button
                 type="button"
                 onClick={handleAddItemRow}
@@ -457,9 +561,13 @@ export const ImportNotes = ({ isActive = true }) => {
 
             <div className="space-y-2.5">
               {items.map((row, idx) => {
-                const availableProducts = row.category_id
-                  ? products.filter((p) => p.category_id === Number(row.category_id))
+                const supplierPool = onlySupplierProducts && supplierId
+                  ? products.filter((p) => Number(p.supplier_id) === Number(supplierId))
                   : products;
+                const baseProducts = supplierPool.length > 0 ? supplierPool : products;
+                const availableProducts = row.category_id
+                  ? baseProducts.filter((p) => p.category_id === Number(row.category_id))
+                  : baseProducts;
 
                 return (
                   <div
@@ -573,7 +681,7 @@ export const ImportNotes = ({ isActive = true }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[var(--bg-surface-warm)] rounded-card border border-[var(--border-medium)]">
               <div>
                 <span className="text-[var(--text-muted)] block">Nhà cung cấp:</span>
-                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.supplier?.name || 'N/A'}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.supplier_name || selectedNote.supplier?.name || suppliers.find((s) => s.id === selectedNote.supplier_id)?.name || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-[var(--text-muted)] block">Ngày tạo:</span>
@@ -581,7 +689,7 @@ export const ImportNotes = ({ isActive = true }) => {
               </div>
               <div>
                 <span className="text-[var(--text-muted)] block">Người thực hiện:</span>
-                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.creator?.full_name || 'Hệ thống'}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{selectedNote.creator_name || selectedNote.creator?.full_name || 'Hệ thống'}</span>
               </div>
               <div>
                 <span className="text-[var(--text-muted)] block mb-0.5">Trạng thái:</span>

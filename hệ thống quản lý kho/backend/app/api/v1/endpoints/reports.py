@@ -7,7 +7,10 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
+from app.models.import_note import ImportNote
+from app.models.export_note import ExportNote
 
 from app.api.deps import get_current_user, get_db
 from app.models.product import Product
@@ -256,3 +259,34 @@ def get_low_stock_alerts(
 
     products = query.order_by(Product.current_stock.asc()).all()
     return products
+
+
+@router.get(
+    "/kpi-summary",
+    summary="Thống kê tổng quan KPI kho hàng cho Dashboard",
+)
+def get_kpi_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lấy số liệu tổng hợp chính xác theo thời gian thực cho Bảng điều khiển (Dashboard)."""
+    total_products = db.query(Product).count()
+    total_stock = db.query(func.coalesce(func.sum(Product.current_stock), 0)).scalar()
+    low_stock_count = (
+        db.query(Product)
+        .filter(
+            Product.current_stock <= Product.min_stock,
+            Product.status == "ACTIVE",
+        )
+        .count()
+    )
+    total_import_notes = db.query(ImportNote).count()
+    total_export_notes = db.query(ExportNote).count()
+
+    return {
+        "total_products": total_products,
+        "total_stock": int(total_stock or 0),
+        "low_stock_count": low_stock_count,
+        "total_import_notes": total_import_notes,
+        "total_export_notes": total_export_notes,
+    }

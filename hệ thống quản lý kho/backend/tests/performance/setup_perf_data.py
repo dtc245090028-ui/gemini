@@ -1,6 +1,32 @@
 """Script khởi tạo và reset dữ liệu kiểm thử hiệu năng (20 users và các SKU-PERF-*)."""
 
+import os
+import subprocess
 import sys
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+# Nếu chạy trên Windows Host trong khi container warehouse_backend đang mở WAL,
+# tự động ủy quyền vào trong container để tránh xung đột SQLite WAL shared-memory.
+if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
+    chk = subprocess.run(
+        ["docker", "ps", "--filter", "name=warehouse_backend", "--filter", "status=running", "-q"],
+        capture_output=True, text=True, check=False
+    )
+    if chk.returncode == 0 and chk.stdout.strip():
+        res = subprocess.run(
+            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/setup_perf_data.py"],
+            check=False
+        )
+        sys.exit(res.returncode)
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from app.core.database import SessionLocal
 from app.core.security import get_password_hash
 from app.models.category import Category

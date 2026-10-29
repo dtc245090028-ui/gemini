@@ -13,6 +13,7 @@ class Product(Base):
     code = Column(String(50), unique=True, index=True, nullable=False)  # Mã SKU
     name = Column(String(200), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True, index=True)
     unit = Column(String(20), nullable=False, default="Cái")
     min_stock = Column(Integer, nullable=False, default=10)
     current_stock = Column(Integer, nullable=False, default=0)
@@ -28,6 +29,7 @@ class Product(Base):
 
     # Relationships
     category = relationship("Category", back_populates="products")
+    supplier = relationship("Supplier", back_populates="products")
     import_details = relationship("ImportNoteDetail", back_populates="product")
     export_details = relationship("ExportNoteDetail", back_populates="product")
     ledger_entries = relationship("StockLedger", back_populates="product")
@@ -35,3 +37,7 @@ class Product(Base):
     @property
     def category_name(self):
         return self.category.name if self.category else None
+
+    @property
+    def supplier_name(self):
+        return self.supplier.name if self.supplier else None
