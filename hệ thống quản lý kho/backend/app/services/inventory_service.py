@@ -4,7 +4,7 @@ from app.core.metrics import write_metrics
 import random
 import time
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
@@ -50,6 +50,7 @@ def create_import_note(
     note_in: ImportNoteCreate,
     current_user_id: int,
     idempotency_key: Optional[str] = None,
+    stage_timing: Optional[Any] = None,
 ) -> ImportNote:
     """Lập phiếu nhập kho trong một Transaction ACID duy nhất.
 
@@ -111,6 +112,8 @@ def create_import_note(
                 note_code = generate_note_code(db, "PN", ImportNote, ImportNote.code)
 
             t_tx_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_tx_start = t_tx_start
             write_metrics.enter_transaction()
             import_note = ImportNote(
                 code=note_code,
@@ -164,8 +167,12 @@ def create_import_note(
                 db.add(ledger_entry)
 
             t_com_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_start = t_com_start
             db.commit()
             t_now = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_end = t_now
             write_metrics.exit_transaction(
                 tx_time_ms=(t_now - t_tx_start) * 1000,
                 commit_time_ms=(t_now - t_com_start) * 1000
@@ -197,6 +204,7 @@ def create_export_note(
     note_in: ExportNoteCreate,
     current_user_id: int,
     idempotency_key: Optional[str] = None,
+    stage_timing: Optional[Any] = None,
 ) -> ExportNote:
     """Lập phiếu xuất kho trong một Transaction ACID duy nhất.
 
@@ -259,6 +267,9 @@ def create_export_note(
             else:
                 note_code = generate_note_code(db, "PX", ExportNote, ExportNote.code)
 
+            t_tx_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_tx_start = t_tx_start
             export_note = ExportNote(
                 code=note_code,
                 recipient_name=note_in.recipient_name.strip(),
@@ -285,7 +296,13 @@ def create_export_note(
 
             # Ở trạng thái CONFIRMED: Chưa trừ tồn kho thực tế và chưa ghi nhận Thẻ kho.
             # Tồn kho và Thẻ kho sẽ chỉ được xử lý khi chuyển sang bước SHIPPING (Giao hàng).
+            t_com_start = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_start = t_com_start
             db.commit()
+            t_now = time.perf_counter()
+            if stage_timing:
+                stage_timing.t_commit_end = t_now
             db.refresh(export_note)
             return export_note
 
@@ -405,6 +422,7 @@ def ship_export_note(
     db: Session,
     export_note_id: int,
     current_user_id: int,
+    stage_timing: Optional[Any] = None,
 ) -> ExportNote:
     """Chuyển trạng thái phiếu xuất sang Đang Giao Hàng (SHIPPING).
 
@@ -450,6 +468,8 @@ def ship_export_note(
 
     # 2. Trừ tồn kho và ghi Thẻ kho
     t_tx_start = time.perf_counter()
+    if stage_timing:
+        stage_timing.t_tx_start = t_tx_start
     write_metrics.enter_transaction()
     now = datetime.now(timezone.utc)
     export_note.status = "SHIPPING"
@@ -492,8 +512,12 @@ def ship_export_note(
         db.add(ledger_entry)
 
     t_com_start = time.perf_counter()
+    if stage_timing:
+        stage_timing.t_commit_start = t_com_start
     db.commit()
     t_now = time.perf_counter()
+    if stage_timing:
+        stage_timing.t_commit_end = t_now
     write_metrics.exit_transaction(
         tx_time_ms=(t_now - t_tx_start) * 1000,
         commit_time_ms=(t_now - t_com_start) * 1000

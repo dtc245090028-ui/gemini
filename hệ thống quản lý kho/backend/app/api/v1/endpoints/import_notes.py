@@ -2,7 +2,8 @@
 
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+import time
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -123,19 +124,27 @@ def get_import_note_by_id(
     summary="Lập phiếu nhập kho (ACID Transaction)",
 )
 def create_new_import_note(
+    request: Request,
     note_in: ImportNoteCreate,
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Lập phiếu nhập kho: Tăng tồn kho và tự động ghi Thẻ kho (StockLedger)."""
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_handler_enter = time.perf_counter()
     note = create_import_note(
         db=db,
         note_in=note_in,
         current_user_id=current_user.id,
         idempotency_key=x_idempotency_key,
+        stage_timing=st,
     )
-    return _serialize_import_note(note)
+    resp = _serialize_import_note(note)
+    if st:
+        st.t_handler_exit = time.perf_counter()
+    return resp
 
 
 @router.post(

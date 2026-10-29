@@ -2,7 +2,8 @@
 
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+import time
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -126,19 +127,27 @@ def get_export_note_by_id(
     summary="Lập phiếu xuất kho mới (Trạng thái CONFIRMED - Chưa trừ tồn kho)",
 )
 def create_new_export_note(
+    request: Request,
     note_in: ExportNoteCreate,
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Lập phiếu xuất kho: Tạo chứng từ ở trạng thái CONFIRMED (chưa trừ tồn kho và chưa ghi Thẻ kho)."""
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_handler_enter = time.perf_counter()
     note = create_export_note(
         db=db,
         note_in=note_in,
         current_user_id=current_user.id,
         idempotency_key=x_idempotency_key,
+        stage_timing=st,
     )
-    return _serialize_export_note(note)
+    resp = _serialize_export_note(note)
+    if st:
+        st.t_handler_exit = time.perf_counter()
+    return resp
 
 
 @router.post(
@@ -148,12 +157,24 @@ def create_new_export_note(
 )
 def ship_existing_export_note(
     export_note_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Bắt đầu giao hàng: Kiểm tra chống tồn âm, trừ tồn kho và ghi Thẻ kho EXPORT."""
-    note = ship_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
-    return _serialize_export_note(note)
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_handler_enter = time.perf_counter()
+    note = ship_export_note(
+        db=db,
+        export_note_id=export_note_id,
+        current_user_id=current_user.id,
+        stage_timing=st,
+    )
+    resp = _serialize_export_note(note)
+    if st:
+        st.t_handler_exit = time.perf_counter()
+    return resp
 
 
 @router.post(

@@ -11,7 +11,9 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
+import time
 from app.core.config import settings
+from app.core.metrics import write_metrics, StageTiming
 from app.core.database import engine, Base, SessionLocal
 from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
@@ -63,6 +65,19 @@ app = FastAPI(
 )
 
 # Cấu hình CORS middleware
+@app.middleware("http")
+async def write_latency_breakdown_middleware(request: Request, call_next):
+    if not write_metrics.enabled or request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+        return await call_next(request)
+    st = StageTiming()
+    st.t_arrival = time.perf_counter()
+    request.state.stage_timing = st
+    request.state.arrival_time = st.t_arrival
+    response = await call_next(request)
+    st.t_response_done = time.perf_counter()
+    write_metrics.record_stages(st)
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
