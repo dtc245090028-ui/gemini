@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 import anyio.to_thread
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, require_roles
 from app.models.user import User
 from app.core.write_gate import WriteGateContext
 from app.core.bench_metrics import bench_traffic
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_roles(["ADMIN"]))])
 
 @router.get("/empty-async", summary="Benchmark rỗng - Pure Async (0 DB, 0 Threadpool, 0 Auth)")
 async def empty_async():

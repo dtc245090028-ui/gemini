@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "gemini"
     AI_MODEL_NAME: str = "gemini-3.5-flash-lite"
 
+    # Tối ưu tải & Benchmark (mặc định tắt trong production)
+    BENCH_ENDPOINTS: bool = False
+    WRITE_METRICS: bool = False
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
