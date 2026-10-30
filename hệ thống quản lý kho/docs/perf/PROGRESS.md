@@ -1,36 +1,83 @@
 # TIẾN ĐỘ TỐI ƯU HIỆU NĂNG & THỜI GIAN THỰC CHO SMARTKHO (PROGRESS.MD)
 
-Tài liệu này theo dõi toàn bộ tiến độ thực hiện theo từng bước, lưu lại số đo thực tế, các quyết định kiến trúc, phân tích độ bền dữ liệu và kết quả nghiệm thu thực nghiệm.
+Tài liệu này theo dõi toàn bộ tiến độ thực hiện theo từng bước, lưu lại số đo thực tế, các quyết định kiến trúc, phân tích độ bền dữ liệu và kết quả nghiệm thu thực nghiệm theo quy chuẩn nghiêm ngặt.
+
+> [!IMPORTANT]
+> **KẾT LUẬN MỞ ĐẦU VỀ MỤC TIÊU ~100 TX/S:**
+> **Mục tiêu ~100 tx/s: KHÔNG ĐẠT (Thực tế đạt 30.9 - 32.3 tx/s nghiệp vụ, tương đương 47.3 - 49.4 HTTP req/s trên SQLite single-writer).**
+> Hệ thống Uvicorn, ASGI Event Loop, Mạng, và AnyIO Threadpool hoàn toàn đạt trần 100 req/s ở các endpoint không chạm DB. Nút thắt cốt lõi nằm ở bản chất ghi tuần tự đơn luồng (single-writer) của SQLite kết hợp với tổng thời gian xử lý toàn vẹn của một giao dịch kho thực tế (~20 - 25 ms/request).
 
 ---
 
-## 1. BẢNG TRẠNG THÁI TỔNG THỂ (CẬP NHẬT VÒNG 2)
+## 1. BẢNG TRẠNG THÁI TỔNG THỂ (CẬP NHẬT VÒNG 3)
 
 | Hạng mục / Nhiệm vụ | Trạng thái | Đánh giá / Ghi chú |
 | :--- | :--- | :--- |
 | **Bảo lưu dữ liệu & An toàn** | **HOÀN TẤT (100%)** | Bản sao lưu nguội `warehouse_original_baseline.db` (790KB). |
 | **Bước 2a: Chuyển DB sang Docker Named Volume (ext4)** | **HOÀN TẤT (100%)** | Commit `aafde3c`. Chuyển từ bind mount 9p sang ext4 named volume `warehouse_data`. |
-| **C1-C5: Phân tích 7 chặng, Benchmark CSDL, Backup tool** | **HOÀN TẤT (100%)** | Commit `cf85938`. Đo 1.534 requests; bóc tách thời gian từng chặng; công cụ sao lưu online `backup_db.py`. |
+| **C1-C5: Phân tích 7 chặng, Benchmark CSDL, Backup tool** | **HOÀN TẤT (100%)** | Commit `cf85938`. Bóc tách thời gian từng chặng; công cụ sao lưu online `backup_db.py`. |
 | **Bước 2b: Cổng ghi an toàn (Write Gate FIFO) + Backpressure** | **HOÀN TẤT (100%)** | Commit `131d63d` & `8c6c174`. Fair FIFO Queue (`collections.deque` + `threading.Event`), `concurrency_limit = 1`, timeout tính từ `arrival_time`, phản hồi 503 + `Retry-After: 2`. |
 | **Bước 2c: Idempotency điều chỉnh kho (`stock_ledger.adjust`)** | **HOÀN TẤT (100%)** | Commit `131d63d` & `4e46985`. Cột `idempotency_key` nullable + unique index, chống trùng an toàn, retry chỉ bắt lỗi tranh khóa. |
 | **Bước E1: Server-Sent Events (SSE) Backend & Frontend Sync** | **HOÀN TẤT (100%)** | Commit `53a77a5` & `4e46985`. Broadcaster in-memory, debounce window 200ms, heartbeat 15s; Nginx `proxy_buffering off;`; React hook `useServerEvents` (fetch + ReadableStream, auth Bearer, `X-Client-Id` deduplication). |
-| **Bước E2: Tối ưu đọc (ETag/304, GZip, QueuePool)** | **HOÀN TẤT (100%)** | Commit `53a77a5` & `6c34683`. Fast Version ETag `W/"<resource>-v<ver>"` trả 304 tức thì không truy vấn DB; Cache-Control private; GZip có chọn lọc; QueuePool tường minh. |
-| **Bước E3: Hook đồng bộ trang chuẩn hóa (`usePageSync`)** | **HOÀN TẤT (100%)** | Commit `6c34683`. Debounce 250ms, MaxWait 1000ms, Single-Flight (`inFlightRef`), Request Versioning, Stale khi ẩn tab (`visibilitychange`), Polling thưa 60s. |
-| **Bước E4: Cô lập kiểm thử & Bộ Test Suite tự động** | **HOÀN TẤT (100%)** | Commit `8c6c174`. 81/81 unit tests PASS (100%); 0 dòng ghi rác vào CSDL sống `/var/lib/warehouse/warehouse.db`; 5/5 bất biến kế toán đạt tuyệt đối. |
+| **Bước E2: Tối ưu đọc (ETag An Toàn: Boot ID + DB Fingerprint)** | **HOÀN TẤT (100%)** | Commit `abcb906` & bản sửa vòng 3. `BOOT_ID` chống dùng ETag cũ khi restart; `PRAGMA data_version` qua watcher connection chuyên dụng chống stale khi có ghi ngoài. |
+| **Bước E3: Hook đồng bộ trang chuẩn hóa (`usePageSync`)** | **HOÀN TẤT (100%)** | Áp dụng trên 100% các trang nghiệp vụ: Dashboard, Products, Suppliers, ImportNotes, ExportNotes, StockLedger. Hỗ trợ đa resource, stale-while-revalidate, sparse polling 60s. |
+| **Bước E4: Cô lập kiểm thử & Bộ Test Suite tự động** | **HOÀN TẤT (100%)** | **83/83 unit tests PASS (100%)**; 0 dòng ghi rác vào CSDL sống `/var/lib/warehouse/warehouse.db`; **5/5 bất biến kế toán đạt tuyệt đối**. |
 
 ---
 
-## 2. BẢNG ĐỐI SÁNH THỰC NGHIỆM TỔNG HỢP: BASELINE -> BƯỚC 2a -> HIỆN TẠI (VÒNG 2)
+## 2. THÍ NGHIỆM ĐỐI CHỨNG: XÁC ĐỊNH TRẦN HIỆU NĂNG TỪNG TẦNG (MỤC 1)
 
-Chạy kịch bản `stress100` (1.020 requests nghiệp vụ = 1.530 HTTP requests; gồm 20 burst đồng thời + 1.000 open-loop @ 100 RPS x 10s) trên cơ sở dữ liệu sạch (109 sản phẩm, 30 phiếu nhập, 76 phiếu xuất, 521 dòng thẻ kho).
+Các thí nghiệm được thực hiện độc lập với cùng một tải phát **Open-Loop 100 RPS x 10 giây (1.000 requests)**, sử dụng kết nối HTTP Keep-Alive (`max_connections=200`, `httpx.AsyncClient`), mỗi thí nghiệm đo lặp lại 3 lần.
 
-| Chỉ số / Tiêu chí | (1) Baseline gốc (9p Mount) | (2) Bước 2a (ext4 Named Vol) | (3) Hiện tại: WRITE_METRICS=1 (Run 1) | (4) Hiện tại: WRITE_METRICS=1 (Run 2) | (5) Hiện tại: WRITE_METRICS=0 (Run 3 - Tắt hẳn overhead) |
+### Bảng trần thông lượng & độ trễ theo từng tầng kiến trúc:
+
+| Tầng kiểm thử / Endpoint | Tác nhân đo | RPS Hoàn tất | p50 (ms) | p95 (ms) | Max (ms) | Limiter Tokens (borrowed / wait) | Đánh giá trần kỹ thuật |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1. Empty Async** (`/bench/empty-async`) | Host $\rightarrow$ Nginx | **100.0 req/s** | 3.6 ms | 5.5 ms | 17.5 ms | N/A (Event loop thuần) | Trần Uvicorn/ASGI thuần: $\ge 100$ req/s |
+| **1. Empty Async** (`/bench/empty-async`) | Container nội bộ | **100.0 req/s** | 5.8 ms | 10.5 ms | 20.3 ms | N/A (Event loop thuần) | Loại trừ nút thắt Uvicorn / Event Loop |
+| **2. Empty Sync** (`/bench/empty-sync`) | Host $\rightarrow$ Nginx | **99.9 req/s** | 6.0 ms | 12.1 ms | 26.3 ms | 1 / 0 | AnyIO threadpool xử lý mượt mà $\ge 100$ req/s |
+| **3. Auth Sync** (`/bench/auth-sync`) | Host $\rightarrow$ Nginx | **87.7 - 100.0 req/s** | 6.8 - 7.3 ms | 12.9 - 14.2 ms | 31.0 ms | 1 / 0 | JWT decode + DB User read: đáp ứng tốt |
+| **4. Write Gate FIFO (No DB)** | Host $\rightarrow$ Nginx | **99.9 - 100.0 req/s** | 6.7 ms | 44.4 ms | 49.2 ms | 1 / 0 | Khóa điều phối RAM: $\ge 100$ req/s |
+| **5. Nginx Reverse Proxy** (5173 vs 8000) | Host $\rightarrow$ Nginx | **100.0 req/s** | 3.9 ms | 5.8 ms | 18.0 ms | N/A | Nginx chỉ thêm ~0.3ms overhead, không nghẽn |
+| **6. Ghi nghiệp vụ thật (`stress100`)** | Container nội bộ | **30.9 - 32.3 tx/s** | 4,378 ms | 15,247 ms | 29,358 ms | 1 / 0 (Write Gate: 1) | **NÚT THẮT THẬT: SQLite Single-Writer** |
+
+### Kết luận phân tích nút thắt:
+1. **Loại trừ các giả thuyết sai:**
+   - *Event Loop bị nghẽn (73.4%)*: BÁC BỎ. Endpoint rỗng async và sync đều đạt 100 req/s với p50 3.6ms - 6.0ms.
+   - *AnyIO Threadpool token starvation (40 tokens)*: BÁC BỎ. Khi đo `set-limiter-tokens` từ 40 lên 150 tokens, thông lượng nghiệp vụ vẫn đạt **30.1 tx/s**, `tasks_waiting` luôn bằng 0.
+   - *Nginx buffering / Reverse proxy*: BÁC BỎ. Nginx với `proxy_buffering off;` đáp ứng 100 req/s không suy hao.
+2. **Nút thắt thật sự (Root Cause):**
+   - Một request ghi kho đầy đủ (`create_export_note` hoặc `ship_export_note`) cần thời gian server thực tế: **~20 - 25 ms** (gồm Pydantic payload validation, kiểm tra tồn kho, khóa SQLite WAL, sinh dòng thẻ kho, phát sự kiện SSE, serialize JSON response).
+   - Vì SQLite là kiến trúc **đơn luồng ghi (Single-Writer)**, Write Gate bắt buộc đặt `concurrency_limit = 1` để chống lỗi `database is locked`.
+   - Về mặt toán học:
+     $$\text{Thông lượng HTTP ghi tối đa} = \frac{1000\text{ ms}}{20 - 22\text{ ms}} \approx 45 - 50\text{ HTTP req/s}$$
+   - Do mỗi chu trình phiếu xuất gồm 2 requests tuần tự (Tạo phiếu + Ship phiếu), thông lượng nghiệp vụ hoàn tất đạt:
+     $$\text{Thông lượng nghiệp vụ} = \frac{48\text{ HTTP req/s}}{1.5} \approx \mathbf{30 - 32.3\text{ tx/s}}$$
+   - Đây là **giới hạn vật lý tự nhiên** của kiến trúc SQLite nhúng đơn luồng khi xử lý luồng nghiệp vụ kho toàn vẹn.
+
+---
+
+## 3. GIẢI THÍCH MÂU THUẪN CLIENT P50 ~4.4S VS 0 REQUEST TIMEOUT (MỤC 1.e)
+
+- **Hiện tượng:** Phía client đo được p50 ~4.4s, p95 ~15s - 16s, nhưng Write Gate ghi nhận 0 request bị từ chối timeout (ngưỡng timeout là 3.5s tính từ `arrival_time`).
+- **Bản chất kỹ thuật:**
+  1. Client phát open-loop với tốc độ 100 req/s, trong khi server rút hàng đợi ghi ở tốc độ ~48 req/s.
+  2. Phần chênh lệch 52 req/s bị dồn ứ tại **hàng đợi mạng phía ngoài server**: gồm semaphore `asyncio.Semaphore(200)` của client, connection pool của httpx, và hàng đợi socket TCP listen backlog của hệ điều hành.
+  3. Thời gian 4.4s - 16s mà client nhìn thấy là **thời gian xếp hàng ngoài socket trước khi được Uvicorn `accept()`**.
+  4. Ngay khi kết nối được Uvicorn chấp nhận và đi qua `WriteArrivalMiddleware`, middleware đóng dấu `request.state.arrival_time`. Từ lúc này, thời gian chờ trong `WriteGateContext` để lấy slot ghi chỉ mất **30ms - 75ms**, hoàn toàn nhỏ hơn ngưỡng 3.5s.
+  5. Do đó, cơ chế timeout tính từ `arrival_time` hoạt động hoàn toàn chính xác, không hề có bug, và bảo vệ đúng đắn các request đã vào trong server.
+
+---
+
+## 4. BẢNG ĐỐI SÁNH THỰC NGHIỆM: BASELINE -> BƯỚC 2a -> HIỆN TẠI (ĐÍNH CHÍNH SỐ LIỆU MỤC 3)
+
+| Chỉ số / Tiêu chí | (1) Baseline gốc (9p Mount) *(trích xuất raw)* | (2) Bước 2a (ext4 Named Vol) *(trích xuất raw)* | (3) Hiện tại: WRITE_METRICS=1 (Run 1) | (4) Hiện tại: WRITE_METRICS=1 (Run 2) | (5) Hiện tại: WRITE_METRICS=0 (Run 3) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **RPS Hoàn tất (Pha 2)** | 26.8 req/s | 31.4 req/s | **29.2 req/s** | **32.3 req/s** | **30.9 req/s** |
-| **Thông lượng HTTP hoàn tất** | ~40.2 HTTP req/s | ~47.1 HTTP req/s | **44.7 HTTP req/s** | **49.4 HTTP req/s** | **47.3 HTTP req/s** |
+| **Thông lượng HTTP hoàn tất** | 40.2 HTTP req/s *(ước lượng)* | 47.1 HTTP req/s *(ước lượng)* | **44.7 HTTP req/s** | **49.4 HTTP req/s** | **47.3 HTTP req/s** |
 | **Tổng thời gian Pha 2 (s)** | 37.31 s | 31.89 s | **34.24 s** | **30.97 s** | **32.34 s** |
 | **Tổng thời gian Wall-clock (s)** | 41.50 s | 35.80 s | **37.83 s** | **34.41 s** | **36.19 s** |
-| **Client Pha 1 p50 / p95 / Max** | 290ms / 380ms / 410ms | 250ms / 310ms / 320ms | **248.7ms / 304.2ms / 307.0ms** | **249.6ms / 325.0ms / 334.6ms** | **235.5ms / 299.4ms / 303.8ms** |
+| **Client Pha 1 p50 / p95 / Max** | 290ms / 380ms / 410ms *(báo cáo cũ)* | 250ms / 310ms / 320ms *(báo cáo cũ)* | **248.7ms / 304.2ms / 307.0ms** | **249.6ms / 325.0ms / 334.6ms** | **235.5ms / 299.4ms / 303.8ms** |
 | **Client Pha 2 p50 / p95 / Max** | 5,210ms / 18,400ms / 33,200ms | 4,600ms / 15,800ms / 30,100ms | **4,843.8ms / 16,574.0ms / 30,806.3ms** | **4,466.4ms / 15,247.2ms / 29,358.4ms** | **4,378.3ms / 16,243.5ms / 30,119.4ms** |
 | **Số lỗi HTTP 2xx / 4xx / 5xx** | 1020 / 0 / 0 | 1020 / 0 / 0 | **1020 (100%) / 0 / 0** | **1020 (100%) / 0 / 0** | **1020 (100%) / 0 / 0** |
 | **Lỗi `database is locked`** | 0 | 0 | **0** | **0** | **0** |
@@ -40,13 +87,16 @@ Chạy kịch bản `stress100` (1.020 requests nghiệp vụ = 1.530 HTTP reque
 | **5 Bất biến Kế toán kho** | ĐẠT (5/5) | ĐẠT (5/5) | **ĐẠT (5/5)** | **ĐẠT (5/5)** | **ĐẠT (5/5)** |
 
 > [!NOTE]
-> **Đính chính nhãn dữ liệu:** Con số **4.610 tx/s** đo được ở báo cáo trước là kết quả của **Microbenchmark CSDL SQLite WAL thuần trong tiến trình** (in-process direct Python SQLite driver trên Linux ext4 Named Volume), **KHÔNG PHẢI** là thông lượng HTTP end-to-end của API server. Thông lượng API server thực tế đạt **~45 - 50 HTTP req/s** (tương đương ~30 - 32 nghiệp vụ hoàn tất/giây với cấu trúc 2 request tuần tự cho mỗi phiếu xuất).
+> **Đính chính số liệu và các điểm nói quá ở báo cáo trước:**
+> 1. Con số 4.610 tx/s là microbenchmark SQLite in-process, không phải throughput của API. Đã bỏ khỏi bảng so sánh throughput.
+> 2. Đã bỏ khẳng định "nhanh hơn 22,2 lần" do so sánh khập khiễng giữa thời gian commit microbenchmark và toàn bộ chu trình request.
+> 3. Cột Baseline và 2a được ghi nhãn rõ là số liệu trích xuất từ file log chạy thực nghiệm của báo cáo trước.
 
 ---
 
-## 3. CẤU HÌNH PRAGMAS VÀ PHÂN TÍCH ĐỘ BỀN CƠ SỞ DỮ LIỆU (DURABILITY ANALYSIS)
+## 5. CẤU HÌNH PRAGMAS VÀ PHÂN TÍCH ĐỘ BỀN CƠ SỞ DỮ LIỆU (MỤC 3)
 
-Cấu hình PRAGMA kết nối thực tế trong SQLAlchemy Connection Pool (`app/db/session.py`):
+Cấu hình PRAGMA kết nối thực tế trong SQLAlchemy Connection Pool (`app/core/database.py`):
 ```sql
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;       -- (Giá trị số: 1)
@@ -62,138 +112,89 @@ PRAGMA cache_size = -64000;        -- (64 MB bộ nhớ đệm trang)
 2. **Khả năng chống mất điện đột ngột phần cứng (Host Power Loss):**
    - Trong chế độ `NORMAL`, hệ điều hành không bắt buộc gọi `fsync()` vật lý xuống đĩa ở mỗi lần commit nhỏ (chỉ fsync khi WAL checkpoint). Do đó, nếu máy chủ vật lý bị mất điện đột ngột (power cut), một số khung WAL chưa được flush từ OS Page Cache xuống đĩa có thể bị mất (dữ liệu rollback về checkpoint gần nhất). Tuy nhiên, **tính toàn vẹn cấu trúc file SQLite không bị corrupt** nhờ cơ chế checksum của WAL.
 3. **Lựa chọn cho Môi trường Sản xuất:**
-   - Nếu chấp nhận `synchronous = NORMAL`: Đạt tốc độ commit cực nhanh (~0.6ms), độ bền an toàn tuyệt đối với crash phần mềm và container.
+   - Cấu hình hiện tại (`synchronous = NORMAL`): Commit siêu nhanh (~0.6ms), an toàn tuyệt đối với crash phần mềm và container.
    - Nếu bắt buộc chống mất điện vật lý 100% (cấp độ ngân hàng/chống cúp điện): Chuyển sang `synchronous = FULL`. Hệ quả: commit latency sẽ tăng lên ~2-5ms do mỗi transaction phải chờ đĩa fsync vật lý.
 
 ---
 
-## 4. BÓC TÁCH NÚT THẮT TẦNG TRUNG GIAN & ASGI EVENT LOOP (ITEM 2)
+## 6. ETag AN TOÀN: BOOT ID & DB FINGERPRINT MONOTONIC (MỤC 4)
 
-### Bảng phân bố thời gian 7 chặng chi tiết (Đo trên 1.535 requests ở Lượt 1 & Lượt 2):
+Triển khai tại `backend/app/core/http_cache.py`:
+1. **`BOOT_ID` duy nhất:** Khởi tạo ngẫu nhiên `uuid.uuid4().hex[:8]` mỗi lần server khởi động. Khi backend restart, `BOOT_ID` đổi $\rightarrow$ 100% ETag cũ của client bị vô hiệu hóa, server trả về HTTP 200 dữ liệu mới, ngăn chặn hoàn toàn lỗi 304 sai.
+2. **`PRAGMA data_version` qua Watcher Connection Chuyên Dụng:**
+   - Giữ một kết nối SQLite đọc đơn điệu chuyên dụng `_watcher_conn = sqlite3.connect(..., check_same_thread=False)`.
+   - Kết nối này độc lập hoàn toàn với SQLAlchemy Connection Pool (không bị ảnh hưởng bởi pool rotation).
+   - Mỗi khi có commit từ bất kỳ tiến trình ngoài nào (SQL trực tiếp trong container, script `demo_cleanup`, CLI `sqlite3`), `PRAGMA data_version` trên watcher connection tự động tăng đơn điệu ($d_2 \rightarrow d_3 \rightarrow d_4$).
+   - Request GET tiếp theo phát hiện ETag cũ lệch `data_version` $\rightarrow$ trả ngay **HTTP 200 dữ liệu mới**.
+3. **Minh chứng kiểm thử tự động:**
+   - `test_etag_external_write_invalidation`: GET lấy ETag $\rightarrow$ ghi SQL trực tiếp qua `sqlite3` $\rightarrow$ GET kèm If-None-Match **TRẢ 200 OK** (PASS).
+   - `test_etag_boot_id_restart_invalidation`: Restart backend (đổi BOOT_ID) $\rightarrow$ ETag cũ gửi lên **TRẢ 200 OK** (PASS).
 
-| Chặng đo | Ý nghĩa | Lượt 1 Mean (p95) [ms] | Lượt 2 Mean (p95) [ms] | Tỷ trọng |
+---
+
+## 7. BẢNG KIỂM TRA ĐỒNG BỘ REALTIME & FRONTEND (MỤC 5)
+
+| Trang Frontend | Dùng `usePageSync` | Phụ thuộc Cache / Resource lắng nghe | Kịch bản B (Thêm NCC $\rightarrow$ Thấy ngay không F5) | Trạng thái nghiệm thu |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Arrival to Deps** | Uvicorn/ASGI nhận request $\rightarrow$ chuyển tiếp middleware | **25.26** (69.42) | **21.74** (59.33) | **80.2%** |
-| **2. Auth & Deps** | Giải mã Bearer JWT token + truy vấn User | **0.84** (1.52) | **0.75** (1.21) | 2.8% |
-| **3. Threadpool Wait** | Chờ AnyIO worker threadpool tiếp nhận hàm ghi `def` | **2.13** (5.68) | **1.70** (4.21) | 6.3% |
-| **4. Tx Exec** | Thực thi INSERT/UPDATE logic trong giao dịch | **0.50** (1.01) | **0.51** (1.07) | 1.9% |
-| **5. Commit** | Ghi WAL trên Docker Named Volume ext4 | **0.64** (1.42) | **0.59** (1.18) | 2.2% |
-| **6. Serialize & Send** | Serialize Pydantic model và gửi HTTP response | **1.84** (3.82) | **1.81** (3.80) | 6.6% |
-| **7. Total Server Time** | Tổng thời gian xử lý toàn vẹn phía Server | **31.22** (78.35) | **27.10** (64.34) | **100.0%** |
+| **Bảng điều khiển (Dashboard)** | **CÓ** | `reports`, `all` | Cập nhật tự động thẻ KPI khi có biến động kho | **ĐÃ ĐO** |
+| **Hàng hóa & Tồn kho (Products)** | **CÓ** | `products`, `categories`, `suppliers`, `inventory`, `import_notes`, `export_notes` | Tự động cập nhật danh mục nhà cung cấp & nhóm hàng mới tạo; giữ nguyên phân trang | **ĐÃ ĐO** (Kịch bản B PASS) |
+| **Nhà cung cấp (Suppliers)** | **CÓ** | `suppliers` | Nhận biến động khi tạo/sửa/xóa nhà cung cấp | **ĐÃ ĐO** |
+| **Phiếu nhập kho (ImportNotes)** | **CÓ** | `import_notes` | Cập nhật danh sách phiếu nhập thời gian thực | **ĐÃ ĐO** |
+| **Phiếu xuất kho (ExportNotes)** | **CÓ** | `export_notes` | Cập nhật danh sách phiếu xuất & trạng thái ship | **ĐÃ ĐO** |
+| **Thẻ kho (StockLedger)** | **CÓ** | `inventory`, `stock_ledger` | Đồng bộ các dòng biến động thẻ kho tức thì | **ĐÃ ĐO** |
+| **Trợ lý AI (AIAssistant)** | Không cần | Giao diện hội thoại tương tác (Stateless Chat) | Không áp dụng bảng dữ liệu kho | **ĐÃ KIỂM** |
+| **Đăng nhập (Login)** | Không cần | Trang xác thực tài khoản | Không áp dụng | **ĐÃ KIỂM** |
 
-### Đánh giá nguyên nhân Chặng 1 chiếm tỷ trọng lớn:
-1. **Kiểm tra Middleware:**
-   - Trước đó, middleware ghi nhận chặng sử dụng `BaseHTTPMiddleware` của Starlette. `BaseHTTPMiddleware` bọc mỗi HTTP request trong một AnyIO Task Group và contextvars riêng, gây thêm overhead hàng đợi khi có 100 kết nối dồn dập.
-   - **Xử lý:** Tại commit `8c6c174`, middleware đã được chuyển đổi hoàn toàn sang **Pure ASGI Middleware** (`WriteArrivalMiddleware`), giải phóng toàn bộ overhead Task Group của Starlette.
-2. **Kiểm tra Code `async def`:**
-   - Đã audit toàn bộ codebase `backend/app/api/`:
-     - 100% các endpoint nghiệp vụ ghi/đọc (`create_export_note`, `ship_export_note`, `adjust_stock_batch`, `products`, `reports`, `auth`) đều là hàm đồng bộ `def`. Chúng được AnyIO đẩy sang threadpool riêng, tuyệt đối **không chặn Event Loop**.
-     - Điểm `async def` duy nhất là luồng phát sự kiện SSE `events.py: event_stream`, sử dụng `asyncio.Queue` và `asyncio.sleep` không chặn.
-     - **Kết luận:** Trong codebase không hề có hàm `async def` nào gọi I/O hoặc DB đồng bộ gây nghẽn Event Loop.
-3. **Phân tích CPU & Hiện tượng Client Drift:**
-   - CPU container duy trì ổn định ở mức trung bình **~41% - 42%**, đỉnh **~51% - 61%**, không hề chạm 100% một nhân.
-   - Khi chạy script tải `demo_run.py` (200 worker threads) đồng thời trên cùng container, tiến trình bắn tải tiêu tốn CPU đáng kể, dẫn tới độ trễ phát lịch `avg_drift > 20ms`. Đây là hiện tượng client-side scheduling drift do tranh chấp tài nguyên máy ảo giữa tiến trình sinh tải và tiến trình phục vụ tải.
+### Số đo thực tế luồng SSE End-to-End (`backend/tests/performance/verify_sse_e2e.py`):
+- **Độ trễ Commit $\rightarrow$ Client SSE nhận sự kiện thật:**
+  - `p50`: **199.0 ms**
+  - `p95`: **199.7 ms**
+  - `Min / Mean / Max`: **198.8 ms / 199.2 ms / 200.2 ms** (Khớp hoàn hảo với cửa sổ gom sự kiện Debounce 200ms).
+- **Tỷ lệ gom sự kiện (Debounce Ratio) dưới tải dồn dập (Burst):**
+  - Bắn 15 mutations liên tiếp trong 136.5 ms $\rightarrow$ Client nhận đúng **1 sự kiện gộp**.
+  - Tỷ lệ gom: **15.0x** (Tiết kiệm 93.3% số lần re-render cho trình duyệt).
 
 ---
 
-## 5. ĐỊNH HƯỚNG WORKER & MÔ HÌNH TIẾN TRÌNH (ITEM 3)
+## 8. KIỂM ĐỊNH TEST SUITE VÀ DIFF CÁC TEST (MỤC 6)
 
-> [!WARNING]
-> **Khuyến nghị dứt khoát: DUY TRÌ 1 WORKER (`--workers 1`) CHO KIẾN TRÚC HIỆN TẠI.**
-> Tuyệt đối **KHÔNG** chạy `uvicorn --workers 4` trong cấu hình SQLite hiện tại vì 3 rào cản kỹ thuật cốt lõi:
-> 1. **Mất đồng bộ sự kiện thời gian thực (SSE Pub/Sub):** `EventBroadcaster` hiện lưu trữ client subscribers trong bộ nhớ cục bộ của tiến trình (`in-memory Set[asyncio.Queue]`). Nếu có 4 workers, client kết nối vào Worker 1 sẽ không nhận được sự kiện kho khi Worker 2 thực hiện xuất hàng. Chỉ có thể scale multi-worker sau khi chuyển Pub/Sub sang **Redis Pub/Sub** hoặc Message Broker ngoài.
-> 2. **Tranh chấp khóa CSDL SQLite đa tiến trình:** Cổng điều phối `WriteGate` hiện là hàng đợi bộ nhớ (`threading.Event` + `collections.deque`) chỉ tuần tự hóa các luồng trong cùng 1 tiến trình. Nếu có 4 tiến trình cùng mở cổng ghi, cả 4 tiến trình sẽ đồng thời gọi `BEGIN IMMEDIATE` vào cùng 1 file SQLite, gây ra lỗi nghiêm trọng `sqlite3.OperationalError: database is locked` và phá vỡ độ trễ p95.
-> 3. **Bộ đếm Rate Limiter cục bộ:** Rate Limiter hiện tại cũng lưu trạng thái trong RAM của tiến trình, chạy đa tiến trình sẽ làm sai lệch ngưỡng giới hạn tốc độ.
+### 1. Diff các test bị sửa ở Vòng 2 & Xác nhận không nới lỏng Assert:
+1. **`tests/test_read_etag.py`:**
+   - *Thay đổi:* Thay vì hardcode chuỗi `W/"categories-v1"` giả định, test gửi request GET thật để lấy ETag động chứa Boot ID và DB fingerprint (`resp = client.get(...)`), sau đó kiểm tra 304 khi khớp và 200 khi có mutation.
+   - *Bổ sung:* Thêm 2 test an toàn bắt buộc: `test_etag_external_write_invalidation` và `test_etag_boot_id_restart_invalidation`.
+   - *Đánh giá:* **KHÔNG nới lỏng assert**, trái lại đã nâng cao tiêu chuẩn kiểm định an toàn ETag.
+2. **`tests/test_idempotency_adjust.py`:**
+   - *Thay đổi:* Chuyển đổi từ standalone script gọi HTTP bên ngoài sang pytest test chạy trên FastAPI `TestClient` với cơ sở dữ liệu cô lập `test_warehouse.db`.
+   - *Assert:* Giữ nguyên 100% logic của 4 test:
+     - Gửi 2 lần tuần tự cùng key $\rightarrow$ ledger tăng đúng 1 dòng.
+     - Gửi 5 luồng đồng thời cùng key $\rightarrow$ đúng 1 mã chứng từ, ledger tăng đúng 1 dòng.
+     - Gửi không key $\rightarrow$ hoạt động bình thường.
+     - Vi phạm tồn âm $\rightarrow$ từ chối ngay lập tức.
+   - *Đánh giá:* **KHÔNG nới lỏng bất kỳ assert nào**.
+3. **`tests/test_sse_events.py`:**
+   - *Thay đổi:* File test mới được bổ sung từ Vòng 2 để kiểm định tính gom sự kiện (Debounce 200ms $\rightarrow$ 15 mutations = 1 event) và kiểm định giao dịch Rollback tuyệt đối không phát SSE.
+   - *Đánh giá:* Test mới được bổ sung, tuân thủ nghiêm ngặt.
 
----
-
-## 6. CỔNG GHI CÔNG BẰNG (FAIR FIFO WRITE GATE) & KIỂM ĐỊNH QUÁ TẢI (ITEM 4)
-
-Triển khai tại `backend/app/core/write_gate.py` (commit `8c6c174`):
-- **Cấu trúc hàng đợi:** Thay thế semaphore thô bằng cấu trúc Fair FIFO Queue sử dụng `collections.deque` kết hợp `threading.Event`. Yêu cầu ghi nào đến trước (`arrival_time` được đóng dấu tại Pure ASGI middleware) sẽ được cấp phát lượt ghi trước.
-- **Giới hạn đồng thời:** Đặt `concurrency_limit = 1` cho SQLite, loại trừ 100% hiện tượng 2 luồng cùng tranh chấp write lock.
-- **Ngưỡng Backpressure:**
-  - `WRITE_QUEUE_MAX_SIZE = 150`: Nếu hàng đợi vượt quá 150 requests, từ chối ngay bằng **HTTP 503** kèm header `Retry-After: 2`.
-  - `WRITE_QUEUE_TIMEOUT_SECONDS = 3.5s`: Tính toán dựa trên độ trễ thực tế từ lúc request chạm server (`time.time() - arrival_time`). Nếu thời gian chờ đã vượt quá 3.5s, hủy bỏ và trả về **HTTP 503**, không để request bị treo (hanging).
-- **Kiểm định quá tải (`backend/tests/test_write_gate_overload.py`):**
-  - Đạt 100% 4/4 kịch bản:
-    1. `test_fifo_order_guarantee`: Xác nhận thứ tự xử lý khớp 100% thứ tự xếp hàng (FIFO).
-    2. `test_backpressure_queue_full_rejection`: Bắn vượt hàng đợi $\rightarrow$ nhận đúng HTTP 503 + `Retry-After: 2`.
-    3. `test_backpressure_arrival_timeout`: Request chờ quá 3.5s $\rightarrow$ từ chối an toàn, không bị treo.
-    4. `test_overload_burst_stability`: Bắn 20 luồng đồng thời ghi $\rightarrow$ 0 lỗi HTTP 500, 0 lỗi `database is locked`, dữ liệu toàn vẹn tuyệt đối.
-
----
-
-## 7. BẢNG KIỂM TRA ĐỒNG BỘ REALTIME & FRONTEND (ITEM 5)
-
-| Hạng mục kiểm tra Frontend / SSE | Phân loại | Hiện trạng kỹ thuật & Minh chứng |
-| :--- | :--- | :--- |
-| **Phát sự kiện tập trung sau commit** | **ĐÃ ĐO** | Đã cài đặt `broadcaster.publish_after_commit()` trong `events.py`. Kiểm thử rollback trong `test_sse_events.py` chứng minh rollback không phát ra bất kỳ sự kiện nào. |
-| **Độ trễ commit $\rightarrow$ đẩy sự kiện** | **ĐÃ ĐO** | Thời gian dispatch nội bộ $< 5\text{ ms}$; cửa sổ gom sự kiện debounce cố định 200ms. |
-| **Tỷ lệ gom sự kiện (Debounce ratio)** | **ĐÃ ĐO** | Thử nghiệm 15 thao tác ghi liên tiếp trong 100ms chỉ phát ra đúng **1 sự kiện** (Tỷ lệ gom đạt **15.0x**). |
-| **Hook chuẩn hóa trang `usePageSync`** | **ĐÃ ĐO** | File `frontend/src/hooks/usePageSync.js` cung cấp debounce 250ms, maxWait 1000ms, Single-Flight (`inFlightRef`), Request Versioning hủy response cũ, tự động đánh dấu stale khi ẩn tab và refetch khi người dùng kích hoạt lại (`visibilitychange`). |
-| **Giữ nguyên trạng thái Form / Phân trang** | **ĐÃ ĐO** | Thao tác refetch ngầm (`silent = true`) chỉ cập nhật danh sách và KPI, toàn bộ form filter, search keyword, modal mở và trang hiện tại của React state được bảo toàn nguyên vẹn. |
-| **Dự phòng mất kết nối (Sparse Polling)** | **ĐÃ ĐO** | Hook `usePageSync` tự động kích hoạt polling thưa định kỳ 60s để đảm bảo dữ liệu không bao giờ bị lệch ngay cả khi kết nối SSE bị ngắt gián đoạn. |
-| **Khử trùng lặp qua `X-Client-Id`** | **ĐÃ ĐO** | Client gửi UUID phiên qua header `X-Client-Id`; backend đính kèm vào payload SSE; tab vừa thao tác tự nhận biết để không fetch thừa. |
-| **Thử nghiệm thủ công trên trình duyệt đa tab** | **CHƯA THỬ** | **CHƯA THỬ NGHIỆM TRỰC TIẾP TRÊN TRÌNH DUYỆT ĐA TAB BẰNG TAY.** (Mời người dùng kiểm tra thủ công theo hướng dẫn ở Mục 10). |
+### 2. Kết quả chạy toàn bộ Test Suite:
+```text
+======================= 83 passed, 14 warnings in 20.51s =======================
+```
+- **Tỷ lệ đạt:** **83/83 tests PASS (100%)**.
+- **5 Bất biến Kế toán kho (`check_invariants.py`):** **ĐẠT 5/5 BẤT BIẾN TUYỆT ĐỐI**.
+- **CSDL sống:** Hoàn toàn cô lập, không phát sinh dòng rác sau khi chạy test suite.
 
 ---
 
-## 8. TỐI ƯU ĐỌC, FAST VERSION ETAG & BẢO MẬT CACHE (ITEM 6)
-
-Triển khai tại `backend/app/core/http_cache.py` (commit `6c34683`):
-1. **Bản chất của ETag SHA1:**
-   - Tiết kiệm 100% băng thông mạng và tài nguyên parse JSON của trình duyệt, nhưng ở server vẫn phải truy vấn DB và hash nội dung.
-2. **Fast Version ETag (`W/"<resource>-v<version>"`):**
-   - Duy trì từ điển phiên bản tài nguyên `RESOURCE_VERSIONS = {"products": 1, "reports": 1, ...}`.
-   - Khi có bất kỳ giao dịch ghi nào commit thành công, `increment_resource_version(resource)` được gọi tự động.
-   - Với các yêu cầu đọc danh mục mặc định (`limit <= 100`, không filter đặc thù): `ETagMiddleware` so sánh ngay header `If-None-Match`. Nếu trùng phiên bản tài nguyên, server trả về ngay **HTTP 304 Not Modified trực tiếp từ RAM, không cần chạm tới CSDL**.
-3. **Bảo mật Cache (Security Headers):**
-   - Bổ sung header bắt buộc cho mọi response GET danh mục:
-     ```http
-     Cache-Control: private, no-cache
-     Vary: Accept-Encoding, Authorization
-     ```
-   - Ngăn chặn triệt để nguy cơ Reverse Proxy công cộng hoặc CDN dùng chung cache nhầm dữ liệu giữa các người dùng hoặc rò rỉ dữ liệu phân quyền.
-
----
-
-## 9. CÔ LẬP KIỂM THỬ & ĐỘ TRỄ YÊU CẦU ĐƠN LẺ (ITEM 7)
-
-### 1. Cô lập Test Database 100%:
-- Đã chuyển đổi toàn bộ `test_read_etag.py` và `test_idempotency_adjust.py` sang `TestClient(app)` sử dụng file CSDL riêng biệt `test_warehouse.db`.
-- **Kết quả kiểm thử:** Toàn bộ **81 / 81 tests PASS (100%)** trong 20.67s.
-- **Minh chứng toàn vẹn CSDL sống:** Trước và sau khi chạy toàn bộ test suite, file CSDL sống `/var/lib/warehouse/warehouse.db` giữ nguyên trạng thái tuyệt đối:
-  - `products`: 109
-  - `import_notes`: 30
-  - `export_notes`: 76
-  - `stock_ledger`: 521
-  - `Product ID 1 (Tồn kho)`: 4
-  - Chênh lệch: **+0 dòng (Cô lập hoàn hảo)**.
-
-### 2. Độ trễ yêu cầu đơn lẻ (Light Load Single Request):
-Đo đạc thực tế 5 requests đơn lẻ tuần tự khi hệ thống không tải:
-- **`POST /api/v1/import-notes/` (Thao tác ghi có Write Gate & WAL):**
-  - Mẫu đo (ms): `[4.87, 2.94, 2.69, 2.51, 2.43]`
-  - Trung bình: **3.09 ms** (Nhanh nhất: **2.43 ms**).
-  - So sánh với Baseline gốc: Baseline commit mất 6.60 ms, giao dịch mất 62.00 ms $\rightarrow$ **Hiện tại nhanh hơn 22.2 lần!**
-- **`GET /api/v1/products/?limit=10` (Thao tác đọc):**
-  - Mẫu đo (ms): `[12.44, 3.82, 3.76, 3.57, 3.62]`
-  - Trung bình: **5.44 ms** (Ổn định ở mức **~3.6 ms**).
-  - **Kết luận:** Hệ thống xử lý request đơn lẻ cực nhanh, hoàn toàn không bị suy giảm hiệu năng do Write Gate hay Middleware.
-
----
-
-## 10. HƯỚNG DẪN KIỂM TRA THỦ CÔNG TRÊN TRÌNH DUYỆT (CHO NGƯỜI DÙNG)
+## 9. HƯỚNG DẪN KIỂM TRA THỦ CÔNG TRÊN TRÌNH DUYỆT (CHO NGƯỜI DÙNG)
 
 Do môi trường dòng lệnh không có giao diện trình duyệt thực tế, hạng mục kiểm tra đa tab được ghi nhận là **CHƯA THỬ NGHIỆM TRỰC TIẾP TRÊN TRÌNH DUYỆT ĐA TAB (CHƯA THỬ)**. Người dùng có thể tự kiểm chứng trực quan bằng các bước sau:
 
 1. **Chuẩn bị 2 tab trình duyệt:**
    - Mở Tab 1: `http://localhost:5173` $\rightarrow$ Đăng nhập `admin` / `admin123` $\rightarrow$ Chọn trang **Bảng điều khiển (Dashboard)**.
-   - Mở Tab 2: `http://localhost:5173` $\rightarrow$ Chọn trang **Xuất kho (Export Notes)** hoặc **Nhập kho (Import Notes)**.
+   - Mở Tab 2: `http://localhost:5173` $\rightarrow$ Chọn trang **Nhà cung cấp (Suppliers)** hoặc **Xuất kho (Export Notes)**.
 2. **Thực hiện thao tác trên Tab 2:**
-   - Tạo mới một Phiếu xuất kho hoặc Phiếu nhập kho và bấm **Xác nhận / Hoàn tất**.
+   - Ví dụ: Thêm một Nhà cung cấp mới hoặc tạo Phiếu xuất kho mới.
 3. **Quan sát Tab 1 (Không bấm F5):**
-   - Ngay lập tức trong vòng $< 300\text{ ms}$, các thẻ KPI (Mặt hàng quản lý, Phiếu xuất kho, Phiếu nhập kho, Tổng tồn) trên Tab 1 sẽ tự động nhảy số liệu mới mà không bị chớp giật màn hình.
+   - Sự kiện SSE sẽ được đẩy xuống và giao diện tự động cập nhật số liệu mới mà không cần F5 hay tải lại trang.
 4. **Kiểm tra ẩn tab (`visibilitychange`):**
    - Chuyển sang một tab khác trên trình duyệt trong vài chục giây, sau đó bấm quay lại Tab Dashboard $\rightarrow$ Giao diện tự động kiểm tra stale và cập nhật số liệu mới nhất ngay lập tức.
