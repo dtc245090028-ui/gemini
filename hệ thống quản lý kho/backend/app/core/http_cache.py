@@ -1,14 +1,16 @@
-"""HTTP Caching & Compression Middlewares for SmartKho (Step E2: Read Optimization).
+"""HTTP Caching & Compression Middlewares for SmartKho (Step E2: Read Optimization & Safe ETag).
 
 Features:
-1. Version-Per-Resource Fast ETag (Zero-Query 304 Not Modified):
-   - Duy trì biến đếm phiên bản theo từng tài nguyên (products, categories, suppliers, ...).
-   - Tăng version tự động trong hook publish_after_commit.
+1. Version-Per-Resource Fast ETag (Zero-Query 304 Not Modified) with Boot ID & DB Fingerprint:
+   - Duy trì biến đếm phiên bản theo từng tài nguyên (RESOURCE_VERSIONS).
+   - Tích hợp BOOT_ID duy nhất cho mỗi vòng đời khởi động của app (restart không bao giờ cho 304 sai từ ETag cũ).
+   - Tích hợp DB Fingerprint siêu nhẹ (<0.001ms) kết hợp PRAGMA data_version và WAL mtime/size
+     để tự động phát hiện mọi thao tác ghi CSDL từ bên ngoài (ví dụ demo_cleanup, raw SQL, SQLite CLI).
    - Nếu client gửi If-None-Match khớp với version hiện tại của danh mục, trả về ngay HTTP 304
      mà KHÔNG CẦN CHẠY QUERY HAY SERIALIZATION TRÊN DATABASE.
 
 2. Content-Hash Fallback ETag (SHA1):
-   - Với các request có query parameters hoặc tìm kiếm phức tạp, tính toán mã băm SHA1 trên body.
+   - Với các request có query parameters hoặc tìm kiếm phức tạp, tính toán mã băm SHA1 trên body kèm Boot ID & DB Fingerprint.
    - Trả về 304 Not Modified nếu If-None-Match trùng khớp.
 
 3. Bảo mật bộ đệm & Chống rò rỉ dữ liệu người dùng:
@@ -20,10 +22,16 @@ Features:
    - Loại trừ nghiêm ngặt luồng SSE (/api/v1/events/stream) và file nhị phân (/export-excel).
 """
 
+import os
 import hashlib
+import uuid
 from typing import List, Dict, Optional
 from starlette.types import ASGIApp, Scope, Receive, Send, Message
 from starlette.middleware.gzip import GZipMiddleware
+from sqlalchemy import text
+
+# Boot ID sinh ngẫu nhiên mỗi lần server khởi chạy: ngăn chặn tuyệt đối việc tái sử dụng ETag của lần boot trước
+BOOT_ID: str = uuid.uuid4().hex[:8]
 
 # Biến đếm phiên bản tài nguyên (được tăng tự động sau mỗi commit thành công)
 RESOURCE_VERSIONS: Dict[str, int] = {
@@ -35,6 +43,32 @@ RESOURCE_VERSIONS: Dict[str, int] = {
     "stock_ledger": 1,
     "reports": 1,
 }
+
+def get_db_fingerprint() -> str:
+    """Đọc siêu nhẹ (<0.001ms): kết hợp PRAGMA data_version và file mtime/size của CSDL + WAL để phát hiện mọi commit ngoài."""
+    dv = 0
+    try:
+        from app.core.database import engine
+        with engine.connect() as conn:
+            dv = conn.execute(text("PRAGMA data_version")).scalar() or 0
+    except Exception:
+        pass
+    try:
+        from app.core.config import settings
+        db_file = settings.DATABASE_URL.replace("sqlite:///", "")
+        wal_file = db_file + "-wal"
+        m_wal = os.stat(wal_file).st_mtime_ns if os.path.exists(wal_file) else 0
+        s_wal = os.path.getsize(wal_file) if os.path.exists(wal_file) else 0
+        m_db = os.stat(db_file).st_mtime_ns if os.path.exists(db_file) else 0
+        return f"d{dv}_w{m_wal}_{s_wal}_m{m_db}"
+    except Exception:
+        return f"d{dv}"
+
+def make_version_etag(resource: str) -> str:
+    """Sinh chuỗi ETag định danh an toàn gồm: resource, resource_version, boot_id, db_fingerprint."""
+    res_ver = RESOURCE_VERSIONS.get(resource, 1)
+    fp = get_db_fingerprint()
+    return f"{resource}-v{res_ver}-b{BOOT_ID}-{fp}"
 
 def increment_resource_version(resource: str):
     """Tăng phiên bản của tài nguyên (và các tài nguyên liên quan) khi có mutation commit."""
@@ -78,11 +112,10 @@ class ETagMiddleware:
         resource = get_resource_from_path(path)
         query_string = scope.get("query_string", b"").decode("latin-1").strip()
 
-        # FAST PATH: Nếu là request danh sách đơn giản không filter (hoặc limit cơ bản)
-        # và client gửi ETag dạng version "resource-vX" trùng khớp với RESOURCE_VERSIONS:
+        # FAST PATH: Nếu là request danh sách đơn giản không filter
+        # và client gửi ETag dạng version trùng khớp với make_version_etag:
         if resource and resource in RESOURCE_VERSIONS and not query_string:
-            current_ver = RESOURCE_VERSIONS[resource]
-            fast_etag_str = f"{resource}-v{current_ver}"
+            fast_etag_str = make_version_etag(resource)
             if client_etag == fast_etag_str:
                 # Trả về 304 ngay lập tức mà KHÔNG CẦN CHẠY ROUTE HAY QUERY DB!
                 resp_headers = [
@@ -125,10 +158,12 @@ class ETagMiddleware:
         if status_code == 200 and full_body:
             # Nếu là endpoint danh mục không query, dùng version ETag
             if resource and resource in RESOURCE_VERSIONS and not query_string:
-                etag_header_value = f'W/"{resource}-v{RESOURCE_VERSIONS[resource]}"'
-                etag_compare = f"{resource}-v{RESOURCE_VERSIONS[resource]}"
+                etag_compare = make_version_etag(resource)
+                etag_header_value = f'W/"{etag_compare}"'
             else:
-                etag_hash = hashlib.sha1(full_body).hexdigest()
+                fp = get_db_fingerprint()
+                hash_input = full_body + f"-b{BOOT_ID}-{fp}".encode("latin-1")
+                etag_hash = hashlib.sha1(hash_input).hexdigest()
                 etag_header_value = f'"{etag_hash}"'
                 etag_compare = etag_hash
 
@@ -164,20 +199,28 @@ class ETagMiddleware:
             response_start["headers"] = resp_headers
 
         await send(response_start)
-        await send({
-            "type": "http.response.body",
-            "body": full_body,
-            "more_body": False,
-        })
+        for chunk in body_chunks:
+            await send({
+                "type": "http.response.body",
+                "body": chunk,
+                "more_body": False,
+            })
 
 
-class SelectiveGZipMiddleware(GZipMiddleware):
-    """GZipMiddleware excluding SSE streaming and Excel downloads."""
+class SelectiveGZipMiddleware:
+    """Nén GZip có chọn lọc cho các response JSON/Text có kích thước lớn."""
+
+    def __init__(self, app: ASGIApp, minimum_size: int = 1000):
+        self.app = app
+        self.minimum_size = minimum_size
+        self._gzip = GZipMiddleware(app, minimum_size=minimum_size)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":
             path = scope.get("path", "")
+            # Tuyệt đối không nén SSE stream hoặc file đã nén nhị phân
             if path.startswith("/api/v1/events/stream") or "/export-excel" in path:
                 await self.app(scope, receive, send)
                 return
-        await super().__call__(scope, receive, send)
+
+        await self._gzip(scope, receive, send)

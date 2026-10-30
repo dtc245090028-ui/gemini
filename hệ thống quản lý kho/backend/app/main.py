@@ -1,3 +1,4 @@
+import os
 """Điểm khởi chạy ứng dụng FastAPI, đăng ký Middleware, Handlers và Router."""
 
 import logging

@@ -127,8 +127,8 @@ def verify_environment_guard(base_url: str, db_path: str) -> str:
     print(f"  • CSDL mục tiêu     : {abs_db}")
     print(f"  • Giao diện Web     : http://localhost:5173 (Có thể quan sát trực tiếp sau khi chạy)")
 
-    if parsed.hostname not in ("127.0.0.1", "localhost"):
-        print("\n[SAFETY GUARD BLOCKED] Chỉ cho phép chạy demo trên localhost / 127.0.0.1!")
+    if parsed.hostname not in ("127.0.0.1", "localhost", "backend", "warehouse_backend"):
+        print("\n[SAFETY GUARD BLOCKED] Chỉ cho phép chạy demo trên localhost / 127.0.0.1 / backend!")
         sys.exit(1)
 
     if not os.path.exists(abs_db):

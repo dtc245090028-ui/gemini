@@ -11,6 +11,7 @@ services:
     environment:
       - DATABASE_URL=sqlite:////var/lib/warehouse/warehouse.db
       - WRITE_METRICS=0
+      - BENCH_ENDPOINTS=1
     volumes:
       - ./backend:/app
       - warehouse_data:/var/lib/warehouse
