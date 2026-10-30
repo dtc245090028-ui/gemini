@@ -77,7 +77,7 @@ class ReferenceDetailResponse(BaseModel):
 
 class StockAdjustmentCreate(BaseModel):
     product_id: int = Field(..., ge=1, description="ID mặt hàng cần kiểm kê / điều chỉnh")
-    actual_stock: int = Field(..., ge=0, description="Số lượng tồn kho thực tế sau kiểm kê (>= 0)")
+    actual_stock: int = Field(..., ge=0, le=1_000_000_000, description="Số lượng tồn kho thực tế sau kiểm kê (>= 0 và <= 1 tỷ)")
     reason: Optional[str] = Field(None, min_length=3, max_length=255, description="Lý do điều chỉnh (kiểm kê thực tế, bù trừ sai sót, hư hao...)")
     note: Optional[str] = Field(None, min_length=3, max_length=255, description="Ghi chú lý do điều chỉnh (tương thích ngược với UI)")
 

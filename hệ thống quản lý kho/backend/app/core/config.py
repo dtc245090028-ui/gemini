@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     BENCH_ENDPOINTS: bool = False
     WRITE_METRICS: bool = False
 
+    # Giới hạn trần nghiệp vụ tập trung
+    MAX_STOCK_QUANTITY: int = 1_000_000_000
+    MAX_TRANSACTION_QUANTITY: int = 10_000_000
+    MAX_PRICE: float = 1_000_000_000_000.0
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

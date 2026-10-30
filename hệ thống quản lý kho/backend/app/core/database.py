@@ -37,6 +37,24 @@ if settings.DATABASE_URL.startswith("sqlite"):
         cursor.execute("PRAGMA busy_timeout=5000")
         cursor.execute("PRAGMA cache_size=-64000")
         cursor.execute("PRAGMA temp_store=MEMORY")
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS trg_products_max_stock_ins
+            BEFORE INSERT ON products
+            FOR EACH ROW
+            WHEN NEW.current_stock > 1000000000
+            BEGIN
+                SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000');
+            END;
+        """)
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS trg_products_max_stock_upd
+            BEFORE UPDATE OF current_stock ON products
+            FOR EACH ROW
+            WHEN NEW.current_stock > 1000000000
+            BEGIN
+                SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000');
+            END;
+        """)
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
