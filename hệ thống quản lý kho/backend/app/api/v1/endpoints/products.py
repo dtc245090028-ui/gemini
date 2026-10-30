@@ -127,10 +127,10 @@ def create_product(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Nhà cung cấp với ID {chosen_supplier_id} không tồn tại trong hệ thống.",
             )
-        if hasattr(supplier, "status") and supplier.status != "ACTIVE":
+        if not supplier.is_active or (hasattr(supplier, "status") and supplier.status != "ACTIVE"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nhà cung cấp '{supplier.name}' không ở trạng thái ACTIVE.",
+                detail=f"Nhà cung cấp '{supplier.name}' đang ở trạng thái ngừng hoạt động.",
             )
 
     # 2. Xử lý tồn kho ban đầu (Phương án A: Chặn gán ngầm supplier_id=1, bắt buộc có NCC hợp lệ)
