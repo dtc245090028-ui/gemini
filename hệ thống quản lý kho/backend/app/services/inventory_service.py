@@ -137,7 +137,7 @@ def create_import_note(
                 existing = db.query(ImportNote).filter(ImportNote.code == note_code).first()
                 if existing:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
+                        status_code=status.HTTP_409_CONFLICT,
                         detail=f"Mã phiếu nhập '{note_code}' đã tồn tại.",
                     )
             else:
@@ -311,7 +311,7 @@ def create_export_note(
                 existing = db.query(ExportNote).filter(ExportNote.code == note_code).first()
                 if existing:
                     raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
+                        status_code=status.HTTP_409_CONFLICT,
                         detail=f"Mã phiếu xuất '{note_code}' đã tồn tại.",
                     )
             else:
