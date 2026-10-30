@@ -98,9 +98,15 @@ export function usePageSync({
   // Lắng nghe sự kiện SSE phát từ stockEvents
   useEffect(() => {
     const unsubscribe = stockEvents.subscribe((event) => {
-      // Nếu sự kiện có lọc theo resource cụ thể (ví dụ chỉ refetch khi import_notes đổi)
-      if (resource && event.resource && event.resource !== resource && event.resource !== 'all') {
-        return;
+      // Nếu sự kiện có lọc theo resource cụ thể (hỗ trợ cả string và array)
+      if (resource && event.resource && event.resource !== 'all') {
+        if (Array.isArray(resource)) {
+          if (!resource.includes(event.resource)) {
+            return;
+          }
+        } else if (event.resource !== resource) {
+          return;
+        }
       }
       scheduleDebouncedFetch();
     });

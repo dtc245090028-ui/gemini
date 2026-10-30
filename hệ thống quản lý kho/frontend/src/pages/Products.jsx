@@ -28,6 +28,7 @@ import Modal from '../components/Modal';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -159,10 +160,24 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     fetchProducts();
   }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
 
-  // Lắng nghe biến động kho qua kênh sự kiện (Keep-Alive Sync)
+  const reloadAll = React.useCallback(async (silent = true) => {
+    await Promise.all([
+      fetchCategories(),
+      fetchSuppliers(),
+      fetchProducts(silent),
+    ]);
+  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
+
+  // Tự động đồng bộ chuẩn mực theo trang: Debounce, MaxWait, Single-Flight, Sparse Polling
+  usePageSync({
+    fetchFn: reloadAll,
+    isActive,
+    resource: ['products', 'categories', 'suppliers', 'inventory', 'import_notes', 'export_notes'],
+  });
+
+  // Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)
   useEffect(() => {
     const unsubscribe = stockEvents.subscribe((event) => {
-      // 1. Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)
       if (event.patches && Array.isArray(event.patches) && event.patches.length > 0) {
         setProducts((prev) =>
           prev.map((p) => {
@@ -173,25 +188,10 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           })
         );
       }
-
-      // 2. Đồng bộ ngầm (Stale-While-Revalidate): nếu đang xem tab thì tải ngầm êm ái, nếu đang ẩn thì đánh dấu stale
-      if (isActive) {
-        fetchProducts(true);
-      } else {
-        isStaleRef.current = true;
-      }
     });
 
     return unsubscribe;
-  }, [isActive, debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
-
-  // Khi kích hoạt tab Hàng hóa & kho -> luôn refetch ngầm tức thì để cập nhật dữ liệu mới nhất
-  useEffect(() => {
-    if (isActive) {
-      isStaleRef.current = false;
-      fetchProducts(true);
-    }
-  }, [isActive]);
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -281,6 +281,8 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   };
 
   const handleOpenCreate = () => {
+    fetchCategories();
+    fetchSuppliers();
     isSubmittingRef.current = false;
     setModalMode('create');
     setCurrentProduct(null);

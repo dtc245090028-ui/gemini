@@ -24,7 +24,9 @@ import { Loader } from '../components/Loader';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
-export const Suppliers = () => {
+import { usePageSync } from '../hooks/usePageSync';
+
+export const Suppliers = ({ isActive = true }) => {
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
   const { confirm } = useConfirm();
@@ -57,8 +59,8 @@ export const Suppliers = () => {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_KEEPER';
   const canDelete = user?.role === 'ADMIN';
 
-  const fetchSuppliers = async () => {
-    setLoading(true);
+  const fetchSuppliers = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [res, prodRes] = await Promise.all([
         apiClient.suppliers.getAll(),
@@ -69,9 +71,15 @@ export const Suppliers = () => {
     } catch (err) {
       console.error('Lỗi tải nhà cung cấp:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  usePageSync({
+    fetchFn: fetchSuppliers,
+    isActive,
+    resource: 'suppliers',
+  });
 
   useEffect(() => {
     fetchSuppliers();

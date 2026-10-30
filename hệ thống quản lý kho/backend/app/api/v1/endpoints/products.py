@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.core.events import broadcaster
 from app.models.category import Category
 from app.models.product import Product
 from app.models.supplier import Supplier
@@ -198,6 +199,7 @@ def create_product(
     else:
         db.commit()
         db.refresh(product)
+        broadcaster.publish_after_commit(resource="products", action="CREATE")
 
     return product
 
@@ -256,6 +258,7 @@ def update_product(
 
     db.commit()
     db.refresh(product)
+    broadcaster.publish_after_commit(resource="products", action="UPDATE")
     return product
 
 
@@ -301,6 +304,7 @@ def upload_product_image(
     product.image_url = f"/static/products/{filename}"
     db.commit()
     db.refresh(product)
+    broadcaster.publish_after_commit(resource="products", action="UPDATE")
     return product
 
 
@@ -332,6 +336,7 @@ def delete_product(
     if has_history:
         product.status = "DISCONTINUED"
         db.commit()
+        broadcaster.publish_after_commit(resource="products", action="DISCONTINUE")
         return {
             "success": True,
             "action": "DISCONTINUED",
@@ -341,6 +346,7 @@ def delete_product(
     # Nếu chưa có lịch sử giao dịch thì cho phép xóa hoàn toàn
     db.delete(product)
     db.commit()
+    broadcaster.publish_after_commit(resource="products", action="DELETE")
     return {
         "success": True,
         "action": "DELETED",

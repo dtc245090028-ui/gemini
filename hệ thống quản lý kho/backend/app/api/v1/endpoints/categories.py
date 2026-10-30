@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.core.events import broadcaster
 from app.models.category import Category
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
@@ -85,6 +86,7 @@ def create_category(
     db.add(category)
     db.commit()
     db.refresh(category)
+    broadcaster.publish_after_commit(resource="categories", action="CREATE")
     return category
 
 
@@ -126,6 +128,7 @@ def update_category(
 
     db.commit()
     db.refresh(category)
+    broadcaster.publish_after_commit(resource="categories", action="UPDATE")
     return category
 
 
@@ -156,4 +159,5 @@ def delete_category(
 
     db.delete(category)
     db.commit()
+    broadcaster.publish_after_commit(resource="categories", action="DELETE")
     return {"success": True, "message": f"Đã xóa thành công nhóm hàng: {category.name}"}
