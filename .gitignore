@@ -71,3 +71,7 @@ HO_SO_TAI_LIEU_DO_AN_WMS_AI/
 demo_400_manifest.json
 demo_400_result.json
 /backend
+
+# Negative stock guard test manifests & results
+negguard_manifest.json
+negguard_result.json
