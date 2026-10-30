@@ -1,0 +1,35 @@
+BẰNG CHỨNG D5 & D6: TẢI ĐUA TRANH CONCURRENCY (1 WORKER VS 4 WORKERS) VÀ KIỂM TRA BẤT BIẾN
+
+1. Kịch bản chạy: 20 vòng x 4 test (Test 1: cancel export, Test 2: complete export, Test 3: delete export, Test 4: cancel import), mỗi vòng 20 request đồng thời (tổng cộng 1,600 request race).
+
+2. Kết quả ca 1: HEAD trên 1 Worker (Port 8023)
+- Test 1 (Race cancel export)        : 0/20 vòng lỗi (0.0% lỗi)
+- Test 2 (Race complete export)      : 0/20 vòng lỗi (0.0% lỗi)
+- Test 3 (Race delete confirmed exp) : 0/20 vòng lỗi (0.0% lỗi)
+- Test 4 (Race cancel import)        : 0/20 vòng lỗi (0.0% lỗi)
+Grep log uvicorn (/tmp/uvicorn_d5_1w.log):
+  • 'database is locked': 0 lần
+  • '500 Internal Error': 0 lần
+  • 'Traceback'         : 0 lần
+Kết quả check_invariants.py sau test:
+  >> KẾT QUẢ BẤT BIẾN 1: ĐẠT (100% SKU có tồn kho khớp chính xác sổ kế toán)
+  >> KẾT QUẢ BẤT BIẾN 2: ĐẠT (0 dòng vi phạm lũy kế, 0 số dư lặp bất thường)
+  >> KẾT QUẢ BẤT BIẾN 3: ĐẠT
+  >> KẾT QUẢ BẤT BIẾN 5: ĐẠT
+  TỔNG KẾT BẤT BIẾN: TẤT CẢ ĐỀU ĐẠT
+
+3. Kết quả ca 2: HEAD trên 4 Workers (Port 8024)
+- Test 1 (Race cancel export)        : 0/20 vòng lỗi (0.0% lỗi)
+- Test 2 (Race complete export)      : 0/20 vòng lỗi (0.0% lỗi)
+- Test 3 (Race delete confirmed exp) : 0/20 vòng lỗi (0.0% lỗi)
+- Test 4 (Race cancel import)        : 0/20 vòng lỗi (0.0% lỗi)
+Grep log uvicorn (/tmp/uvicorn_d5_4w.log):
+  • 'database is locked': 0 lần
+  • '500 Internal Error': 0 lần
+  • 'Traceback'         : 0 lần
+Kết quả check_invariants.py sau test:
+  >> KẾT QUẢ BẤT BIẾN 1: ĐẠT (100% SKU có tồn kho khớp chính xác sổ kế toán)
+  >> KẾT QUẢ BẤT BIẾN 2: ĐẠT (0 dòng vi phạm lũy kế, 0 số dư lặp bất thường)
+  >> KẾT QUẢ BẤT BIẾN 3: ĐẠT
+  >> KẾT QUẢ BẤT BIẾN 5: ĐẠT
+  TỔNG KẾT BẤT BIẾN: TẤT CẢ ĐỀU ĐẠT

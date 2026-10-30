@@ -1,0 +1,98 @@
+
+================================================================================
+ BAT DAU TEST FULL 20 VONG x 4 TEST TREN: dd84fcd (1 worker) (http://127.0.0.1:8031)
+ CSDL: /tmp/warehouse_c6_dd84fcd.db
+================================================================================
+
+--- [TEST 1] RACE CANCEL EXPORT (20 vong x 20 requests) ---
+  Vong 01: Statuses=1x200, 19x400 | Ton sau huy=10 (Ky vong: 10) | So ledger=2 (Ky vong: 3) | LOI
+  Vong 02: Statuses=19x200, 1x400 | Ton sau huy=82 (Ky vong: 10) | So ledger=20 (Ky vong: 3) | LOI
+  Vong 03: Statuses=3x200, 17x400 | Ton sau huy=18 (Ky vong: 10) | So ledger=4 (Ky vong: 3) | LOI
+  Vong 04: Statuses=6x200, 14x400 | Ton sau huy=30 (Ky vong: 10) | So ledger=7 (Ky vong: 3) | LOI
+  Vong 05: Statuses=7x200, 13x400 | Ton sau huy=34 (Ky vong: 10) | So ledger=8 (Ky vong: 3) | LOI
+  Vong 06: Statuses=6x200, 14x400 | Ton sau huy=30 (Ky vong: 10) | So ledger=7 (Ky vong: 3) | LOI
+  Vong 07: Statuses=5x200, 15x400 | Ton sau huy=26 (Ky vong: 10) | So ledger=6 (Ky vong: 3) | LOI
+  Vong 08: Statuses=10x200, 10x400 | Ton sau huy=46 (Ky vong: 10) | So ledger=11 (Ky vong: 3) | LOI
+  Vong 09: Statuses=8x200, 12x400 | Ton sau huy=38 (Ky vong: 10) | So ledger=9 (Ky vong: 3) | LOI
+  Vong 10: Statuses=20x200 | Ton sau huy=86 (Ky vong: 10) | So ledger=21 (Ky vong: 3) | LOI
+  Vong 11: Statuses=4x200, 16x400 | Ton sau huy=22 (Ky vong: 10) | So ledger=5 (Ky vong: 3) | LOI
+  Vong 12: Statuses=20x200 | Ton sau huy=86 (Ky vong: 10) | So ledger=21 (Ky vong: 3) | LOI
+  Vong 13: Statuses=9x200, 11x400 | Ton sau huy=42 (Ky vong: 10) | So ledger=10 (Ky vong: 3) | LOI
+  Vong 14: Statuses=3x200, 17x400 | Ton sau huy=18 (Ky vong: 10) | So ledger=4 (Ky vong: 3) | LOI
+  Vong 15: Statuses=5x200, 15x400 | Ton sau huy=26 (Ky vong: 10) | So ledger=6 (Ky vong: 3) | LOI
+  Vong 16: Statuses=3x200, 17x400 | Ton sau huy=18 (Ky vong: 10) | So ledger=4 (Ky vong: 3) | LOI
+  Vong 17: Statuses=2x200, 18x400 | Ton sau huy=14 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 18: Statuses=5x200, 15x400 | Ton sau huy=26 (Ky vong: 10) | So ledger=6 (Ky vong: 3) | LOI
+  Vong 19: Statuses=3x200, 17x400 | Ton sau huy=18 (Ky vong: 10) | So ledger=4 (Ky vong: 3) | LOI
+  Vong 20: Statuses=3x200, 17x400 | Ton sau huy=18 (Ky vong: 10) | So ledger=4 (Ky vong: 3) | LOI
+-> Tong ket Test 1: 20/20 vong loi (100.0%)
+
+--- [TEST 2] RACE COMPLETE EXPORT (20 vong x 20 requests) ---
+  Vong 01: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 02: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 03: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 04: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 05: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 06: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 07: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 08: Statuses=3x200, 17x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 09: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 10: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 11: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 12: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 13: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 14: Statuses=1x200, 19x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | PASS
+  Vong 15: Statuses=3x200, 17x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 16: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 17: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 18: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 19: Statuses=3x200, 17x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+  Vong 20: Statuses=2x200, 18x400 | Status phieu=COMPLETED | Ton=8 | Ledger=1 | LOI
+-> Tong ket Test 2: 9/20 vong loi (45.0%)
+
+--- [TEST 3] RACE DELETE EXPORT (20 vong x 20 requests) ---
+  Vong 01: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 02: Statuses=4x200, 16x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 03: Statuses=2x200, 18x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 04: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 05: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 06: Statuses=2x200, 18x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 07: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 08: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 09: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 10: Statuses=4x200, 16x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 11: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 12: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 13: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 14: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 15: Statuses=1x200, 19x404 | Con phieu trong DB=0 | Con detail=0 | PASS
+  Vong 16: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 17: Statuses=3x200, 17x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 18: Statuses=4x200, 16x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 19: Statuses=2x200, 18x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+  Vong 20: Statuses=2x200, 18x404 | Con phieu trong DB=0 | Con detail=0 | LOI
+-> Tong ket Test 3: 14/20 vong loi (70.0%)
+
+--- [TEST 4] RACE CANCEL IMPORT (20 vong x 20 requests) ---
+  Vong 01: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 02: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 03: Statuses=1x200, 19x400 | Ton sau huy=10 (Ky vong: 10) | So ledger=2 (Ky vong: 3) | LOI
+  Vong 04: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 05: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 06: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 07: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 08: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 09: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 10: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 11: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 12: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 13: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 14: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 15: Statuses=1x200, 19x400 | Ton sau huy=10 (Ky vong: 10) | So ledger=2 (Ky vong: 3) | LOI
+  Vong 16: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 17: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 18: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 19: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+  Vong 20: Statuses=2x200, 18x400 | Ton sau huy=0 (Ky vong: 10) | So ledger=3 (Ky vong: 3) | LOI
+-> Tong ket Test 4: 20/20 vong loi (100.0%)
+

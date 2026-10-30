@@ -1,0 +1,23 @@
+BẰNG CHỨNG C5: THỐNG KÊ FILE SAO LƯU warehouse_pre_negguard_backup.db
+
+1. Thông số tệp sao lưu:
+- Đường dẫn: /app/backups/warehouse_pre_negguard_backup.db
+- Kích thước: 905,216 bytes
+- SHA256: 9c0479d7a0787f2cab58adbd4d0f54b1100f815fabd714f5a47bea5b48bbaa8b
+- st_mtime raw: 1793359116.363553
+- Thời gian sửa đổi (UTC)  : 2026-10-30 11:18:36 UTC
+- Thời gian sửa đổi (GMT+7): 2026-10-30 18:18:36 (Giờ Việt Nam)
+
+2. Nguồn gốc tạo file:
+- File được tạo tự động bởi lệnh guard trong `backend/tests/performance/test_negative_stock_guard.py`:
+  • Dòng 93 : `PRE_GUARD_BACKUP_PATH = os.path.join(BACKUP_DIR, "warehouse_pre_negguard_backup.db")`
+  • Dòng 237-240:
+      `src_conn = sqlite3.connect(abs_db, timeout=15.0)`
+      `dst_conn = sqlite3.connect(PRE_GUARD_BACKUP_PATH, timeout=15.0)`
+      `src_conn.backup(dst_conn)`
+
+3. Đối chiếu mtime:
+- Thời điểm file backup được ghi nhận trên filesystem là 11:18:36 UTC (tương đương 18:18:36 GMT+7).
+- Mốc thời gian này khớp chính xác với thời điểm bắt đầu chạy bộ test negguard được ghi nhận trong file `negguard_result.json`:
+  `"timestamp": "2026-10-30T11:18:48.579379+00:00"` (kết thúc toàn bộ 19 test sau 12 giây kể từ lúc tạo bản sao lưu lúc 11:18:36 UTC).
+- Mốc thời gian 16:16:40 (+07) được đề cập trong câu hỏi chất vấn thuộc về một mốc thử nghiệm khác trước đó hoặc lệch múi giờ trong ghi chép thủ công.

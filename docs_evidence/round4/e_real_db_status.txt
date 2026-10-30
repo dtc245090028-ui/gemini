@@ -1,0 +1,47 @@
+BẰNG CHỨNG BƯỚC E: TÌNH TRẠNG CƠ SỞ DỮ LIỆU THẬT (/var/lib/warehouse/warehouse.db)
+
+1. Thông số CSDL thật (Chế độ mở chỉ đọc: sqlite3 URI mode=ro):
+- Đường dẫn: /var/lib/warehouse/warehouse.db
+- Kích thước: 905,216 bytes
+- SHA256 File: 2f127ce31792c236dca17cdaf02b4712273c1c24a6ff439b2e82230826fc7c7d
+- SHA256 .dump: 8520831c98d20ce5e5f259b2b4a23a5175ce6ec7ce960ddf239284cca8bb153a
+
+2. So sánh với CSDL Baseline (/var/lib/warehouse/backups/warehouse_original_baseline.db):
+- Kích thước: 790,528 bytes
+- SHA256 File: 83f85cf865f33701c4b79b184db244d8a3c93e672d358d235fa080f77712dd11
+- SHA256 .dump: 75e0a18e26ebe84795a9f99075936fcda2a77c8b6a409c630be90b1aceb33ec3
+
+3. Đối chiếu số dòng các bảng chính giữa CSDL Thật vs Baseline:
+| Bảng | CSDL Thật | Baseline | Chênh Lệch | Ghi Chú |
+|---|---|---|---|---|
+| products | 109 | 109 | 0 | Không có SKU rác (0 SKU-NEG-*, 0 SKU-T*) |
+| categories | 7 | 7 | 0 | Khớp 100% |
+| suppliers | 21 | 21 | 0 | Khớp 100% |
+| import_notes | 30 | 30 | 0 | Không có phiếu nhập rác |
+| export_notes | 76 | 76 | 0 | Không có phiếu xuất rác |
+| stock_ledger | 530 | 521 | +9 | 9 dòng ledger tồn đọng từ các vòng test trước |
+| users | 3 | 3 | 0 | Khớp 100% |
+
+4. Danh sách trigger hiện có trong CSDL Thật (Tổng: 2 trigger):
+- Trigger 1: `trg_products_max_stock_ins` trên bảng `products`
+  SQL: CREATE TRIGGER trg_products_max_stock_ins BEFORE INSERT ON products FOR EACH ROW WHEN NEW.current_stock > 1000000000 BEGIN SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000'); END
+- Trigger 2: `trg_products_max_stock_upd` trên bảng `products`
+  SQL: CREATE TRIGGER trg_products_max_stock_upd BEFORE UPDATE OF current_stock ON products FOR EACH ROW WHEN NEW.current_stock > 1000000000 BEGIN SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000'); END
+
+5. ĐỀ XUẤT LỆNH KHÔI PHỤC TỪ BASELINE (CHỜ NGƯỜI DÙNG DUYỆT):
+- CẢNH BÁO: Kỹ sư/kiểm toán viên TUYỆT ĐỐI KHÔNG tự ý thực thi trên CSDL thật.
+- Quy trình đề xuất người dùng thực hiện:
+  ```bash
+  # Bước 1: Tạm dừng container backend
+  docker compose stop backend
+
+  # Bước 2: Tạo bản sao lưu dự phòng CSDL hiện tại
+  cp /var/lib/warehouse/warehouse.db /var/lib/warehouse/backups/warehouse_pre_restore_backup.db
+
+  # Bước 3: Khôi phục trực tiếp từ bản baseline sạch
+  cp /var/lib/warehouse/backups/warehouse_original_baseline.db /var/lib/warehouse/warehouse.db
+  rm -f /var/lib/warehouse/warehouse.db-shm /var/lib/warehouse/warehouse.db-wal
+
+  # Bước 4: Khởi động lại container backend
+  docker compose start backend
+  ```
