@@ -152,6 +152,12 @@ def create_new_import_note(
     return resp
 
 
+from pydantic import BaseModel, Field
+
+class CancelImportNoteRequest(BaseModel):
+    reason: Optional[str] = Field(None, description="Lý do hủy phiếu nhập")
+
+
 @router.post(
     "/{import_note_id}/cancel",
     response_model=ImportNoteResponse,
@@ -159,6 +165,7 @@ def create_new_import_note(
 )
 def cancel_existing_import_note(
     import_note_id: int,
+    payload: Optional[CancelImportNoteRequest] = None,
     reason: Optional[str] = Query(None, description="Lý do hủy phiếu nhập"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
@@ -168,7 +175,10 @@ def cancel_existing_import_note(
     Nếu hàng đã bị xuất đi dẫn đến tồn kho hiện tại không đủ để hoàn trả,
     hệ thống sẽ từ chối và hướng dẫn tạo phiếu Điều chỉnh tồn kho (Stock Adjustment).
     """
-    note = cancel_import_note(
-        db=db, import_note_id=import_note_id, current_user_id=current_user.id, reason=reason
-    )
-    return _serialize_import_note(note)
+    arrival_t = time.perf_counter()
+    effective_reason = payload.reason if (payload and payload.reason is not None) else reason
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = cancel_import_note(
+            db=db, import_note_id=import_note_id, current_user_id=current_user.id, reason=effective_reason
+        )
+        return _serialize_import_note(note)

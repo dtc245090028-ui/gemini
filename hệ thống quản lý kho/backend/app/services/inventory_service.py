@@ -92,6 +92,14 @@ def create_import_note(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Mặt hàng '{product.name}' ({product.code}) đã ngừng kinh doanh, không thể nhập kho.",
             )
+        if product.current_stock + item.quantity > 1_000_000_000:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Tồn kho sau khi nhập của mặt hàng '{product.name}' ({product.code}) vượt quá giới hạn tối đa cho phép (1.000.000.000). "
+                    f"Tồn hiện tại: {product.current_stock}, Yêu cầu nhập: {item.quantity}."
+                ),
+            )
         product_map[item.product_id] = product
 
     # 3. Tính toán tổng tiền
@@ -147,11 +155,17 @@ def create_import_note(
                     text("""
                         UPDATE products
                         SET current_stock = current_stock + :qty
-                        WHERE id = :prod_id
+                        WHERE id = :prod_id AND current_stock + :qty <= 1000000000
                         RETURNING current_stock
                     """),
                     {"qty": item.quantity, "prod_id": item.product_id},
                 ).fetchone()
+                if row is None:
+                    db.rollback()
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Tồn kho sau khi nhập của mặt hàng '{product.name}' vượt quá giới hạn tối đa (1.000.000.000).",
+                    )
                 new_balance = row[0]
                 db.expire(product, ["current_stock"])
 
@@ -195,6 +209,11 @@ def create_import_note(
                 existing_note = db.query(ImportNote).filter(ImportNote.idempotency_key == idempotency_key).first()
                 if existing_note:
                     return existing_note
+            if note_in.code:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Mã phiếu nhập '{note_in.code.strip().upper()}' đã tồn tại trong hệ thống.",
+                )
             if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -328,6 +347,11 @@ def create_export_note(
                 existing_note = db.query(ExportNote).filter(ExportNote.idempotency_key == idempotency_key).first()
                 if existing_note:
                     return existing_note
+            if note_in.code:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Mã phiếu xuất '{note_in.code.strip().upper()}' đã tồn tại trong hệ thống.",
+                )
             if attempt == max_retries - 1:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -367,6 +391,18 @@ def cancel_import_note(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Phiếu nhập '{import_note.code}' đã bị hủy trước đó.",
+        )
+
+    # Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
+    res_upd = db.execute(
+        text("UPDATE import_notes SET status = 'CANCELLED' WHERE id = :id AND status = 'COMPLETED'"),
+        {"id": import_note_id}
+    )
+    if res_upd.rowcount == 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phiếu nhập '{import_note.code}' đã bị hủy hoặc trạng thái đã thay đổi bởi giao dịch khác.",
         )
 
     # GUARD-CHECK CHỐNG TỒN ÂM:
@@ -581,6 +617,18 @@ def complete_export_note(
             detail=f"Phiếu xuất '{export_note.code}' đang ở trạng thái '{export_note.status}'. Chỉ có thể hoàn thành từ trạng thái 'SHIPPING' (Đang giao).",
         )
 
+    # Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
+    res_upd = db.execute(
+        text("UPDATE export_notes SET status = 'COMPLETED' WHERE id = :id AND status = 'SHIPPING'"),
+        {"id": export_note_id}
+    )
+    if res_upd.rowcount == 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phiếu xuất '{export_note.code}' đã hoàn thành hoặc trạng thái không còn là SHIPPING.",
+        )
+
     t_tx_start = time.perf_counter()
     export_note.status = "COMPLETED"
     t_com_start = time.perf_counter()
@@ -629,9 +677,17 @@ def cancel_export_note(
         )
 
     if export_note.status == "CONFIRMED":
-        # Hàng chưa xuất, chưa trừ tồn kho, chưa có thẻ kho -> Xóa hẳn khỏi CSDL
+        # Chốt ở tầng DB bằng DELETE có điều kiện
+        res_del = db.execute(
+            text("DELETE FROM export_notes WHERE id = :id AND status = 'CONFIRMED'"),
+            {"id": export_note_id}
+        )
+        if res_del.rowcount == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Trạng thái phiếu xuất '{export_note.code}' đã thay đổi hoặc đang được xử lý đồng thời.",
+            )
         deleted_code = export_note.code
-        db.delete(export_note)
         db.commit()
         broadcaster.publish_after_commit(
             resource="export_notes",
@@ -640,7 +696,22 @@ def cancel_export_note(
         )
         return None, True
 
-    # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
+    # Trạng thái SHIPPING hoặc COMPLETED: Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
+    res_upd = db.execute(
+        text("""
+            UPDATE export_notes 
+            SET status = 'CANCELLED' 
+            WHERE id = :id AND status IN ('SHIPPING', 'COMPLETED')
+        """),
+        {"id": export_note_id}
+    )
+    if res_upd.rowcount == 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phiếu xuất '{export_note.code}' đã bị hủy hoặc trạng thái đã thay đổi bởi giao dịch khác.",
+        )
+
     t_tx_start = time.perf_counter()
     now = datetime.now(timezone.utc)
     export_note.status = "CANCELLED"
@@ -653,15 +724,28 @@ def cancel_export_note(
 
     for detail in export_note.details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
+        if product.current_stock + detail.quantity > 1_000_000_000:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Không thể hủy phiếu xuất: tồn kho sau khi hoàn trả vượt quá giới hạn tối đa (1.000.000.000).",
+            )
         row = db.execute(
             text("""
                 UPDATE products 
                 SET current_stock = current_stock + :qty 
-                WHERE id = :prod_id 
+                WHERE id = :prod_id AND current_stock + :qty <= 1000000000
                 RETURNING current_stock
             """),
             {"qty": detail.quantity, "prod_id": detail.product_id},
         ).fetchone()
+
+        if row is None:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Không thể hủy phiếu xuất: tồn kho sau khi hoàn trả vượt quá giới hạn tối đa (1.000.000.000).",
+            )
 
         new_balance = row[0]
         db.expire(product, ["current_stock"])
@@ -713,8 +797,19 @@ def delete_export_note(
             detail=f"Chỉ có thể xóa trực tiếp phiếu xuất ở trạng thái 'CONFIRMED' (Chưa xuất kho). Phiếu '{export_note.code}' đang ở trạng thái '{export_note.status}', vui lòng sử dụng chức năng Hủy đơn.",
         )
 
+    # Chốt ở tầng DB bằng DELETE có điều kiện (Phương án C)
+    res_del = db.execute(
+        text("DELETE FROM export_notes WHERE id = :id AND status = 'CONFIRMED'"),
+        {"id": export_note_id}
+    )
+    if res_del.rowcount == 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Không thể xóa phiếu xuất '{export_note.code}' vì trạng thái đã thay đổi hoặc không phải CONFIRMED.",
+        )
+
     deleted_code = export_note.code
-    db.delete(export_note)
     db.commit()
     broadcaster.publish_after_commit(
         resource="export_notes",

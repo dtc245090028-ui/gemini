@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.import_note import ImportNote
 from app.models.export_note import ExportNote
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, require_roles
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.product import ProductResponse
@@ -299,7 +299,7 @@ def get_write_metrics():
     return write_metrics.get_stats()
 
 @router.post("/write-metrics/reset", summary="Reset thống kê hiệu năng ghi")
-def reset_write_metrics():
+def reset_write_metrics(current_user: User = Depends(require_roles(["ADMIN"]))):
     write_metrics.reset()
     return {"status": "ok"}
 
@@ -309,6 +309,6 @@ def get_write_gate_stats():
     return write_gate.get_stats()
 
 @router.post("/write-gate/reset", summary="Reset thống kê cổng ghi")
-def reset_write_gate_stats():
+def reset_write_gate_stats(current_user: User = Depends(require_roles(["ADMIN"]))):
     write_gate.reset_stats()
     return {"status": "ok"}

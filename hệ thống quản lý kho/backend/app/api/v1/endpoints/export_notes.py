@@ -186,6 +186,12 @@ def ship_existing_export_note(
     return resp
 
 
+from pydantic import BaseModel, Field
+
+class CancelExportNoteRequest(BaseModel):
+    reason: Optional[str] = Field(None, description="Lý do hủy phiếu xuất")
+
+
 @router.post(
     "/{export_note_id}/complete",
     response_model=ExportNoteResponse,
@@ -197,8 +203,10 @@ def complete_existing_export_note(
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Khách đã nhận hàng thành công: Chuyển trạng thái sang COMPLETED."""
-    note = complete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
-    return _serialize_export_note(note)
+    arrival_t = time.perf_counter()
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = complete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+        return _serialize_export_note(note)
 
 
 @router.post(
@@ -208,6 +216,7 @@ def complete_existing_export_note(
 )
 def cancel_existing_export_note(
     export_note_id: int,
+    payload: Optional[CancelExportNoteRequest] = None,
     reason: Optional[str] = Query(None, description="Lý do hủy phiếu xuất"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
@@ -216,31 +225,34 @@ def cancel_existing_export_note(
     - Nếu đang ở bước Xác nhận (CONFIRMED): Xóa hoàn toàn khỏi CSDL, không để lại phiếu.
     - Nếu đang ở bước Đang giao (SHIPPING): Giữ lại phiếu trạng thái CANCELLED, hoàn trả tồn kho và ghi Thẻ kho.
     """
-    existing_note = (
-        db.query(ExportNote)
-        .options(
-            joinedload(ExportNote.creator),
-            joinedload(ExportNote.details),
+    arrival_t = time.perf_counter()
+    effective_reason = payload.reason if (payload and payload.reason is not None) else reason
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        existing_note = (
+            db.query(ExportNote)
+            .options(
+                joinedload(ExportNote.creator),
+                joinedload(ExportNote.details),
+            )
+            .filter(ExportNote.id == export_note_id)
+            .first()
         )
-        .filter(ExportNote.id == export_note_id)
-        .first()
-    )
-    if not existing_note:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+        if not existing_note:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy phiếu xuất với ID {export_note_id}.",
+            )
+
+        # Chụp lại dữ liệu serialized trước khi thao tác CSDL
+        serialized = _serialize_export_note(existing_note)
+
+        note, was_deleted = cancel_export_note(
+            db=db, export_note_id=export_note_id, current_user_id=current_user.id, reason=effective_reason
         )
-
-    # Chụp lại dữ liệu serialized trước khi thao tác CSDL
-    serialized = _serialize_export_note(existing_note)
-
-    note, was_deleted = cancel_export_note(
-        db=db, export_note_id=export_note_id, current_user_id=current_user.id, reason=reason
-    )
-    if was_deleted:
-        serialized.status = "CANCELLED"
-        return serialized
-    return _serialize_export_note(note)
+        if was_deleted:
+            serialized.status = "CANCELLED"
+            return serialized
+        return _serialize_export_note(note)
 
 
 @router.delete(
@@ -253,5 +265,7 @@ def delete_existing_export_note(
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Xóa vĩnh viễn phiếu xuất kho khi chưa xuất hàng ra khỏi kho."""
-    delete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
-    return {"success": True, "message": f"Đã xóa vĩnh viễn phiếu xuất ID {export_note_id}."}
+    arrival_t = time.perf_counter()
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        delete_export_note(db=db, export_note_id=export_note_id, current_user_id=current_user.id)
+        return {"success": True, "message": f"Đã xóa vĩnh viễn phiếu xuất ID {export_note_id}."}
