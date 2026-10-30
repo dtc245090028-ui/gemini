@@ -630,8 +630,14 @@ def cancel_export_note(
 
     if export_note.status == "CONFIRMED":
         # Hàng chưa xuất, chưa trừ tồn kho, chưa có thẻ kho -> Xóa hẳn khỏi CSDL
+        deleted_code = export_note.code
         db.delete(export_note)
         db.commit()
+        broadcaster.publish_after_commit(
+            resource="export_notes",
+            action="CANCEL",
+            metadata={"code": deleted_code}
+        )
         return None, True
 
     # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
@@ -707,8 +713,14 @@ def delete_export_note(
             detail=f"Chỉ có thể xóa trực tiếp phiếu xuất ở trạng thái 'CONFIRMED' (Chưa xuất kho). Phiếu '{export_note.code}' đang ở trạng thái '{export_note.status}', vui lòng sử dụng chức năng Hủy đơn.",
         )
 
+    deleted_code = export_note.code
     db.delete(export_note)
     db.commit()
+    broadcaster.publish_after_commit(
+        resource="export_notes",
+        action="DELETE",
+        metadata={"code": deleted_code}
+    )
 
 
 def adjust_stock(

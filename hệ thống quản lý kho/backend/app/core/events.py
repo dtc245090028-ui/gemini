@@ -19,6 +19,30 @@ from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger("app.events")
 
+
+class EventResource:
+    """Định danh tài nguyên chuẩn cho hệ thống sự kiện thời gian thực (Single Source of Truth)."""
+    PRODUCTS = "products"
+    CATEGORIES = "categories"
+    SUPPLIERS = "suppliers"
+    IMPORT_NOTES = "import_notes"
+    EXPORT_NOTES = "export_notes"
+    STOCK_LEDGER = "stock_ledger"
+    REPORTS = "reports"
+
+    @classmethod
+    def all_resources(cls) -> Set[str]:
+        return {
+            cls.PRODUCTS,
+            cls.CATEGORIES,
+            cls.SUPPLIERS,
+            cls.IMPORT_NOTES,
+            cls.EXPORT_NOTES,
+            cls.STOCK_LEDGER,
+            cls.REPORTS,
+        }
+
+
 class EventBroadcaster:
     def __init__(self, debounce_window_s: float = 0.2, heartbeat_interval_s: float = 15.0):
         self.debounce_window_s = debounce_window_s
