@@ -78,7 +78,7 @@ export const Suppliers = ({ isActive = true }) => {
   usePageSync({
     fetchFn: fetchSuppliers,
     isActive,
-    resource: 'suppliers',
+    resource: ['suppliers', 'products'],
   });
 
   useEffect(() => {

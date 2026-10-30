@@ -208,7 +208,7 @@ export const StockLedger = ({ defaultProductId, isActive = true }) => {
   usePageSync({
     fetchFn: syncLedgerData,
     isActive,
-    resource: 'stock_ledger',
+    resource: ['stock_ledger', 'import_notes', 'export_notes', 'products'],
   });
 
   // Mở popup Chi tiết chứng từ (E)

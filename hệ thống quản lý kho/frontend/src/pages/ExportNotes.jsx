@@ -86,7 +86,7 @@ export const ExportNotes = ({ isActive = true }) => {
   usePageSync({
     fetchFn: fetchData,
     isActive,
-    resource: 'export_notes',
+    resource: ['export_notes', 'products'],
   });
 
   const handleOpenCreate = () => {

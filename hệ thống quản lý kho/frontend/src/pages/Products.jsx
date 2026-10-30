@@ -172,7 +172,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   usePageSync({
     fetchFn: reloadAll,
     isActive,
-    resource: ['products', 'categories', 'suppliers', 'inventory', 'import_notes', 'export_notes'],
+    resource: ['products', 'categories', 'suppliers', 'stock_ledger', 'import_notes', 'export_notes'],
   });
 
   // Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)

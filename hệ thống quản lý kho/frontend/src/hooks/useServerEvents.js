@@ -13,6 +13,7 @@ export function useServerEvents() {
   const abortControllerRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const retryAttemptRef = useRef(0);
+  const isInitialConnectRef = useRef(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,7 +49,17 @@ export function useServerEvents() {
           throw new Error(`SSE kết nối thất bại với mã trạng thái ${response.status}`);
         }
 
+        const isReconnect = !isInitialConnectRef.current;
+        isInitialConnectRef.current = false;
         retryAttemptRef.current = 0; // Đặt lại bộ đếm retry khi kết nối thành công
+
+        if (isReconnect) {
+          console.info('[SSE] Tái kết nối thành công, tự động đồng bộ lại toàn bộ dữ liệu.');
+          invalidateCache();
+          if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+            stockEvents.emit({ type: 'FULL_REFETCH' });
+          }
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');

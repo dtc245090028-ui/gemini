@@ -87,7 +87,7 @@ export const ImportNotes = ({ isActive = true }) => {
   usePageSync({
     fetchFn: fetchData,
     isActive,
-    resource: 'import_notes',
+    resource: ['import_notes', 'suppliers', 'products'],
   });
 
   const handleOpenCreate = () => {
