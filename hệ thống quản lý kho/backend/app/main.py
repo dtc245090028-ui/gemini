@@ -20,6 +20,7 @@ from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
 from app.api.v1.api import api_router
 from app.core.http_cache import ETagMiddleware, SelectiveGZipMiddleware
+from starlette.types import ASGIApp, Scope, Receive, Send, Message
 from fastapi.encoders import jsonable_encoder
 
 
@@ -69,20 +70,35 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Cấu hình CORS middleware
-@app.middleware("http")
-async def write_latency_breakdown_middleware(request: Request, call_next):
-    if not write_metrics.enabled or request.method not in ("POST", "PUT", "PATCH", "DELETE"):
-        return await call_next(request)
-    st = StageTiming()
-    st.t_arrival = time.perf_counter()
-    request.state.stage_timing = st
-    request.state.arrival_time = st.t_arrival
-    response = await call_next(request)
-    st.t_response_done = time.perf_counter()
-    write_metrics.record_stages(st)
-    return response
+class WriteArrivalMiddleware:
+    """Pure ASGI Middleware: ghi nhận arrival_time và đo phân bố chặng ghi (Zero BaseHTTPMiddleware overhead)."""
 
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope.get("method") in ("POST", "PUT", "PATCH", "DELETE"):
+            t_arrival = time.perf_counter()
+            scope.setdefault("state", {})
+            scope["state"]["arrival_time"] = t_arrival
+            if write_metrics.enabled:
+                st = StageTiming()
+                st.t_arrival = t_arrival
+                scope["state"]["stage_timing"] = st
+
+                async def send_wrapper(message: Message) -> None:
+                    if message["type"] == "http.response.start":
+                        st.t_response_done = time.perf_counter()
+                        write_metrics.record_stages(st)
+                    await send(message)
+
+                await self.app(scope, receive, send_wrapper)
+                return
+
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(WriteArrivalMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
