@@ -19,7 +19,29 @@ from app.models.supplier import Supplier
 from app.schemas.export_note import ExportNoteCreate
 from app.schemas.import_note import ImportNoteCreate
 from app.schemas.report import InventorySummaryItem, InventorySummaryReport
+from decimal import Decimal, ROUND_HALF_UP
 from app.schemas.stock_ledger import StockAdjustmentCreate, StockAdjustmentResponse
+
+MAX_FINANCIAL_TOTAL = Decimal("9000000000000000")  # 9e15 <= 2^53 (IEEE 754 safe limit)
+
+
+def calculate_financials(details) -> tuple[float, list[float]]:
+    """Tính toán subtotal và total_amount bằng Decimal quantize chuẩn hóa tài chính (VAS)."""
+    d_total = Decimal("0.00")
+    subtotals = []
+    for item in details:
+        d_qty = Decimal(item.quantity)
+        d_price = Decimal(str(item.unit_price))
+        d_sub = (d_qty * d_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        subtotals.append(float(d_sub))
+        d_total += d_sub
+
+    if d_total > MAX_FINANCIAL_TOTAL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tổng giá trị phiếu ({d_total:,.2f} VNĐ) vượt quá trần tài chính tối đa an toàn (9.000.000.000.000.000 VNĐ).",
+        )
+    return float(d_total), subtotals
 
 
 def generate_note_code(db: Session, prefix: str, model_class, code_column) -> str:
@@ -102,8 +124,8 @@ def create_import_note(
             )
         product_map[item.product_id] = product
 
-    # 3. Tính toán tổng tiền
-    total_amount = sum(item.quantity * item.unit_price for item in note_in.details)
+    # 3. Tính toán tổng tiền và subtotal bằng Decimal quantize
+    total_amount, subtotals = calculate_financials(note_in.details)
     now = datetime.now(timezone.utc)
 
     # 4. Thực thi Transaction với Retry Pattern (Optimistic Concurrency)
@@ -138,8 +160,8 @@ def create_import_note(
             db.add(import_note)
             db.flush()  # Sinh import_note.id
 
-            for item in note_in.details:
-                subtotal = item.quantity * item.unit_price
+            for idx, item in enumerate(note_in.details):
+                subtotal = subtotals[idx]
                 detail = ImportNoteDetail(
                     import_note_id=import_note.id,
                     product_id=item.product_id,
@@ -276,8 +298,8 @@ def create_export_note(
             )
         product_map[item.product_id] = product
 
-    # 2. Tính tổng tiền
-    total_amount = sum(item.quantity * item.unit_price for item in note_in.details)
+    # 2. Tính tổng tiền và subtotal bằng Decimal quantize
+    total_amount, subtotals = calculate_financials(note_in.details)
     now = datetime.now(timezone.utc)
 
     # 3. Thực thi Transaction với Retry Pattern
@@ -311,8 +333,8 @@ def create_export_note(
             db.add(export_note)
             db.flush()
 
-            for item in note_in.details:
-                subtotal = item.quantity * item.unit_price
+            for idx, item in enumerate(note_in.details):
+                subtotal = subtotals[idx]
                 detail = ExportNoteDetail(
                     export_note_id=export_note.id,
                     product_id=item.product_id,
