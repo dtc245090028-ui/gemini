@@ -109,6 +109,7 @@ SNAPSHOT_TABLES = [
 ]
 
 DEMO_PRODUCT_IMAGES = {
+    "SKU-DEMO": "https://tse4.mm.bing.net/th/id/OIP.OpneO1xDmvuH8kkQpPP3iwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
     "SKU-DEMO-A": "https://tse4.mm.bing.net/th/id/OIP.OpneO1xDmvuH8kkQpPP3iwHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
     "SKU-DEMO-B": "https://tse4.mm.bing.net/th/id/OIP.hrX9V9HvG0HkxeIvFvzPiwHaFR?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
 }
@@ -139,7 +140,7 @@ def verify_environment_guard(base_url: str, db_path: str) -> str:
     conn = sqlite3.connect(f"file:{abs_db}?mode=ro", uri=True, timeout=10.0)
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, code FROM products WHERE code IN ('SKU-DEMO-A', 'SKU-DEMO-B') OR code LIKE 'SKU-DEMO-%'")
+        cur.execute("SELECT id, code FROM products WHERE code IN ('SKU-DEMO', 'SKU-DEMO-A', 'SKU-DEMO-B') OR code LIKE 'SKU-DEMO-%'")
         existing = cur.fetchall()
         if existing:
             print(f"\n[CẢNH BÁO] Phát hiện sản phẩm DEMO từ lần chạy trước chưa được dọn: {existing}")
@@ -200,22 +201,19 @@ def percentile(sorted_vals: list, pct: float) -> float:
 
 def build_deterministic_plan(seed: int, burst_count: int, sustained_count: int, initial_stock: int):
     """Sinh kế hoạch request tiền định (deterministic) cho cả 2 pha:
-    - Đan xen DEMO-A / DEMO-B và đan xen IMPORT / EXPORT (không dồn cục).
+    - 1 sản phẩm demo duy nhất: SKU-DEMO
+    - Đan xen IMPORT / EXPORT (không dồn cục).
     - Số lượng mỗi request từ 1..5.
-    - Đảm bảo tồn_đầu - tổng_xuất >= 0 cho từng sản phẩm.
+    - Đảm bảo tồn_đầu - tổng_xuất >= 0.
     """
     rng = random.Random(seed)
-    skus = ["SKU-DEMO-A", "SKU-DEMO-B"]
+    skus = ["SKU-DEMO"]
 
-    # Pha 1: Burst (mặc định 20 request: 10 DEMO-A, 10 DEMO-B, đan xen IMPORT/EXPORT)
+    # Pha 1: Burst (mặc định 20 request: đan xen IMPORT/EXPORT trên 1 sản phẩm)
     phase1_plan = []
     for i in range(burst_count):
-        sku = skus[i % 2]
-        pair_idx = i // 2
-        if (pair_idx % 2 == 0 and i % 2 == 0) or (pair_idx % 2 == 1 and i % 2 == 1):
-            tx_type = "IMPORT"
-        else:
-            tx_type = "EXPORT"
+        sku = skus[0]
+        tx_type = "IMPORT" if i % 2 == 0 else "EXPORT"
         qty = rng.randint(1, 5)
         prefix = "PN-DEMO" if tx_type == "IMPORT" else "PX-DEMO"
         code = f"{prefix}-B{i + 1:04d}"
@@ -228,15 +226,11 @@ def build_deterministic_plan(seed: int, burst_count: int, sustained_count: int, 
             "code": code,
         })
 
-    # Pha 2: Sustained (mặc định 1000 request, đan xen DEMO-A/DEMO-B và IMPORT/EXPORT)
+    # Pha 2: Sustained (mặc định 1000 request: đan xen IMPORT/EXPORT trên 1 sản phẩm)
     phase2_plan = []
     for i in range(sustained_count):
-        sku = skus[i % 2]
-        pair_idx = i // 2
-        if (pair_idx + (i % 2)) % 2 == 0:
-            tx_type = "IMPORT"
-        else:
-            tx_type = "EXPORT"
+        sku = skus[0]
+        tx_type = "IMPORT" if i % 2 == 0 else "EXPORT"
         qty = rng.randint(1, 5)
         prefix = "PN-DEMO" if tx_type == "IMPORT" else "PX-DEMO"
         code = f"{prefix}-S{i + 1:04d}"
@@ -486,44 +480,36 @@ async def run_demo(args):
         token = login_resp.json()["access_token"]
         client.headers["Authorization"] = f"Bearer {token}"
 
-        # 2 & 3. Tạo sản phẩm SKU-DEMO-A, chờ --gap giây, tạo SKU-DEMO-B
-        print(f"\n2. KHỞI TẠO 2 SẢN PHẨM DEMO (Tồn đầu = {effective_initial}, Gap = {args.gap}s):")
+        # 2 & 3. Tạo 1 sản phẩm demo duy nhất: SKU-DEMO
+        print(f"\n2. KHỞI TẠO 1 SẢN PHẨM DEMO (Tồn đầu = {effective_initial}):")
         sku_to_id = {}
         created_products_meta = []
 
-        for idx, (sku, name) in enumerate([
-            ("SKU-DEMO-A", "Sản phẩm Demo Chịu Tải A"),
-            ("SKU-DEMO-B", "Sản phẩm Demo Chịu Tải B"),
-        ]):
-            if idx == 1 and args.gap > 0:
-                print(f"   ... Chờ --gap {args.gap}s trước khi tạo {sku} ...")
-                await asyncio.sleep(args.gap)
-
-            prod_payload = {
-                "code": sku,
-                "name": name,
-                "category_id": 1,
-                "supplier_id": 1,
-                "unit": "Cái",
-                "min_stock": 10,
-                "current_stock": effective_initial,
-                "standard_price": 100000.0,
-                "image_url": DEMO_PRODUCT_IMAGES.get(sku),
-                "status": "ACTIVE",
-            }
-            p_resp = await client.post("/api/v1/products/", json=prod_payload)
-            if p_resp.status_code not in (200, 201):
-                print(f"[LỖI] Không thể tạo sản phẩm {sku}: {p_resp.status_code} {p_resp.text}")
-                sys.exit(1)
-            p_data = p_resp.json()
-            sku_to_id[sku] = p_data["id"]
-            created_products_meta.append({
-                "id": p_data["id"],
-                "code": sku,
-                "name": name,
-                "initial_stock": effective_initial,
-            })
-            print(f"   + Đã tạo {sku} -> ID={p_data['id']} | Tồn đầu={p_data['current_stock']}")
+        prod_payload = {
+            "code": "SKU-DEMO",
+            "name": "Sản phẩm Demo Chịu Tải",
+            "category_id": 1,
+            "supplier_id": 1,
+            "unit": "Cái",
+            "min_stock": 10,
+            "current_stock": effective_initial,
+            "standard_price": 100000.0,
+            "image_url": DEMO_PRODUCT_IMAGES.get("SKU-DEMO"),
+            "status": "ACTIVE",
+        }
+        p_resp = await client.post("/api/v1/products/", json=prod_payload)
+        if p_resp.status_code not in (200, 201):
+            print(f"[LỖI] Không thể tạo sản phẩm SKU-DEMO: {p_resp.status_code} {p_resp.text}")
+            sys.exit(1)
+        p_data = p_resp.json()
+        sku_to_id["SKU-DEMO"] = p_data["id"]
+        created_products_meta.append({
+            "id": p_data["id"],
+            "code": "SKU-DEMO",
+            "name": "Sản phẩm Demo Chịu Tải",
+            "initial_stock": effective_initial,
+        })
+        print(f"   + Đã tạo SKU-DEMO -> ID={p_data['id']} | Tồn đầu={p_data['current_stock']}")
 
         # 4. Ghi demo_manifest.json NGAY SAU KHI tạo sản phẩm, trước khi bắn
         manifest = {
@@ -549,11 +535,10 @@ async def run_demo(args):
             f"   Tổng số request kế hoạch: {len(phase1_plan) + len(phase2_plan)} "
             f"(Pha 1 Burst: {len(phase1_plan)} | Pha 2 Sustained: {len(phase2_plan)} @ {args.rate} RPS x {args.duration}s)"
         )
-        for sku in ["SKU-DEMO-A", "SKU-DEMO-B"]:
+        for sku in ["SKU-DEMO"]:
             ps = plan_summary[sku]
-            label = sku.replace("SKU-", "")
             print(
-                f"   • {label} ({sku}): tồn đầu {ps['initial_stock']} | "
+                f"   • {sku}: tồn đầu {ps['initial_stock']} | "
                 f"nhập {ps['import_reqs']} request / {ps['import_qty']} đv | "
                 f"xuất {ps['export_reqs']} request / {ps['export_qty']} đv "
                 f"=> tồn kỳ vọng cuối = {ps['expected_final']}"
@@ -789,7 +774,7 @@ async def run_demo(args):
             cur = conn.cursor()
             all_checks_passed = True
 
-            for sku in ["SKU-DEMO-A", "SKU-DEMO-B"]:
+            for sku in ["SKU-DEMO"]:
                 pid = sku_to_id[sku]
                 ps = plan_summary[sku]
 
@@ -818,12 +803,12 @@ async def run_demo(args):
                 print(f"  Thực tế đọc từ DB               : {actual_db_stock}")
                 print(f"  => {'PASS' if sku_pass else 'FAIL'}")
 
-            p_ids = (sku_to_id["SKU-DEMO-A"], sku_to_id["SKU-DEMO-B"])
+            p_ids = (sku_to_id["SKU-DEMO"],)
             cur.execute(
                 """
                 SELECT id, product_id, transaction_type, reference_code, quantity_change, balance_after
                 FROM stock_ledger
-                WHERE product_id IN (?, ?)
+                WHERE product_id IN (?)
                 ORDER BY id ASC
                 """,
                 p_ids,
@@ -858,7 +843,7 @@ async def run_demo(args):
                 all_checks_passed = False
 
             chain_errors = []
-            for sku in ["SKU-DEMO-A", "SKU-DEMO-B"]:
+            for sku in ["SKU-DEMO"]:
                 pid = sku_to_id[sku]
                 sku_ledgers = [row for row in ledger_rows if row[1] == pid]
                 prev_balance = plan_summary[sku]["initial_stock"]
@@ -920,7 +905,7 @@ async def run_demo(args):
             print("\n" + "=" * 78)
             print(f" KẾT LUẬN CUỐI CÙNG: {'PASS TOÀN BỘ (100% CHÍNH XÁC)' if all_checks_passed else 'FAIL (CÓ BẤT BIẾN VI PHẠM)'}")
             print(" 💡 Bạn có thể mở http://localhost:5173 (bấm F5 / Làm mới) để quan sát trực tiếp")
-            print("    SKU-DEMO-A, SKU-DEMO-B, các phiếu PN-DEMO / PX-DEMO và Thẻ kho ngay trên Web!")
+            print("    SKU-DEMO, các phiếu PN-DEMO / PX-DEMO và Thẻ kho ngay trên Web!")
             print(" 💡 Khi xem xong, chạy `python backend/tests/performance/demo_cleanup.py --yes` để thu hồi sạch sẽ.")
             print("=" * 78)
 

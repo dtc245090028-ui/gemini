@@ -171,7 +171,7 @@ def run_cleanup(args):
                 if p.get("id"):
                     product_ids.add(int(p["id"]))
 
-        cur.execute("SELECT id FROM products WHERE code IN ('SKU-DEMO-A', 'SKU-DEMO-B') OR code LIKE 'SKU-DEMO-%'")
+        cur.execute("SELECT id FROM products WHERE code IN ('SKU-DEMO', 'SKU-DEMO-A', 'SKU-DEMO-B') OR code LIKE 'SKU-DEMO-%'")
         for (pid,) in cur.fetchall():
             product_ids.add(int(pid))
         product_ids = sorted(product_ids)
