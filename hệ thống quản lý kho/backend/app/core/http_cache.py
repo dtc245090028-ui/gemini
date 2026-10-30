@@ -25,6 +25,8 @@ Features:
 import os
 import hashlib
 import uuid
+import sqlite3
+import threading
 from typing import List, Dict, Optional
 from starlette.types import ASGIApp, Scope, Receive, Send, Message
 from starlette.middleware.gzip import GZipMiddleware
@@ -44,25 +46,25 @@ RESOURCE_VERSIONS: Dict[str, int] = {
     "reports": 1,
 }
 
+_watcher_conn: Optional[sqlite3.Connection] = None
+_watcher_lock = threading.Lock()
+
 def get_db_fingerprint() -> str:
-    """Đọc siêu nhẹ (<0.001ms): kết hợp PRAGMA data_version và file mtime/size của CSDL + WAL để phát hiện mọi commit ngoài."""
+    """Đọc siêu nhẹ (<0.005ms) qua kết nối watcher đơn điệu duy nhất để theo dõi PRAGMA data_version chính xác."""
+    global _watcher_conn
     dv = 0
-    try:
-        from app.core.database import engine
-        with engine.connect() as conn:
-            dv = conn.execute(text("PRAGMA data_version")).scalar() or 0
-    except Exception:
-        pass
     try:
         from app.core.config import settings
         db_file = settings.DATABASE_URL.replace("sqlite:///", "")
-        wal_file = db_file + "-wal"
-        m_wal = os.stat(wal_file).st_mtime_ns if os.path.exists(wal_file) else 0
-        s_wal = os.path.getsize(wal_file) if os.path.exists(wal_file) else 0
-        m_db = os.stat(db_file).st_mtime_ns if os.path.exists(db_file) else 0
-        return f"d{dv}_w{m_wal}_{s_wal}_m{m_db}"
+        if not os.path.isabs(db_file):
+            db_file = os.path.abspath(db_file)
+        with _watcher_lock:
+            if _watcher_conn is None:
+                _watcher_conn = sqlite3.connect(db_file, check_same_thread=False)
+            dv = _watcher_conn.execute("PRAGMA data_version").fetchone()[0]
     except Exception:
-        return f"d{dv}"
+        pass
+    return f"d{dv}"
 
 def make_version_etag(resource: str) -> str:
     """Sinh chuỗi ETag định danh an toàn gồm: resource, resource_version, boot_id, db_fingerprint."""
@@ -161,8 +163,7 @@ class ETagMiddleware:
                 etag_compare = make_version_etag(resource)
                 etag_header_value = f'W/"{etag_compare}"'
             else:
-                fp = get_db_fingerprint()
-                hash_input = full_body + f"-b{BOOT_ID}-{fp}".encode("latin-1")
+                hash_input = full_body + f"-b{BOOT_ID}".encode("latin-1")
                 etag_hash = hashlib.sha1(hash_input).hexdigest()
                 etag_header_value = f'"{etag_hash}"'
                 etag_compare = etag_hash

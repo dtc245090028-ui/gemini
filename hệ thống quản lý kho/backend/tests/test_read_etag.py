@@ -85,7 +85,7 @@ def test_resource_version_fast_etag(client, admin_token):
 
     # Gửi If-None-Match với fast version -> Nhận 304 ngay lập tức
     resp304 = client.get("/api/v1/categories/", headers={**headers, "If-None-Match": fast_etag})
-    assert resp304.status_code == 304, f"Expected 304 for fast version ETag, got {resp304.status_code}"
+    assert resp304.status_code == 304, f"Expected 304 for fast version ETag, got {resp304.status_code}, fast_etag={fast_etag}, resp_etag={resp304.headers.get('etag')}"
     assert len(resp304.content) == 0
 
     # Khi có mutation làm tăng version -> version cũ bị từ chối và trả về 200 kèm version mới
@@ -111,13 +111,19 @@ def test_etag_external_write_invalidation(client, admin_token):
 
     # Xác nhận 304 khi chưa có thay đổi
     resp_check = client.get("/api/v1/categories/", headers={**headers, "If-None-Match": old_etag})
-    assert resp_check.status_code == 304
+    assert resp_check.status_code == 304, f"Expected 304, got {resp_check.status_code}, old_etag={old_etag}, resp_etag={resp_check.headers.get('etag')}"
 
-    # 2. Ghi trực tiếp vào CSDL qua raw SQL (mô phỏng tiến trình ngoài như demo_cleanup hoặc CLI)
+    # 2. Ghi trực tiếp vào CSDL qua kết nối ngoài (mô phỏng tiến trình ngoài như demo_cleanup hoặc CLI)
     unique_code = f"CAT_{http_cache.uuid.uuid4().hex[:6]}"
     unique_name = f"DanhMuc_Ngoai_{http_cache.uuid.uuid4().hex[:6]}"
-    with engine.begin() as conn:
-        conn.execute(text(f"INSERT INTO categories (code, name, description) VALUES ('{unique_code}', '{unique_name}', 'Mo ta SQL truc tiep')"))
+    import sqlite3
+    from app.core.config import settings
+    db_file = settings.DATABASE_URL.replace("sqlite:///", "")
+    with sqlite3.connect(db_file) as sqlite_conn:
+        sqlite_conn.execute(
+            f"INSERT INTO categories (code, name, description) VALUES ('{unique_code}', '{unique_name}', 'Mo ta SQL truc tiep')"
+        )
+        sqlite_conn.commit()
 
     # 3. GET kèm If-None-Match cũ PHẢI nhận 200 (không được trả 304) và có dữ liệu mới
     resp_after_sql = client.get("/api/v1/categories/", headers={**headers, "If-None-Match": old_etag})
