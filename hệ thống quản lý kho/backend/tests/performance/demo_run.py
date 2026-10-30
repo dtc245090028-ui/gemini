@@ -928,7 +928,7 @@ def parse_args():
     parser.add_argument("--burst", type=int, default=None, help="Số request bắn cùng lúc ở Pha 1 (mặc định: 20)")
     parser.add_argument("--rate", type=int, default=None, help="Số request/giây ở Pha 2 (mặc định theo profile)")
     parser.add_argument("--duration", type=int, default=None, help="Thời lượng giây ở Pha 2 (mặc định theo profile)")
-    parser.add_argument("--initial", type=int, default=None, help="Tồn kho đầu kỳ của DEMO-A và DEMO-B (mặc định: 2000)")
+    parser.add_argument("--initial", type=int, default=None, help="Tồn kho đầu kỳ của SKU-DEMO (mặc định: 2000)")
     parser.add_argument("--workers", type=int, default=None, help="Số worker / kết nối đồng thời tối đa (mặc định: 200)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed lập kế hoạch tiền định (mặc định: 42)")
     parser.add_argument("--username", default="admin", help="Tài khoản đăng nhập API")
