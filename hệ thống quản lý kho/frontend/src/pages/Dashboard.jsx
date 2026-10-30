@@ -55,7 +55,7 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
   usePageSync({
     fetchFn: loadData,
     isActive,
-    resource: 'reports',
+    resource: ['reports', 'import_notes', 'export_notes', 'products', 'stock_ledger', 'categories'],
   });
 
   // KPI Stats được đồng bộ trực tiếp từ backend kpi-summary

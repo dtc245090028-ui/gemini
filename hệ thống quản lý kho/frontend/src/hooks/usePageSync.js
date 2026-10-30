@@ -16,8 +16,8 @@ export function usePageSync({
   fetchFn,
   isActive = true,
   resource = null,
-  debounceMs = 250,
-  maxWaitMs = 1000,
+  debounceMs = 350,
+  maxWaitMs = 1200,
   sparsePollingMs = 60000,
 }) {
   const isStaleRef = useRef(false);
@@ -98,14 +98,13 @@ export function usePageSync({
   // Lắng nghe sự kiện SSE phát từ stockEvents
   useEffect(() => {
     const unsubscribe = stockEvents.subscribe((event) => {
-      // Nếu sự kiện có lọc theo resource cụ thể (hỗ trợ cả string và array)
+      // Nếu sự kiện có lọc theo resource cụ thể (hỗ trợ cả string và array, so sánh bằng includes)
       if (resource && event.resource && event.resource !== 'all') {
-        if (Array.isArray(resource)) {
-          if (!resource.includes(event.resource)) {
+        const allowed = Array.isArray(resource) ? resource : [resource];
+        if (allowed.length > 0 && !allowed.includes('all')) {
+          if (!allowed.includes(event.resource)) {
             return;
           }
-        } else if (event.resource !== resource) {
-          return;
         }
       }
       scheduleDebouncedFetch();
