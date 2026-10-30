@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.core.metrics import write_metrics, StageTiming
 from app.core.bench_metrics import bench_traffic
 from app.core.events import broadcaster
-from app.core.database import engine, Base, SessionLocal
+from app.core.database import engine, Base, SessionLocal, ensure_triggers
 from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
 from app.api.v1.api import api_router
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     """Quản lý vòng đời ứng dụng: Tự động khởi tạo cấu trúc bảng CSDL và nạp dữ liệu ban đầu."""
     # Tự động tạo các bảng CSDL nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
+    ensure_triggers(engine)
 
     # Tự động migrate an toàn các cột mới nếu CSDL đã tồn tại trước đó
     from sqlalchemy import inspect, text

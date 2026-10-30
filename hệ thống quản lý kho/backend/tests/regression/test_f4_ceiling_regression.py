@@ -20,6 +20,8 @@ import time
 import sys
 from typing import Dict, Any, List
 
+__test__ = False  # Script kiểm thử độc lập qua HTTP, không chạy qua pytest discovery
+
 
 BOUNDARY_VALUES = [
     ("tran - 1", "BOUND_MINUS_1"),

@@ -251,6 +251,7 @@ def verify_environment_guard(base_url: str, db_path: str) -> str:
 # 4. TRÌNH TỰ THỰC THI TEST
 # ==============================================================================
 class TestContext:
+    __test__ = False
     def __init__(self, client: httpx.AsyncClient, abs_db: str, manifest: dict, detailed_results: list):
         self.client = client
         self.abs_db = abs_db

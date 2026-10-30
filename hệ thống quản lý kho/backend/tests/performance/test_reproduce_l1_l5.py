@@ -11,6 +11,9 @@ import re
 import sys
 import time
 import requests
+import pytest
+
+pytest.importorskip("playwright", reason="Yêu cầu Playwright E2E UI testing")
 from playwright.sync_api import sync_playwright
 
 try:

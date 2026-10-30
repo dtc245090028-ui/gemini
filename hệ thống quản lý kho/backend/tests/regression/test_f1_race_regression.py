@@ -18,6 +18,8 @@ import argparse
 import sys
 from typing import List, Dict, Any, Tuple
 
+__test__ = False  # Script kiểm thử độc lập qua HTTP, không chạy qua pytest discovery
+
 
 async def login(client: httpx.AsyncClient, username: str = "admin", password: str = "admin123") -> str:
     res = await client.post("/api/v1/auth/login", json={"username": username, "password": password})
