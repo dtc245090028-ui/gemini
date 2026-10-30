@@ -1,0 +1,648 @@
+diff --git "a/h\341\273\207 th\341\273\221ng qu\341\272\243n l\303\275 kho/backend/app/services/inventory_service.py" "b/h\341\273\207 th\341\273\221ng qu\341\272\243n l\303\275 kho/backend/app/services/inventory_service.py"
+index eeee2c6..38ed8ee 100644
+--- "a/h\341\273\207 th\341\273\221ng qu\341\272\243n l\303\275 kho/backend/app/services/inventory_service.py"	
++++ "b/h\341\273\207 th\341\273\221ng qu\341\272\243n l\303\275 kho/backend/app/services/inventory_service.py"	
+@@ -1,9 +1,11 @@
++from app.core.metrics import write_metrics
++from app.core.events import broadcaster
+ """Dịch vụ nghiệp vụ Quản lý Kho: Nhập kho, Xuất kho, Thẻ kho và Giao dịch ACID."""
+ 
+ import random
+ import time
+ from datetime import datetime, timezone
+-from typing import List, Optional
++from typing import Any, List, Optional
+ from fastapi import HTTPException, status
+ from sqlalchemy import func, text
+ from sqlalchemy.exc import IntegrityError
+@@ -17,8 +19,30 @@ from app.models.supplier import Supplier
+ from app.schemas.export_note import ExportNoteCreate
+ from app.schemas.import_note import ImportNoteCreate
+ from app.schemas.report import InventorySummaryItem, InventorySummaryReport
++from decimal import Decimal, ROUND_HALF_UP
+ from app.schemas.stock_ledger import StockAdjustmentCreate, StockAdjustmentResponse
+ 
++MAX_FINANCIAL_TOTAL = Decimal("9000000000000000")  # 9e15 <= 2^53 (IEEE 754 safe limit)
++
++
++def calculate_financials(details) -> tuple[float, list[float]]:
++    """Tính toán subtotal và total_amount bằng Decimal quantize chuẩn hóa tài chính (VAS)."""
++    d_total = Decimal("0.00")
++    subtotals = []
++    for item in details:
++        d_qty = Decimal(item.quantity)
++        d_price = Decimal(str(item.unit_price))
++        d_sub = (d_qty * d_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
++        subtotals.append(float(d_sub))
++        d_total += d_sub
++
++    if d_total > MAX_FINANCIAL_TOTAL:
++        raise HTTPException(
++            status_code=status.HTTP_400_BAD_REQUEST,
++            detail=f"Tổng giá trị phiếu ({d_total:,.2f} VNĐ) vượt quá trần tài chính tối đa an toàn (9.000.000.000.000.000 VNĐ).",
++        )
++    return float(d_total), subtotals
++
+ 
+ def generate_note_code(db: Session, prefix: str, model_class, code_column) -> str:
+     """Sinh mã chứng từ tự động dạng {PREFIX}-YYYYMMDD-XXXX (ví dụ: PN-20260922-0001)."""
+@@ -49,6 +73,8 @@ def create_import_note(
+     note_in: ImportNoteCreate,
+     current_user_id: int,
+     idempotency_key: Optional[str] = None,
++    stage_timing: Optional[Any] = None,
++    client_id: Optional[str] = None,
+ ) -> ImportNote:
+     """Lập phiếu nhập kho trong một Transaction ACID duy nhất.
+ 
+@@ -88,10 +114,18 @@ def create_import_note(
+                 status_code=status.HTTP_400_BAD_REQUEST,
+                 detail=f"Mặt hàng '{product.name}' ({product.code}) đã ngừng kinh doanh, không thể nhập kho.",
+             )
++        if product.current_stock + item.quantity > 1_000_000_000:
++            raise HTTPException(
++                status_code=status.HTTP_400_BAD_REQUEST,
++                detail=(
++                    f"Tồn kho sau khi nhập của mặt hàng '{product.name}' ({product.code}) vượt quá giới hạn tối đa cho phép (1.000.000.000). "
++                    f"Tồn hiện tại: {product.current_stock}, Yêu cầu nhập: {item.quantity}."
++                ),
++            )
+         product_map[item.product_id] = product
+ 
+-    # 3. Tính toán tổng tiền
+-    total_amount = sum(item.quantity * item.unit_price for item in note_in.details)
++    # 3. Tính toán tổng tiền và subtotal bằng Decimal quantize
++    total_amount, subtotals = calculate_financials(note_in.details)
+     now = datetime.now(timezone.utc)
+ 
+     # 4. Thực thi Transaction với Retry Pattern (Optimistic Concurrency)
+@@ -103,12 +137,16 @@ def create_import_note(
+                 existing = db.query(ImportNote).filter(ImportNote.code == note_code).first()
+                 if existing:
+                     raise HTTPException(
+-                        status_code=status.HTTP_400_BAD_REQUEST,
++                        status_code=status.HTTP_409_CONFLICT,
+                         detail=f"Mã phiếu nhập '{note_code}' đã tồn tại.",
+                     )
+             else:
+                 note_code = generate_note_code(db, "PN", ImportNote, ImportNote.code)
+ 
++            t_tx_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_tx_start = t_tx_start
++            write_metrics.enter_transaction()
+             import_note = ImportNote(
+                 code=note_code,
+                 supplier_id=note_in.supplier_id,
+@@ -122,8 +160,8 @@ def create_import_note(
+             db.add(import_note)
+             db.flush()  # Sinh import_note.id
+ 
+-            for item in note_in.details:
+-                subtotal = item.quantity * item.unit_price
++            for idx, item in enumerate(note_in.details):
++                subtotal = subtotals[idx]
+                 detail = ImportNoteDetail(
+                     import_note_id=import_note.id,
+                     product_id=item.product_id,
+@@ -139,11 +177,17 @@ def create_import_note(
+                     text("""
+                         UPDATE products
+                         SET current_stock = current_stock + :qty
+-                        WHERE id = :prod_id
++                        WHERE id = :prod_id AND current_stock + :qty <= 1000000000
+                         RETURNING current_stock
+                     """),
+                     {"qty": item.quantity, "prod_id": item.product_id},
+                 ).fetchone()
++                if row is None:
++                    db.rollback()
++                    raise HTTPException(
++                        status_code=status.HTTP_400_BAD_REQUEST,
++                        detail=f"Tồn kho sau khi nhập của mặt hàng '{product.name}' vượt quá giới hạn tối đa (1.000.000.000).",
++                    )
+                 new_balance = row[0]
+                 db.expire(product, ["current_stock"])
+ 
+@@ -160,8 +204,24 @@ def create_import_note(
+                 )
+                 db.add(ledger_entry)
+ 
++            t_com_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_start = t_com_start
+             db.commit()
++            t_now = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_end = t_now
++            write_metrics.exit_transaction(
++                tx_time_ms=(t_now - t_tx_start) * 1000,
++                commit_time_ms=(t_now - t_com_start) * 1000
++            )
+             db.refresh(import_note)
++            broadcaster.publish_after_commit(
++                resource="import_notes",
++                action="CREATE",
++                client_id=client_id,
++                metadata={"code": import_note.code}
++            )
+             return import_note
+ 
+         except IntegrityError as exc:
+@@ -171,13 +231,20 @@ def create_import_note(
+                 existing_note = db.query(ImportNote).filter(ImportNote.idempotency_key == idempotency_key).first()
+                 if existing_note:
+                     return existing_note
++            if note_in.code:
++                raise HTTPException(
++                    status_code=status.HTTP_409_CONFLICT,
++                    detail=f"Mã phiếu nhập '{note_in.code.strip().upper()}' đã tồn tại trong hệ thống.",
++                )
+             if attempt == max_retries - 1:
+                 raise HTTPException(
+                     status_code=status.HTTP_409_CONFLICT,
+                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
+                 )
+             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
++            write_metrics.exit_transaction(0, 0)
+             delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
++            write_metrics.record_retry(delay * 1000)
+             time.sleep(delay)
+ 
+ 
+@@ -186,6 +253,8 @@ def create_export_note(
+     note_in: ExportNoteCreate,
+     current_user_id: int,
+     idempotency_key: Optional[str] = None,
++    stage_timing: Optional[Any] = None,
++    client_id: Optional[str] = None,
+ ) -> ExportNote:
+     """Lập phiếu xuất kho trong một Transaction ACID duy nhất.
+ 
+@@ -229,8 +298,8 @@ def create_export_note(
+             )
+         product_map[item.product_id] = product
+ 
+-    # 2. Tính tổng tiền
+-    total_amount = sum(item.quantity * item.unit_price for item in note_in.details)
++    # 2. Tính tổng tiền và subtotal bằng Decimal quantize
++    total_amount, subtotals = calculate_financials(note_in.details)
+     now = datetime.now(timezone.utc)
+ 
+     # 3. Thực thi Transaction với Retry Pattern
+@@ -242,12 +311,15 @@ def create_export_note(
+                 existing = db.query(ExportNote).filter(ExportNote.code == note_code).first()
+                 if existing:
+                     raise HTTPException(
+-                        status_code=status.HTTP_400_BAD_REQUEST,
++                        status_code=status.HTTP_409_CONFLICT,
+                         detail=f"Mã phiếu xuất '{note_code}' đã tồn tại.",
+                     )
+             else:
+                 note_code = generate_note_code(db, "PX", ExportNote, ExportNote.code)
+ 
++            t_tx_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_tx_start = t_tx_start
+             export_note = ExportNote(
+                 code=note_code,
+                 recipient_name=note_in.recipient_name.strip(),
+@@ -261,8 +333,8 @@ def create_export_note(
+             db.add(export_note)
+             db.flush()
+ 
+-            for item in note_in.details:
+-                subtotal = item.quantity * item.unit_price
++            for idx, item in enumerate(note_in.details):
++                subtotal = subtotals[idx]
+                 detail = ExportNoteDetail(
+                     export_note_id=export_note.id,
+                     product_id=item.product_id,
+@@ -274,8 +346,20 @@ def create_export_note(
+ 
+             # Ở trạng thái CONFIRMED: Chưa trừ tồn kho thực tế và chưa ghi nhận Thẻ kho.
+             # Tồn kho và Thẻ kho sẽ chỉ được xử lý khi chuyển sang bước SHIPPING (Giao hàng).
++            t_com_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_start = t_com_start
+             db.commit()
++            t_now = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_end = t_now
+             db.refresh(export_note)
++            broadcaster.publish_after_commit(
++                resource="export_notes",
++                action="CREATE",
++                client_id=client_id,
++                metadata={"code": export_note.code}
++            )
+             return export_note
+ 
+         except IntegrityError as exc:
+@@ -285,13 +369,20 @@ def create_export_note(
+                 existing_note = db.query(ExportNote).filter(ExportNote.idempotency_key == idempotency_key).first()
+                 if existing_note:
+                     return existing_note
++            if note_in.code:
++                raise HTTPException(
++                    status_code=status.HTTP_409_CONFLICT,
++                    detail=f"Mã phiếu xuất '{note_in.code.strip().upper()}' đã tồn tại trong hệ thống.",
++                )
+             if attempt == max_retries - 1:
+                 raise HTTPException(
+                     status_code=status.HTTP_409_CONFLICT,
+                     detail="Xung đột mã phiếu do nhiều giao dịch đồng thời. Vui lòng thử lại.",
+                 )
+             # Giãn cách ngẫu nhiên (Exponential Backoff + Jitter) để tránh đụng độ liên tiếp
++            write_metrics.exit_transaction(0, 0)
+             delay = 0.025 * (2 ** attempt) + random.uniform(0.015, 0.045)
++            write_metrics.record_retry(delay * 1000)
+             time.sleep(delay)
+ 
+ 
+@@ -324,6 +415,18 @@ def cancel_import_note(
+             detail=f"Phiếu nhập '{import_note.code}' đã bị hủy trước đó.",
+         )
+ 
++    # Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
++    res_upd = db.execute(
++        text("UPDATE import_notes SET status = 'CANCELLED' WHERE id = :id AND status = 'COMPLETED'"),
++        {"id": import_note_id}
++    )
++    if res_upd.rowcount == 0:
++        db.rollback()
++        raise HTTPException(
++            status_code=status.HTTP_400_BAD_REQUEST,
++            detail=f"Phiếu nhập '{import_note.code}' đã bị hủy hoặc trạng thái đã thay đổi bởi giao dịch khác.",
++        )
++
+     # GUARD-CHECK CHỐNG TỒN ÂM:
+     # Nếu hàng từ phiếu nhập này đã bị xuất đi, việc hủy sẽ làm tồn kho bị âm!
+     for detail in import_note.details:
+@@ -385,6 +488,11 @@ def cancel_import_note(
+ 
+     db.commit()
+     db.refresh(import_note)
++    broadcaster.publish_after_commit(
++        resource="import_notes",
++        action="CANCEL",
++        metadata={"code": import_note.code}
++    )
+     return import_note
+ 
+ 
+@@ -392,6 +500,8 @@ def ship_export_note(
+     db: Session,
+     export_note_id: int,
+     current_user_id: int,
++    stage_timing: Optional[Any] = None,
++    client_id: Optional[str] = None,
+ ) -> ExportNote:
+     """Chuyển trạng thái phiếu xuất sang Đang Giao Hàng (SHIPPING).
+ 
+@@ -436,6 +546,10 @@ def ship_export_note(
+             )
+ 
+     # 2. Trừ tồn kho và ghi Thẻ kho
++    t_tx_start = time.perf_counter()
++    if stage_timing:
++        stage_timing.t_tx_start = t_tx_start
++    write_metrics.enter_transaction()
+     now = datetime.now(timezone.utc)
+     export_note.status = "SHIPPING"
+ 
+@@ -476,8 +590,24 @@ def ship_export_note(
+         )
+         db.add(ledger_entry)
+ 
++    t_com_start = time.perf_counter()
++    if stage_timing:
++        stage_timing.t_commit_start = t_com_start
+     db.commit()
++    t_now = time.perf_counter()
++    if stage_timing:
++        stage_timing.t_commit_end = t_now
++    write_metrics.exit_transaction(
++        tx_time_ms=(t_now - t_tx_start) * 1000,
++        commit_time_ms=(t_now - t_com_start) * 1000
++    )
+     db.refresh(export_note)
++    broadcaster.publish_after_commit(
++        resource="export_notes",
++        action="SHIP",
++        client_id=client_id,
++        metadata={"code": export_note.code}
++    )
+     return export_note
+ 
+ 
+@@ -509,9 +639,33 @@ def complete_export_note(
+             detail=f"Phiếu xuất '{export_note.code}' đang ở trạng thái '{export_note.status}'. Chỉ có thể hoàn thành từ trạng thái 'SHIPPING' (Đang giao).",
+         )
+ 
++    # Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
++    res_upd = db.execute(
++        text("UPDATE export_notes SET status = 'COMPLETED' WHERE id = :id AND status = 'SHIPPING'"),
++        {"id": export_note_id}
++    )
++    if res_upd.rowcount == 0:
++        db.rollback()
++        raise HTTPException(
++            status_code=status.HTTP_400_BAD_REQUEST,
++            detail=f"Phiếu xuất '{export_note.code}' đã hoàn thành hoặc trạng thái không còn là SHIPPING.",
++        )
++
++    t_tx_start = time.perf_counter()
+     export_note.status = "COMPLETED"
++    t_com_start = time.perf_counter()
+     db.commit()
++    t_now = time.perf_counter()
++    write_metrics.exit_transaction(
++        tx_time_ms=(t_now - t_tx_start) * 1000,
++        commit_time_ms=(t_now - t_com_start) * 1000
++    )
+     db.refresh(export_note)
++    broadcaster.publish_after_commit(
++        resource="export_notes",
++        action="COMPLETE",
++        metadata={"code": export_note.code}
++    )
+     return export_note
+ 
+ 
+@@ -545,12 +699,42 @@ def cancel_export_note(
+         )
+ 
+     if export_note.status == "CONFIRMED":
+-        # Hàng chưa xuất, chưa trừ tồn kho, chưa có thẻ kho -> Xóa hẳn khỏi CSDL
+-        db.delete(export_note)
++        # Chốt ở tầng DB bằng DELETE có điều kiện
++        res_del = db.execute(
++            text("DELETE FROM export_notes WHERE id = :id AND status = 'CONFIRMED'"),
++            {"id": export_note_id}
++        )
++        if res_del.rowcount == 0:
++            raise HTTPException(
++                status_code=status.HTTP_400_BAD_REQUEST,
++                detail=f"Trạng thái phiếu xuất '{export_note.code}' đã thay đổi hoặc đang được xử lý đồng thời.",
++            )
++        deleted_code = export_note.code
+         db.commit()
++        broadcaster.publish_after_commit(
++            resource="export_notes",
++            action="CANCEL",
++            metadata={"code": deleted_code}
++        )
+         return None, True
+ 
+-    # Trạng thái SHIPPING hoặc COMPLETED: Đã trừ kho -> Cần hoàn kho và lưu vết phiếu CANCELLED
++    # Trạng thái SHIPPING hoặc COMPLETED: Chốt ở tầng DB bằng UPDATE có điều kiện (Phương án C)
++    res_upd = db.execute(
++        text("""
++            UPDATE export_notes 
++            SET status = 'CANCELLED' 
++            WHERE id = :id AND status IN ('SHIPPING', 'COMPLETED')
++        """),
++        {"id": export_note_id}
++    )
++    if res_upd.rowcount == 0:
++        db.rollback()
++        raise HTTPException(
++            status_code=status.HTTP_400_BAD_REQUEST,
++            detail=f"Phiếu xuất '{export_note.code}' đã bị hủy hoặc trạng thái đã thay đổi bởi giao dịch khác.",
++        )
++
++    t_tx_start = time.perf_counter()
+     now = datetime.now(timezone.utc)
+     export_note.status = "CANCELLED"
+     if reason and reason.strip():
+@@ -562,16 +746,29 @@ def cancel_export_note(
+ 
+     for detail in export_note.details:
+         product = db.query(Product).filter(Product.id == detail.product_id).first()
++        if product.current_stock + detail.quantity > 1_000_000_000:
++            db.rollback()
++            raise HTTPException(
++                status_code=status.HTTP_400_BAD_REQUEST,
++                detail=f"Không thể hủy phiếu xuất: tồn kho sau khi hoàn trả vượt quá giới hạn tối đa (1.000.000.000).",
++            )
+         row = db.execute(
+             text("""
+                 UPDATE products 
+                 SET current_stock = current_stock + :qty 
+-                WHERE id = :prod_id 
++                WHERE id = :prod_id AND current_stock + :qty <= 1000000000
+                 RETURNING current_stock
+             """),
+             {"qty": detail.quantity, "prod_id": detail.product_id},
+         ).fetchone()
+ 
++        if row is None:
++            db.rollback()
++            raise HTTPException(
++                status_code=status.HTTP_400_BAD_REQUEST,
++                detail=f"Không thể hủy phiếu xuất: tồn kho sau khi hoàn trả vượt quá giới hạn tối đa (1.000.000.000).",
++            )
++
+         new_balance = row[0]
+         db.expire(product, ["current_stock"])
+ 
+@@ -587,8 +784,19 @@ def cancel_export_note(
+         )
+         db.add(ledger_entry)
+ 
++    t_com_start = time.perf_counter()
+     db.commit()
++    t_now = time.perf_counter()
++    write_metrics.exit_transaction(
++        tx_time_ms=(t_now - t_tx_start) * 1000,
++        commit_time_ms=(t_now - t_com_start) * 1000
++    )
+     db.refresh(export_note)
++    broadcaster.publish_after_commit(
++        resource="export_notes",
++        action="CANCEL",
++        metadata={"code": export_note.code}
++    )
+     return export_note, False
+ 
+ 
+@@ -611,16 +819,56 @@ def delete_export_note(
+             detail=f"Chỉ có thể xóa trực tiếp phiếu xuất ở trạng thái 'CONFIRMED' (Chưa xuất kho). Phiếu '{export_note.code}' đang ở trạng thái '{export_note.status}', vui lòng sử dụng chức năng Hủy đơn.",
+         )
+ 
+-    db.delete(export_note)
++    # Chốt ở tầng DB bằng DELETE có điều kiện (Phương án C)
++    res_del = db.execute(
++        text("DELETE FROM export_notes WHERE id = :id AND status = 'CONFIRMED'"),
++        {"id": export_note_id}
++    )
++    if res_del.rowcount == 0:
++        db.rollback()
++        raise HTTPException(
++            status_code=status.HTTP_400_BAD_REQUEST,
++            detail=f"Không thể xóa phiếu xuất '{export_note.code}' vì trạng thái đã thay đổi hoặc không phải CONFIRMED.",
++        )
++
++    deleted_code = export_note.code
+     db.commit()
++    broadcaster.publish_after_commit(
++        resource="export_notes",
++        action="DELETE",
++        metadata={"code": deleted_code}
++    )
+ 
+ 
+ def adjust_stock(
+     db: Session,
+     adj_in: StockAdjustmentCreate,
+     current_user_id: int,
++    idempotency_key: Optional[str] = None,
++    stage_timing: Optional[Any] = None,
++    client_id: Optional[str] = None,
+ ) -> StockAdjustmentResponse:
+-    """Lối thoát kiểm kê / Điều chỉnh tồn kho thủ công (Phương án A lối thoát khi guard check từ chối)."""
++    """Lối thoát kiểm kê / Điều chỉnh tồn kho thủ công (Hỗ trợ Idempotency Key & Safe Retry)."""
++    clean_key = idempotency_key.strip() if idempotency_key and idempotency_key.strip() else None
++
++    # 1. Kiểm tra Idempotency trước khi thực thi
++    if clean_key:
++        existing = db.query(StockLedger).filter(StockLedger.idempotency_key == clean_key).first()
++        if existing:
++            prod = db.query(Product).filter(Product.id == existing.product_id).first()
++            return StockAdjustmentResponse(
++                success=True,
++                product_id=existing.product_id,
++                product_code=prod.code if prod else "",
++                product_name=prod.name if prod else "",
++                old_stock=existing.balance_after - existing.quantity_change,
++                actual_stock=existing.balance_after,
++                difference=existing.quantity_change,
++                reference_code=existing.reference_code,
++                message="Giao dịch điều chỉnh kiểm kê đã được ghi nhận trước đó (Idempotent response).",
++                idempotency_key=existing.idempotency_key,
++            )
++
+     product = db.query(Product).filter(Product.id == adj_in.product_id).first()
+     if not product:
+         raise HTTPException(
+@@ -633,32 +881,94 @@ def adjust_stock(
+     now = datetime.now(timezone.utc)
+     ref_code = f"ADJ-{now.strftime('%Y%m%d%H%M%S')}-{product.id}"
+ 
+-    product.current_stock = adj_in.actual_stock
+-
+-    ledger_entry = StockLedger(
+-        product_id=product.id,
+-        transaction_type="ADJUSTMENT",
+-        reference_code=ref_code,
+-        quantity_change=difference,
+-        balance_after=adj_in.actual_stock,
+-        created_by=current_user_id,
+-        transaction_date=now,
+-        note=f"Điều chỉnh kiểm kê: {adj_in.reason.strip()}",
+-    )
+-    db.add(ledger_entry)
+-    db.commit()
++    # Thực thi với retry pattern chỉ dành riêng cho lỗi tranh chấp khóa tạm thời (locked/busy)
++    max_retries = 3
++    for attempt in range(max_retries):
++        try:
++            t_tx_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_tx_start = t_tx_start
++            write_metrics.enter_transaction()
+ 
+-    return StockAdjustmentResponse(
+-        success=True,
+-        product_id=product.id,
+-        product_code=product.code,
+-        product_name=product.name,
+-        old_stock=old_stock,
+-        actual_stock=adj_in.actual_stock,
+-        difference=difference,
+-        reference_code=ref_code,
+-        message=f"Đã điều chỉnh tồn kho sản phẩm '{product.name}' từ {old_stock} sang {adj_in.actual_stock} (Chênh lệch: {difference:+d}).",
+-    )
++            product.current_stock = adj_in.actual_stock
++
++            ledger_entry = StockLedger(
++                product_id=product.id,
++                transaction_type="ADJUSTMENT",
++                reference_code=ref_code,
++                quantity_change=difference,
++                balance_after=adj_in.actual_stock,
++                created_by=current_user_id,
++                transaction_date=now,
++                note=f"Điều chỉnh kiểm kê: {adj_in.reason.strip()}",
++                idempotency_key=clean_key,
++            )
++            db.add(ledger_entry)
++
++            t_com_start = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_start = t_com_start
++            db.commit()
++            t_now = time.perf_counter()
++            if stage_timing:
++                stage_timing.t_commit_end = t_now
++            write_metrics.exit_transaction(
++                tx_time_ms=(t_now - t_tx_start) * 1000,
++                commit_time_ms=(t_now - t_com_start) * 1000,
++            )
++            broadcaster.publish_after_commit(
++                resource="stock_ledger",
++                action="ADJUST",
++                client_id=client_id,
++                metadata={"product_id": product.id}
++            )
++
++            return StockAdjustmentResponse(
++                success=True,
++                product_id=product.id,
++                product_code=product.code,
++                product_name=product.name,
++                old_stock=old_stock,
++                actual_stock=adj_in.actual_stock,
++                difference=difference,
++                reference_code=ref_code,
++                message=f"Đã điều chỉnh tồn kho sản phẩm '{product.name}' từ {old_stock} sang {adj_in.actual_stock} (Chênh lệch: {difference:+d}).",
++                idempotency_key=clean_key,
++            )
++
++        except IntegrityError as exc:
++            db.rollback()
++            write_metrics.exit_transaction(0, 0)
++            if clean_key:
++                existing = db.query(StockLedger).filter(StockLedger.idempotency_key == clean_key).first()
++                if existing:
++                    return StockAdjustmentResponse(
++                        success=True,
++                        product_id=existing.product_id,
++                        product_code=product.code,
++                        product_name=product.name,
++                        old_stock=existing.balance_after - existing.quantity_change,
++                        actual_stock=existing.balance_after,
++                        difference=existing.quantity_change,
++                        reference_code=existing.reference_code,
++                        message="Giao dịch điều chỉnh kiểm kê đã được ghi nhận trước đó (Idempotent response).",
++                        idempotency_key=existing.idempotency_key,
++                    )
++            raise HTTPException(
++                status_code=status.HTTP_400_BAD_REQUEST,
++                detail="Dữ liệu điều chỉnh kiểm kê vi phạm ràng buộc toàn vẹn cơ sở dữ liệu.",
++            )
++
++        except Exception as exc:
++            db.rollback()
++            write_metrics.exit_transaction(0, 0)
++            err_msg = str(exc).lower()
++            if ("locked" in err_msg or "busy" in err_msg) and attempt < max_retries - 1:
++                delay = 0.05 * (2 ** attempt) + random.uniform(0.02, 0.05)
++                write_metrics.record_retry(delay * 1000)
++                time.sleep(delay)
++                continue
++            raise
+ 
+ 
+ def get_inventory_summary_report(

@@ -29,6 +29,11 @@ export const ImportNotes = ({ isActive = true }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Danh sách mặt hàng đang kinh doanh (dùng riêng cho Modal lập phiếu mới)
+  const activeProducts = React.useMemo(
+    () => products.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'ACTIVE'),
+    [products]
+  );
   const [loading, setLoading] = useState(false);
   const showTableLoader = useDelayedLoading(loading);
 
@@ -99,29 +104,37 @@ export const ImportNotes = ({ isActive = true }) => {
 
     // Kiểm tra xem có bản nháp nào được lưu trong vòng 24h không
     const draft = draftStorage.load(user?.username, 'import_note');
+    const firstSupId = suppliers[0]?.id || '';
+    const pool = activeProducts.length > 0 ? activeProducts : products;
+    const supProds = pool.filter((p) => Number(p.supplier_id) === Number(firstSupId));
+    const fallbackProd = supProds[0] || pool[0];
+
     if (draft && draft.data) {
-      setSupplierId(draft.data.supplierId || suppliers[0]?.id || '');
+      setSupplierId(draft.data.supplierId || firstSupId);
       setNoteText(draft.data.noteText || '');
+      // Lọc bỏ hàng đã ngừng kinh doanh nếu có trong bản nháp cũ
+      const validItems = (draft.data.items || []).filter((it) => {
+        const prod = products.find((p) => p.id === Number(it.product_id));
+        return prod && (prod.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+      });
       setItems(
-        draft.data.items && draft.data.items.length > 0
-          ? draft.data.items
+        validItems.length > 0
+          ? validItems
           : [
               {
-                category_id: products[0]?.category_id || '',
-                product_id: products[0]?.id || '',
+                category_id: fallbackProd?.category_id || '',
+                product_id: fallbackProd?.id || '',
                 quantity: 10,
-                unit_price: Math.round((products[0]?.standard_price || 100000) * 0.75),
+                unit_price: Math.round((fallbackProd?.standard_price || 100000) * 0.75),
               },
             ]
       );
       setIsDraftRestored(true);
       setDraftSavedTime(draftStorage.formatSavedTime(draft.saved_at));
     } else {
-      setSupplierId(suppliers[0]?.id || '');
+      setSupplierId(firstSupId);
       setNoteText('');
-      const firstSupId = suppliers[0]?.id || '';
-      const supProds = products.filter((p) => Number(p.supplier_id) === Number(firstSupId));
-      const defaultProd = supProds[0] || products[0];
+      const defaultProd = fallbackProd;
       setItems([
         {
           category_id: defaultProd?.category_id || '',
@@ -157,9 +170,12 @@ export const ImportNotes = ({ isActive = true }) => {
   const handleDiscardDraft = () => {
     draftStorage.clear(user?.username, 'import_note');
     setIsDraftRestored(false);
-    setSupplierId(suppliers[0]?.id || '');
+    const firstSupId = suppliers[0]?.id || '';
+    setSupplierId(firstSupId);
     setNoteText('');
-    const defaultProd = products[0];
+    const pool = activeProducts.length > 0 ? activeProducts : products;
+    const supProds = pool.filter((p) => Number(p.supplier_id) === Number(firstSupId));
+    const defaultProd = supProds[0] || pool[0];
     setItems([
       {
         category_id: defaultProd?.category_id || '',
@@ -171,11 +187,12 @@ export const ImportNotes = ({ isActive = true }) => {
   };
 
   const handleAddItemRow = () => {
-    if (products.length === 0) return;
+    const pool = activeProducts.length > 0 ? activeProducts : products;
+    if (pool.length === 0) return;
     const supProds = onlySupplierProducts && supplierId
-      ? products.filter((p) => Number(p.supplier_id) === Number(supplierId))
+      ? pool.filter((p) => Number(p.supplier_id) === Number(supplierId))
       : [];
-    const defaultProd = supProds[0] || products[0];
+    const defaultProd = supProds[0] || pool[0];
     setItems([
       ...items,
       {
@@ -199,9 +216,10 @@ export const ImportNotes = ({ isActive = true }) => {
     // Xử lý khi thay đổi nhóm hàng: Tự động lọc và chọn mặt hàng phù hợp
     if (field === 'category_id') {
       const catId = val;
+      const pool = activeProducts.length > 0 ? activeProducts : products;
       const available = catId
-        ? products.filter((p) => p.category_id === Number(catId))
-        : products;
+        ? pool.filter((p) => p.category_id === Number(catId))
+        : pool;
       if (available.length > 0 && !available.some((p) => p.id === Number(updated[idx].product_id))) {
         updated[idx].product_id = available[0].id;
         updated[idx].unit_price = Math.round(available[0].standard_price * 0.75);
@@ -316,8 +334,9 @@ export const ImportNotes = ({ isActive = true }) => {
 
   const handleSupplierChangeInModal = (newSupId) => {
     setSupplierId(newSupId);
+    const pool = activeProducts.length > 0 ? activeProducts : products;
     if (onlySupplierProducts && newSupId) {
-      const supProds = products.filter((p) => Number(p.supplier_id) === Number(newSupId));
+      const supProds = pool.filter((p) => Number(p.supplier_id) === Number(newSupId));
       if (supProds.length > 0) {
         setItems((prev) =>
           prev.map((row, idx) => {
@@ -387,11 +406,14 @@ export const ImportNotes = ({ isActive = true }) => {
             className="w-full sm:w-auto py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shrink-0 max-w-xs"
           >
             <option value="">Tất cả mặt hàng nhập</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                [{p.code}] {p.name}
-              </option>
-            ))}
+            {products.map((p) => {
+              const isDiscontinued = (p.status || 'ACTIVE').toUpperCase() === 'DISCONTINUED';
+              return (
+                <option key={p.id} value={p.id}>
+                  [{p.code}] {p.name}{isDiscontinued ? ' (Ngừng KD)' : ''}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
@@ -551,10 +573,11 @@ export const ImportNotes = ({ isActive = true }) => {
 
             <div className="space-y-2.5">
               {items.map((row, idx) => {
+                const pool = activeProducts.length > 0 ? activeProducts : products;
                 const supplierPool = onlySupplierProducts && supplierId
-                  ? products.filter((p) => Number(p.supplier_id) === Number(supplierId))
-                  : products;
-                const baseProducts = supplierPool.length > 0 ? supplierPool : products;
+                  ? pool.filter((p) => Number(p.supplier_id) === Number(supplierId))
+                  : pool;
+                const baseProducts = supplierPool.length > 0 ? supplierPool : pool;
                 const availableProducts = row.category_id
                   ? baseProducts.filter((p) => p.category_id === Number(row.category_id))
                   : baseProducts;

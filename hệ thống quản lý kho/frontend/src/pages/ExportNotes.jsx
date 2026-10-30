@@ -32,6 +32,11 @@ export const ExportNotes = ({ isActive = true }) => {
   const [exportNotes, setExportNotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Danh sách mặt hàng đang kinh doanh (dùng riêng cho Modal lập phiếu mới)
+  const activeProducts = React.useMemo(
+    () => products.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'ACTIVE'),
+    [products]
+  );
   const [loading, setLoading] = useState(false);
   const showTableLoader = useDelayedLoading(loading);
 
@@ -98,19 +103,25 @@ export const ExportNotes = ({ isActive = true }) => {
 
     // Kiểm tra xem có bản nháp phiếu xuất trong vòng 24h không
     const draft = draftStorage.load(user?.username, 'export_note');
+    const fallbackProd = activeProducts[0] || products[0];
     if (draft && draft.data) {
       setRecipientName(draft.data.recipientName || '');
       setNoteText(draft.data.noteText || '');
       setAiSuggestion(null);
+      // Lọc bỏ hàng đã ngừng kinh doanh nếu có trong bản nháp cũ
+      const validItems = (draft.data.items || []).filter((it) => {
+        const prod = products.find((p) => p.id === Number(it.product_id));
+        return prod && (prod.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+      });
       setItems(
-        draft.data.items && draft.data.items.length > 0
-          ? draft.data.items
+        validItems.length > 0
+          ? validItems
           : [
               {
-                category_id: products[0]?.category_id || '',
-                product_id: products[0]?.id || '',
+                category_id: fallbackProd?.category_id || '',
+                product_id: fallbackProd?.id || '',
                 quantity: 1,
-                unit_price: products[0]?.standard_price || 100000,
+                unit_price: fallbackProd?.standard_price || 100000,
               },
             ]
       );
@@ -120,7 +131,7 @@ export const ExportNotes = ({ isActive = true }) => {
       setRecipientName('');
       setNoteText('');
       setAiSuggestion(null);
-      const defaultProd = products[0];
+      const defaultProd = fallbackProd;
       setItems([
         {
           category_id: defaultProd?.category_id || '',
@@ -158,7 +169,7 @@ export const ExportNotes = ({ isActive = true }) => {
     setIsDraftRestored(false);
     setRecipientName('');
     setNoteText('');
-    const defaultProd = products[0];
+    const defaultProd = activeProducts[0] || products[0];
     setItems([
       {
         category_id: defaultProd?.category_id || '',
@@ -198,8 +209,9 @@ export const ExportNotes = ({ isActive = true }) => {
   };
 
   const handleAddItemRow = () => {
-    if (products.length === 0) return;
-    const defaultProd = products[0];
+    const pool = activeProducts.length > 0 ? activeProducts : products;
+    if (pool.length === 0) return;
+    const defaultProd = pool[0];
     setItems([
       ...items,
       {
@@ -223,9 +235,10 @@ export const ExportNotes = ({ isActive = true }) => {
     // Xử lý khi thay đổi nhóm hàng: Tự động lọc và chọn mặt hàng phù hợp
     if (field === 'category_id') {
       const catId = val;
+      const pool = activeProducts.length > 0 ? activeProducts : products;
       const available = catId
-        ? products.filter((p) => p.category_id === Number(catId))
-        : products;
+        ? pool.filter((p) => p.category_id === Number(catId))
+        : pool;
       if (available.length > 0 && !available.some((p) => p.id === Number(updated[idx].product_id))) {
         updated[idx].product_id = available[0].id;
         updated[idx].unit_price = available[0].standard_price;
@@ -691,9 +704,10 @@ export const ExportNotes = ({ isActive = true }) => {
 
             <div className="space-y-2.5">
               {items.map((row, idx) => {
+                const pool = activeProducts.length > 0 ? activeProducts : products;
                 const availableProducts = row.category_id
-                  ? products.filter((p) => p.category_id === Number(row.category_id))
-                  : products;
+                  ? pool.filter((p) => p.category_id === Number(row.category_id))
+                  : pool;
                 const currentProd = products.find((p) => p.id === Number(row.product_id));
                 const availableStock = currentProd ? currentProd.current_stock : 0;
                 const isOverStock = (Number(row.quantity) || 0) > availableStock;

@@ -1,1 +1,439 @@
-{}
+{
+  "monthly_report:2026-10-01:2026-10-31": {
+    "report_type": "monthly_report",
+    "start_date": "2026-10-01",
+    "end_date": "2026-10-31",
+    "date": "2026-10-30",
+    "cached_at": "21:24:01 30/10/2026",
+    "is_fallback": false,
+    "fingerprint": {
+      "ledger_count": 77,
+      "max_ledger_id": 1550,
+      "net_change": -63,
+      "active_days_count": 13
+    },
+    "commentary": {
+      "executive_summary": "Trong kỳ 10/2026, doanh nghiệp quản lý tổng số 109 mặt hàng, với 57 mặt hàng có phát sinh giao dịch. Tổng lượng hàng xuất kho (234 đơn vị) vượt đáng kể so với tổng lượng nhập kho (96 đơn vị), cho thấy nhu cầu tiêu thụ cao và có nguy cơ hao hụt tồn kho. Đáng chú ý, hiện có 4 mặt hàng đang nằm dưới mức tồn kho tối thiểu cần được chú ý. Các sản phẩm chủ lực dẫn đầu lượng xuất kho gồm Chuột không dây Logitech G304, Logitech M185, Dell Inspiron 15 3520 i5, Cáp mạng bấm sẵn Cat6 UTP 10 mét và iPhone 16 128GB.",
+      "recommendations": [
+        "Khẩn trương bổ sung hàng hóa cho 4 mặt hàng đang có số lượng dưới mức tồn tối thiểu để tránh tình trạng đứt gãy nguồn cung.",
+        "Lên kế hoạch tăng lượng nhập kho cho các mặt hàng có tốc độ xuất kho cao như SP002, SP050, SP036, SP016 và SP023 nhằm đáp ứng kịp thời nhu cầu thị trường."
+      ]
+    }
+  },
+  "restock_suggestions:2026-10-01:2026-10-30": {
+    "report_type": "restock_suggestions",
+    "start_date": "2026-10-01",
+    "end_date": "2026-10-30",
+    "date": "2026-10-30",
+    "cached_at": "22:11:01 30/10/2026",
+    "is_fallback": false,
+    "fingerprint": {
+      "ledger_count": 77,
+      "max_ledger_id": 1550,
+      "net_change": -63,
+      "active_days_count": 13,
+      "product_count": 109,
+      "sum_current_stock": 3703,
+      "sum_min_stock": 939
+    },
+    "commentary": {
+      "executive_summary": "Kho hàng có một số mặt hàng sắp hết hoặc dưới mức an toàn cần được bổ sung khẩn cấp để đảm bảo hoạt động kinh doanh trong 30 ngày tới.",
+      "ai_item_map": {
+        "SP023": {
+          "product_code": "SP023",
+          "suggested_quantity": 13,
+          "priority": "HIGH",
+          "reason": "Tồn kho thấp (2 sản phẩm), chỉ đủ bán trong 4.6 ngày, cần nhập để đáp ứng nhu cầu 30 ngày tới và đạt mức an toàn."
+        },
+        "SP035": {
+          "product_code": "SP035",
+          "suggested_quantity": 3,
+          "priority": "LOW",
+          "reason": "Vận tốc bán bằng 0, lượng tồn kho hiện tại (3 sản phẩm) đã đạt mức tối thiểu cần thiết."
+        },
+        "SP036": {
+          "product_code": "SP036",
+          "suggested_quantity": 21,
+          "priority": "HIGH",
+          "reason": "Tồn kho (3 sản phẩm) thấp hơn mức tối thiểu (5) và chỉ đủ bán trong 4.3 ngày, cần nhập bổ sung ngay."
+        },
+        "SP050": {
+          "product_code": "SP050",
+          "suggested_quantity": 25,
+          "priority": "MEDIUM",
+          "reason": "Tồn kho (8 sản phẩm) thấp hơn mức an toàn tối thiểu (15), cần nhập thêm để duy trì vận tốc bán 0.83 sản phẩm/ngày."
+        }
+      }
+    }
+  },
+  "anomaly_detection:2026-10-01:2026-10-30": {
+    "report_type": "anomaly_detection",
+    "start_date": "2026-10-01",
+    "end_date": "2026-10-30",
+    "date": "2026-10-30",
+    "cached_at": "22:11:26 30/10/2026",
+    "is_fallback": false,
+    "fingerprint": {
+      "ledger_count": 77,
+      "max_ledger_id": 1550,
+      "net_change": -63,
+      "active_days_count": 13,
+      "product_count": 109,
+      "sum_current_stock": 3703,
+      "sum_min_stock": 939
+    },
+    "commentary": {
+      "executive_summary": "Hệ thống ghi nhận tổng cộng 59 mặt hàng nằm trong nhóm DEAD_STOCK (tồn ứ đọng từ 30 ngày trở lên không phát sinh xuất kho) trong khoảng thời gian từ 2026-10-01 đến 2026-10-30. Không có mặt hàng nào ghi nhận trạng thái SURGE_EXPORT. Tình trạng hàng tồn kho lâu ngày chiếm tỷ trọng lớn đối với các thiết bị điện tử, linh kiện máy tính và phụ kiện, gây áp lực về chi phí lưu kho và rủi ro giảm giá trị sản phẩm.",
+      "ai_action_map": {
+        "SP003": {
+          "product_code": "SP003",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Cáp chuyển đổi VGA to HDMI đã không phát sinh giao dịch xuất kho trong 30 ngày với lượng tồn kho là 60.",
+          "suggested_action": "Đánh giá lại nhu cầu thị trường, thực hiện chương trình khuyến mãi hoặc giảm giá để thúc đẩy tiêu thụ."
+        },
+        "SP006": {
+          "product_code": "SP006",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm RAM Corsair Vengeance 16GB DDR4 tồn đọng 91 sản phẩm và không phát sinh xuất kho trong 44 ngày.",
+          "suggested_action": "Kiểm tra chất lượng sản phẩm, đẩy mạnh các gói combo linh kiện máy tính hoặc chạy chương trình xả hàng."
+        },
+        "SP009": {
+          "product_code": "SP009",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Webcam Logitech C920 Pro Full HD tồn kho 39 cái, không phát sinh xuất kho trong 36 ngày.",
+          "suggested_action": "Liên kết bán hàng kèm với laptop/PC hoặc đưa ra chính sách chiết khấu cho đại lý."
+        },
+        "SP011": {
+          "product_code": "SP011",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Nguồn máy tính Corsair CV650 650W tồn kho 68 cái, không xuất kho trong 39 ngày.",
+          "suggested_action": "Đề xuất chương trình giảm giá nhẹ hoặc kết hợp bán kèm khi khách hàng ráp máy cấu hình tương đương."
+        },
+        "SP012": {
+          "product_code": "SP012",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Bộ phát Wifi Mesh Mercusys Halo H50G tồn kho 47 cái, đã ngưng xuất kho trong 34 ngày.",
+          "suggested_action": "Tổ chức chương trình khuyến mãi mạng lưới gia đình hoặc đẩy mạnh marketing trực tuyến."
+        },
+        "SP013": {
+          "product_code": "SP013",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Ổ cứng di động WD My Passport 2TB tồn kho 23 cái, thời gian ứ đọng kéo dài lên tới 103 ngày.",
+          "suggested_action": "Sản phẩm tồn đọng rất lâu, cần áp dụng mức chiết khấu sâu hoặc bán thanh lý để thu hồi vốn."
+        },
+        "SP014": {
+          "product_code": "SP014",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Loa vi tính Microlab M-108 2.1 tồn kho 38 cái, không phát sinh xuất kho trong 62 ngày.",
+          "suggested_action": "Đưa vào danh mục quà tặng kèm hoặc giảm giá trực tiếp để giải phóng không gian kho."
+        },
+        "SP015": {
+          "product_code": "SP015",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Tản nhiệt CPU Deepcool Gammaxx 400 tồn kho 59 cái, ứ đọng trong 60 ngày.",
+          "suggested_action": "Khuyến khích kỹ thuật viên gợi ý sản phẩm cho khách hàng nâng cấp tản nhiệt PC."
+        },
+        "SP019": {
+          "product_code": "SP019",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Giá treo tai nghe kim loại đa năng tồn kho 42 cái, không xuất kho trong 89 ngày.",
+          "suggested_action": "Bán kèm ưu đãi khi khách hàng mua tai nghe hoặc bàn phím cơ."
+        },
+        "SP021": {
+          "product_code": "SP021",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Keo tản nhiệt Arctic MX-4 4g tồn kho 48 cái, không xuất kho trong 61 ngày.",
+          "suggested_action": "Tặng kèm khi khách hàng sử dụng dịch vụ vệ sinh hoặc mua linh kiện máy tính."
+        },
+        "SP022": {
+          "product_code": "SP022",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Màn hình LG 27 inch 4K IPS tồn kho 23 cái, không phát sinh giao dịch trong 30 ngày.",
+          "suggested_action": "Đánh giá lại chiến lược giá bán lẻ, áp dụng chính sách trả góp 0% kích cầu."
+        },
+        "SP024": {
+          "product_code": "SP024",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm iPhone 15 128GB tồn kho 19 cái, không phát sinh xuất kho trong 30 ngày.",
+          "suggested_action": "Điều chỉnh giá bán cạnh tranh hoặc chạy chương trình thu cũ đổi mới."
+        },
+        "SP025": {
+          "product_code": "SP025",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm iPhone 14 128GB tồn kho 20 cái, ứ đọng kéo dài 92 ngày không xuất kho.",
+          "suggested_action": "Đẩy mạnh xả kho do đây là dòng máy thế hệ cũ, tránh trượt giá sâu hơn nữa."
+        },
+        "SP026": {
+          "product_code": "SP026",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Samsung Galaxy S24 tồn kho 16 cái, không xuất kho trong 39 ngày.",
+          "suggested_action": "Tạo gói quà tặng phụ kiện kèm theo để thu hút người mua."
+        },
+        "SP027": {
+          "product_code": "SP027",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Samsung Galaxy A55 5G tồn kho 22 cái, không phát sinh giao dịch trong 44 ngày.",
+          "suggested_action": "Chạy chương trình ưu đãi giảm giá trực tiếp cho phân khúc tầm trung."
+        },
+        "SP028": {
+          "product_code": "SP028",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Samsung Galaxy Z Fold6 tồn kho 13 cái, không xuất kho trong 60 ngày.",
+          "suggested_action": "Liên hệ đội ngũ kinh doanh tìm kiếm khách hàng doanh nghiệp hoặc VIP, áp dụng chính sách ưu đãi đặc quyền."
+        },
+        "SP029": {
+          "product_code": "SP029",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Xiaomi 14 tồn kho 23 cái, thời gian không xuất kho đã lên tới 89 ngày.",
+          "suggested_action": "Thực hiện giảm giá mạnh hoặc bán thanh lý để thu hồi dòng tiền."
+        },
+        "SP030": {
+          "product_code": "SP030",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Xiaomi Redmi Note 13 tồn kho 26 cái, không có giao dịch xuất kho trong 63 ngày.",
+          "suggested_action": "Đưa vào chương trình khuyến mãi định kỳ của phân khúc điện thoại giá rẻ."
+        },
+        "SP031": {
+          "product_code": "SP031",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Oppo Reno12 tồn kho 14 cái, ứ đọng 97 ngày không phát sinh xuất kho.",
+          "suggested_action": "Xả hàng nhanh chóng với mức giá chiết khấu cao để giải phóng kho."
+        },
+        "SP032": {
+          "product_code": "SP032",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Oppo A79 tồn kho 26 cái, không xuất kho trong 42 ngày.",
+          "suggested_action": "Tăng cường quảng cáo trực tuyến và các chương trình ưu đãi mùa vụ."
+        },
+        "SP033": {
+          "product_code": "SP033",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Vivo V30 tồn kho 16 cái, không có giao dịch xuất kho trong 32 ngày.",
+          "suggested_action": "Xem xét lại nhu cầu thị trường khu vực và điều chỉnh chương trình bán hàng."
+        },
+        "SP035": {
+          "product_code": "SP035",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm MacBook Pro M3 14 inch tồn kho 3 cái, không xuất kho trong 66 ngày.",
+          "suggested_action": "Tư vấn trực tiếp cho khách hàng tiềm năng hoặc làm chương trình giảm giá cấu hình cao cấp."
+        },
+        "SP037": {
+          "product_code": "SP037",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Dell XPS 13 tồn kho 5 cái, ứ đọng 87 ngày không xuất kho.",
+          "suggested_action": "Kiểm tra tình trạng máy, thực hiện chương trình tri ân hoặc giảm giá đặc biệt."
+        },
+        "SP038": {
+          "product_code": "SP038",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Asus Vivobook 15 R5 tồn kho 28 cái, không phát sinh xuất kho trong 77 ngày.",
+          "suggested_action": "Đẩy mạnh tiếp thị hướng tới đối tượng học sinh, sinh viên với gói quà tặng hấp dẫn."
+        },
+        "SP039": {
+          "product_code": "SP039",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Asus TUF Gaming F15 tồn kho 22 cái, không xuất kho trong 61 ngày.",
+          "suggested_action": "Kết hợp với các tựa game hot để chạy chiến dịch quảng cáo, ưu đãi khi mua kèm chuột/phím."
+        },
+        "SP040": {
+          "product_code": "SP040",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm HP Pavilion 14 tồn kho 17 cái, ứ đọng trong 91 ngày.",
+          "suggested_action": "Thanh lý giảm giá sâu nhằm thu hồi vốn lưu động."
+        },
+        "SP041": {
+          "product_code": "SP041",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm HP Envy x360 tồn kho 7 cái, không xuất kho trong 93 ngày.",
+          "suggested_action": "Tổ chức xả kho dòng máy phân khúc cận cao cấp để giải phóng vị trí."
+        },
+        "SP042": {
+          "product_code": "SP042",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Lenovo ThinkPad E14 tồn kho 15 cái, thời gian ứ đọng rất cao lên đến 136 ngày.",
+          "suggested_action": "Liên hệ chào bán trọn gói cho đối tượng khách hàng văn phòng hoặc doanh nghiệp nhỏ."
+        },
+        "SP043": {
+          "product_code": "SP043",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Lenovo Legion 5 tồn kho 9 cái, không xuất kho trong 53 ngày.",
+          "suggested_action": "Thực hiện chương trình ưu đãi cho dòng laptop gaming tầm trung."
+        },
+        "SP044": {
+          "product_code": "SP044",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Acer Aspire 5 tồn kho 27 cái, không xuất kho trong 58 ngày.",
+          "suggested_action": "Đưa vào danh mục khuyến mãi văn phòng, học tập."
+        },
+        "SP045": {
+          "product_code": "SP045",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Acer Nitro 5 tồn kho 18 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Đánh giá lại nhu cầu thị trường gaming và đưa ra chính sách hỗ trợ trả góp."
+        },
+        "SP046": {
+          "product_code": "SP046",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm PC Gaming Gigabyte i5 RTX4060 tồn kho 10 cái, ứ đọng 47 ngày.",
+          "suggested_action": "Tổ chức chương trình trải nghiệm sản phẩm trực tiếp hoặc tặng kèm màn hình/phụ kiện."
+        },
+        "SP047": {
+          "product_code": "SP047",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm PC Văn phòng Dell OptiPlex tồn kho 24 cái, không xuất kho trong 108 ngày.",
+          "suggested_action": "Chào bán trực tiếp tới các cơ quan, doanh nghiệp đang có nhu cầu nâng cấp thiết bị văn phòng."
+        },
+        "SP048": {
+          "product_code": "SP048",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Mini PC Intel NUC tồn kho 26 cái, không xuất kho trong 34 ngày.",
+          "suggested_action": "Khảo sát nhu cầu khách hàng doanh nghiệp hoặc không gian hẹp để đẩy mạnh tiêu thụ."
+        },
+        "SP049": {
+          "product_code": "SP049",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm iMac 24 inch M3 tồn kho 8 cái, không xuất kho trong 31 ngày.",
+          "suggested_action": "Tư vấn cho phân khúc khách hàng sáng tạo nội dung hoặc văn phòng cao cấp."
+        },
+        "SP051": {
+          "product_code": "SP051",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Logitech G102 tồn kho 50 cái, không xuất kho trong 50 ngày.",
+          "suggested_action": "Tạo chương trình combo giảm giá khi mua cùng bàn phím hoặc lót chuột."
+        },
+        "SP052": {
+          "product_code": "SP052",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Razer DeathAdder V2 tồn kho 41 cái, không xuất kho trong 32 ngày.",
+          "suggested_action": "Đẩy mạnh quảng cáo cho cộng đồng game thủ hoặc chiết khấu cho đại lý bán lẻ."
+        },
+        "SP053": {
+          "product_code": "SP053",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Chuột không dây Rapoo M100 tồn kho 20 cái, ứ đọng 89 ngày.",
+          "suggested_action": "Đưa vào danh mục quà tặng hoặc bán thanh lý giá rẻ."
+        },
+        "SP054": {
+          "product_code": "SP054",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Dell S2421H 24 inch tồn kho 31 cái, không xuất kho trong 61 ngày.",
+          "suggested_action": "Khuyến khích gói mua kèm máy tính bàn hoặc laptop để làm màn hình phụ."
+        },
+        "SP055": {
+          "product_code": "SP055",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm LG UltraGear 27GP850 tồn kho 26 cái, không xuất kho trong 36 ngày.",
+          "suggested_action": "Chạy chương trình ưu đãi dành riêng cho màn hình gaming."
+        },
+        "SP056": {
+          "product_code": "SP056",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Samsung Odyssey G5 tồn kho 8 cái, không xuất kho trong 77 ngày.",
+          "suggested_action": "Đánh giá lại giá bán và thực hiện chương trình khuyến mãi nhỏ."
+        },
+        "SP057": {
+          "product_code": "SP057",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm ViewSonic VA2432 tồn kho 33 cái, ứ đọng 85 ngày.",
+          "suggested_action": "Áp dụng giá xả hàng hoặc bán sỉ cho các dự án văn phòng."
+        },
+        "SP058": {
+          "product_code": "SP058",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm RAM Kingston 8GB DDR4 tồn kho 30 cái, không xuất kho trong 56 ngày.",
+          "suggested_action": "Tư vấn nâng cấp RAM cho khách hàng bảo trì máy tính."
+        },
+        "SP059": {
+          "product_code": "SP059",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm RAM Corsair Vengeance 16GB tồn kho 36 cái, không xuất kho trong 72 ngày.",
+          "suggested_action": "Kết hợp bán linh kiện nâng cấp cấu hình máy tính chơi game."
+        },
+        "SP060": {
+          "product_code": "SP060",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm SSD Samsung 970 Evo 500GB tồn kho 38 cái, ứ đọng 92 ngày.",
+          "suggested_action": "Thực hiện chương trình giảm giá phụ kiện lưu trữ để nhanh chóng giải phóng kho."
+        },
+        "SP061": {
+          "product_code": "SP061",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm SSD WD Blue 1TB tồn kho 36 cái, không xuất kho trong 101 ngày.",
+          "suggested_action": "Đẩy mạnh chương trình ưu đãi nâng cấp ổ cứng cho laptop và PC cũ."
+        },
+        "SP062": {
+          "product_code": "SP062",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Bàn phím cơ Akko 3068 tồn kho 34 cái, không xuất kho trong 34 ngày.",
+          "suggested_action": "Tổ chức chương trình khuyến mãi cho phụ kiện chơi game."
+        },
+        "SP063": {
+          "product_code": "SP063",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Bàn phím Newmen GM610 tồn kho 40 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Đánh giá lại nhu cầu thị trường và áp dụng mức chiết khấu nhẹ."
+        },
+        "SP064": {
+          "product_code": "SP064",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Tai nghe Sony WH-1000XM5 tồn kho 24 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Chạy chiến dịch quảng cáo tập trung vào phân khúc tai nghe chống ồn cao cấp."
+        },
+        "SP065": {
+          "product_code": "SP065",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Tai nghe JBL Tune 510BT tồn kho 50 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Tạo chương trình ưu đãi mua kèm thiết bị di động hoặc máy tính bảng."
+        },
+        "SP066": {
+          "product_code": "SP066",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Sạc dự phòng Anker 10000mAh tồn kho 49 cái, không xuất kho trong 53 ngày.",
+          "suggested_action": "Bán kèm ưu đãi khi khách hàng mua điện thoại hoặc máy tính bảng."
+        },
+        "SP067": {
+          "product_code": "SP067",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Sạc dự phòng Xiaomi 20000mAh tồn kho 49 cái, ứ đọng trong 47 ngày.",
+          "suggested_action": "Đẩy mạnh tiếp thị thông qua các kênh bán hàng trực tuyến và sàn thương mại điện tử."
+        },
+        "SP069": {
+          "product_code": "SP069",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Cáp sạc Lightning chính hãng Apple tồn kho 50 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Đưa vào giỏ hàng mua kèm khi khách hàng mua sản phẩm Apple."
+        },
+        "SP071": {
+          "product_code": "SP071",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Ốp lưng iPhone 16 silicon tồn kho 64 cái, không xuất kho trong 58 ngày.",
+          "suggested_action": "Tặng kèm khi khách hàng mua dòng máy iPhone tương ứng."
+        },
+        "SP072": {
+          "product_code": "SP072",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Túi chống sốc laptop 15.6 inch tồn kho 40 cái, không xuất kho trong 30 ngày.",
+          "suggested_action": "Tặng kèm khi khách hàng mua laptop cỡ lớn."
+        },
+        "SP074": {
+          "product_code": "SP074",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Thẻ nhớ SanDisk 128GB tồn kho 29 cái, không xuất kho trong 39 ngày.",
+          "suggested_action": "Đề xuất chương trình giảm giá phụ kiện lưu trữ di động."
+        },
+        "SP075": {
+          "product_code": "SP075",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Webcam Logitech C270 tồn kho 30 cái, không xuất kho trong 42 ngày.",
+          "suggested_action": "Khuyến mãi gói thiết bị học tập và làm việc tại nhà."
+        },
+        "SP076": {
+          "product_code": "SP076",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Loa Bluetooth JBL Go 3 tồn kho 32 cái, không xuất kho trong 33 ngày.",
+          "suggested_action": "Chạy chiến dịch quảng cáo theo mùa du lịch, dã ngoại hoặc giảm giá nhẹ."
+        }
+      }
+    }
+  }
+}

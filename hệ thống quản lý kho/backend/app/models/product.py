@@ -1,6 +1,7 @@
 """SQLAlchemy Model cho Hàng hóa (products) kèm ràng buộc chống tồn âm."""
 
 from datetime import datetime
+from app.core.config import get_now_vn
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -20,7 +21,7 @@ class Product(Base):
     standard_price = Column(Float, nullable=False, default=0.0)
     image_url = Column(String(500), nullable=True)  # Đường dẫn hoặc URL ảnh sản phẩm
     status = Column(String(20), nullable=False, default="ACTIVE")  # ACTIVE, DISCONTINUED
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=get_now_vn)
 
     # Ràng buộc toàn vẹn: Chặn đứng nguy cơ tồn kho âm ở mức CSDL
     __table_args__ = (

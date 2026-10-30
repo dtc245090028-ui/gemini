@@ -7,6 +7,7 @@ import {
   Edit2,
   Trash2,
   Eye,
+  EyeOff,
   CheckCircle,
   XCircle,
   Image as ImageIcon,
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Sparkles,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +57,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
 
   // Debounce tìm kiếm 300ms chống spam API khi gõ phím
   useEffect(() => {
@@ -195,7 +198,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
+  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock, showDiscontinued]);
 
   useEffect(() => {
     if (notification) {
@@ -219,9 +222,21 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     });
   };
 
+  // Đếm số lượng hàng ngưng kinh doanh để hiển thị huy hiệu trên công tắc
+  const discontinuedCount = useMemo(
+    () => products.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'DISCONTINUED').length,
+    [products]
+  );
+
+  // Mặc định ẩn hàng "Ngưng bán" khỏi danh sách, bật công tắc khi cần xem lại
+  const visibleProducts = useMemo(() => {
+    if (showDiscontinued) return products;
+    return products.filter((p) => (p.status || 'ACTIVE').toUpperCase() !== 'DISCONTINUED');
+  }, [products, showDiscontinued]);
+
   const sortedProducts = useMemo(() => {
-    if (!sortConfig.key) return products;
-    return [...products].sort((a, b) => {
+    if (!sortConfig.key) return visibleProducts;
+    return [...visibleProducts].sort((a, b) => {
       if (sortConfig.key === 'name') {
         const comp = (a.name || '').localeCompare(b.name || '', 'vi', { sensitivity: 'base' });
         return sortConfig.direction === 'asc' ? comp : -comp;
@@ -236,7 +251,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       }
       return 0;
     });
-  }, [products, sortConfig]);
+  }, [visibleProducts, sortConfig]);
 
   // Phân trang dữ liệu
   const totalItems = sortedProducts.length;
@@ -502,6 +517,23 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     }
   };
 
+  const handleRestoreProduct = async (p) => {
+    const isConfirmed = await confirm({
+      title: 'Mở lại kinh doanh?',
+      message: `Bạn có chắc chắn muốn mở lại kinh doanh cho mặt hàng "${p.name}" (${p.code})? Hàng sẽ được phép xuất/nhập kho bình thường trở lại.`,
+      confirmText: 'Mở lại kinh doanh',
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await apiClient.products.update(p.id, { status: 'ACTIVE' });
+      showSuccess(`Đã mở lại kinh doanh cho mặt hàng "${p.name}" thành công!`);
+      fetchProducts();
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Không thể mở lại kinh doanh cho mặt hàng.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Thông báo thao tác */}
@@ -595,6 +627,40 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           />
           <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
           <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
+        </label>
+
+        {/* Toggle Hiện hàng ngưng bán (Mặc định ẩn) */}
+        <label
+          className={`flex items-center gap-2 text-xs font-semibold cursor-pointer select-none px-3 py-2 rounded-input border transition-colors shrink-0 ${
+            showDiscontinued
+              ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)] text-[var(--semantic-alert)]'
+              : 'bg-[var(--bg-surface-warm)] border-[var(--border-medium)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+          title={showDiscontinued ? 'Đang hiển thị cả hàng ngưng bán (bấm để ẩn)' : 'Mặc định đang ẩn hàng ngưng bán (bấm để xem lại khi cần)'}
+        >
+          <input
+            type="checkbox"
+            checked={showDiscontinued}
+            onChange={(e) => setShowDiscontinued(e.target.checked)}
+            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
+          />
+          {showDiscontinued ? (
+            <Eye className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
+          ) : (
+            <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+          )}
+          <span>Hiện hàng ngưng bán</span>
+          {discontinuedCount > 0 && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none ${
+                showDiscontinued
+                  ? 'bg-[var(--semantic-alert)] text-white'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-medium)]'
+              }`}
+            >
+              {discontinuedCount}
+            </span>
+          )}
         </label>
         {/* Nút Làm mới dữ liệu */}
         <button
@@ -745,13 +811,23 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
                             </button>
                           )}
                           {canDelete && (
-                            <button
-                              onClick={() => handleDeleteProduct(p)}
-                              title="Ngưng kinh doanh"
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            p.status === 'DISCONTINUED' ? (
+                              <button
+                                onClick={() => handleRestoreProduct(p)}
+                                title="Mở lại kinh doanh"
+                                className="p-1.5 text-[var(--semantic-success)] hover:bg-[var(--semantic-success-bg)] rounded-btn transition-colors cursor-pointer"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteProduct(p)}
+                                title="Ngưng kinh doanh"
+                                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>

@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import settings, get_now_vn
 from app.models.category import Category
 from app.models.export_note import ExportNote, ExportNoteDetail
 from app.models.import_note import ImportNote, ImportNoteDetail
@@ -182,7 +182,7 @@ class AIService:
             end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
             effective_days = max((end_d - start_d).days + 1, 1)
         else:
-            end_dt = datetime.now()
+            end_dt = get_now_vn()
             start_dt = end_dt - timedelta(days=lookback_days)
             effective_days = max(lookback_days, 1)
 
@@ -242,7 +242,7 @@ class AIService:
             recent_window_days = min(7, max(1, effective_days // 2)) if effective_days > 7 else effective_days
             recent_7d_cutoff = end_dt - timedelta(days=recent_window_days)
         else:
-            end_dt = datetime.now()
+            end_dt = get_now_vn()
             recent_7d_cutoff = end_dt - timedelta(days=7)
             previous_cutoff = end_dt - timedelta(days=lookback_days)
             effective_days = max(lookback_days, 1)
@@ -550,7 +550,7 @@ class AIService:
         - Số liệu tồn kho, tốc độ xuất luôn tính mới từ CSDL.
         - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
         """
-        today_d = datetime.now().date()
+        today_d = get_now_vn().date()
         if start_date and end_date:
             start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
             effective_days = max((end_d - start_d).days + 1, 1)
@@ -718,7 +718,7 @@ class AIService:
         - Số liệu bất thường luôn tính mới từ CSDL.
         - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
         """
-        today_d = datetime.now().date()
+        today_d = get_now_vn().date()
         if start_date and end_date:
             start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
             effective_days = max((end_d - start_d).days + 1, 1)
@@ -1077,7 +1077,7 @@ class AIService:
         - include_smartkho=False: Gửi thuần câu hỏi, để AI hoàn toàn tự do trả lời, không chèn số liệu kho hay đề mục báo cáo.
         - include_smartkho=True: Nạp ngữ cảnh số liệu #SmartKho và chèn cấu trúc phân tích điều hành kho bãi.
         """
-        now = datetime.now()
+        now = get_now_vn()
         timestamp_str = now.strftime("%H:%M:%S %d/%m/%Y")
 
         # ==============================================================

@@ -1,8 +1,18 @@
 """Cấu hình ứng dụng tập trung sử dụng Pydantic Settings."""
 
 from typing import List, Union
+from datetime import datetime, timezone, timedelta
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Định nghĩa múi giờ Việt Nam (UTC+7) áp dụng toàn hệ thống
+VN_TZ = timezone(timedelta(hours=7))
+
+
+def get_now_vn() -> datetime:
+    """Lấy thời điểm hiện tại theo Giờ Việt Nam (UTC+7), dạng naive datetime để tương thích 100% với SQLite và Seed Data."""
+    return datetime.now(VN_TZ).replace(tzinfo=None)
+
 
 
 class Settings(BaseSettings):

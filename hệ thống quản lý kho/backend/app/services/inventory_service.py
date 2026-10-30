@@ -1,4 +1,5 @@
 from app.core.metrics import write_metrics
+from app.core.config import VN_TZ, get_now_vn
 from app.core.events import broadcaster
 """Dịch vụ nghiệp vụ Quản lý Kho: Nhập kho, Xuất kho, Thẻ kho và Giao dịch ACID."""
 
@@ -46,7 +47,7 @@ def calculate_financials(details) -> tuple[float, list[float]]:
 
 def generate_note_code(db: Session, prefix: str, model_class, code_column) -> str:
     """Sinh mã chứng từ tự động dạng {PREFIX}-YYYYMMDD-XXXX (ví dụ: PN-20260922-0001)."""
-    today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    today_str = get_now_vn().strftime("%Y%m%d")
     code_pattern = f"{prefix}-{today_str}-%"
 
     # Tìm mã lớn nhất trong ngày hiện tại
@@ -126,7 +127,7 @@ def create_import_note(
 
     # 3. Tính toán tổng tiền và subtotal bằng Decimal quantize
     total_amount, subtotals = calculate_financials(note_in.details)
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
 
     # 4. Thực thi Transaction với Retry Pattern (Optimistic Concurrency)
     max_retries = 7
@@ -300,7 +301,7 @@ def create_export_note(
 
     # 2. Tính tổng tiền và subtotal bằng Decimal quantize
     total_amount, subtotals = calculate_financials(note_in.details)
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
 
     # 3. Thực thi Transaction với Retry Pattern
     max_retries = 7
@@ -443,7 +444,7 @@ def cancel_import_note(
             )
 
     # Thực hiện hủy an toàn
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     import_note.status = "CANCELLED"
     if reason and reason.strip():
         r_text = reason.strip()
@@ -550,7 +551,7 @@ def ship_export_note(
     if stage_timing:
         stage_timing.t_tx_start = t_tx_start
     write_metrics.enter_transaction()
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     export_note.status = "SHIPPING"
 
     for detail in export_note.details:
@@ -735,7 +736,7 @@ def cancel_export_note(
         )
 
     t_tx_start = time.perf_counter()
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     export_note.status = "CANCELLED"
     if reason and reason.strip():
         r_text = reason.strip()
@@ -878,7 +879,7 @@ def adjust_stock(
 
     old_stock = product.current_stock
     difference = adj_in.actual_stock - old_stock
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     ref_code = f"ADJ-{now.strftime('%Y%m%d%H%M%S')}-{product.id}"
 
     # Thực thi với retry pattern chỉ dành riêng cho lỗi tranh chấp khóa tạm thời (locked/busy)
@@ -982,11 +983,11 @@ def get_inventory_summary_report(
     Công thức kế toán bất biến:
     Tồn đầu kỳ + Nhập trong kỳ - Xuất trong kỳ = Tồn cuối kỳ
     """
-    # Chuẩn hóa về naive UTC datetime để so sánh chính xác với SQLite DateTime
+    # Chuẩn hóa về naive datetime (Giờ Việt Nam) để so sánh chính xác với SQLite DateTime
     if from_date.tzinfo is not None:
-        from_date = from_date.astimezone(timezone.utc).replace(tzinfo=None)
+        from_date = from_date.astimezone(VN_TZ).replace(tzinfo=None)
     if to_date.tzinfo is not None:
-        to_date = to_date.astimezone(timezone.utc).replace(tzinfo=None)
+        to_date = to_date.astimezone(VN_TZ).replace(tzinfo=None)
 
     prod_query = db.query(Product).options(joinedload(Product.category))
     if category_id is not None:

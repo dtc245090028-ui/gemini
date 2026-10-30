@@ -1,4 +1,4 @@
-from app.core.metrics import write_metrics
+from app.core.config import get_now_vn
 from app.core.write_gate import write_gate
 """API Endpoints cho Báo cáo Nhập - Xuất - Tồn và Cảnh báo Tồn kho."""
 
@@ -46,7 +46,7 @@ def get_inventory_summary(
 
     Luôn thỏa mãn công thức: Tồn đầu kỳ + Nhập trong kỳ - Xuất trong kỳ = Tồn cuối kỳ.
     """
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     if to_date is None:
         to_date = now
     if from_date is None:
@@ -79,7 +79,7 @@ def export_inventory_summary_excel(
     current_user: User = Depends(get_current_user),
 ):
     """Xuất bảng tổng hợp Nhập - Xuất - Tồn của tất cả mặt hàng theo kỳ ra tệp Excel."""
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     if to_date is None:
         to_date = now
     if from_date is None:

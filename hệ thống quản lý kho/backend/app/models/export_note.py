@@ -1,6 +1,7 @@
 """SQLAlchemy Models cho Phiếu xuất kho (export_notes) và Chi tiết phiếu xuất (export_note_details)."""
 
 from datetime import datetime
+from app.core.config import get_now_vn
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -13,7 +14,7 @@ class ExportNote(Base):
     code = Column(String(50), unique=True, index=True, nullable=False)  # PX-YYYYMMDD-XXX
     recipient_name = Column(String(100), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    note_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    note_date = Column(DateTime, nullable=False, default=get_now_vn)
     total_amount = Column(Float, nullable=False, default=0.0)
     note = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="CONFIRMED")  # CONFIRMED, SHIPPING, COMPLETED, CANCELLED

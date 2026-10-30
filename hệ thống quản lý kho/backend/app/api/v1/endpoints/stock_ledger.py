@@ -29,6 +29,7 @@ from app.schemas.stock_ledger import (
 )
 from app.services.inventory_service import adjust_stock
 from app.core.write_gate import WriteGateContext
+from app.core.config import VN_TZ, get_now_vn
 
 router = APIRouter(prefix="/stock-ledger", tags=["Thẻ kho & Điều chỉnh (Stock Ledger)"])
 
@@ -47,7 +48,7 @@ def _resolve_date_bounds(
         start_dt = datetime(date_from.year, date_from.month, date_from.day, 0, 0, 0)
     elif from_date is not None:
         start_dt = (
-            from_date.astimezone(timezone.utc).replace(tzinfo=None)
+            from_date.astimezone(VN_TZ).replace(tzinfo=None)
             if from_date.tzinfo
             else from_date
         )
@@ -56,7 +57,7 @@ def _resolve_date_bounds(
         end_dt_exclusive = datetime(date_to.year, date_to.month, date_to.day, 0, 0, 0) + timedelta(days=1)
     elif to_date is not None:
         raw_to = (
-            to_date.astimezone(timezone.utc).replace(tzinfo=None)
+            to_date.astimezone(VN_TZ).replace(tzinfo=None)
             if to_date.tzinfo
             else to_date
         )
@@ -382,8 +383,8 @@ def export_stock_ledger_excel(
     current_user: User = Depends(get_current_user),
 ):
     """Xuất dữ liệu Thẻ kho trong phạm vi Ngày / Tuần / Tháng ra file .xlsx."""
-    vn_tz = timezone(timedelta(hours=7))
-    now_vn = datetime.now(vn_tz)
+
+    now_vn = datetime.now(VN_TZ)
     chosen_date = target_date or now_vn.date()
     mode = (period or "day").strip().lower()
 
