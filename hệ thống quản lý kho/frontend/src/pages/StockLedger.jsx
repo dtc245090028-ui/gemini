@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { stockEvents } from '../utils/stockEvents';
 import { usePageSync } from '../hooks/usePageSync';
 import {

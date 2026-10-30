@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Package,
   Plus,
@@ -160,7 +160,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     fetchProducts();
   }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
 
-  const reloadAll = React.useCallback(async (silent = true) => {
+  const reloadAll = useCallback(async (silent = true) => {
     await Promise.all([
       fetchCategories(),
       fetchSuppliers(),
