@@ -53,16 +53,22 @@
 | **Export** | `GET /export-notes` | Danh sách phiếu xuất | ✅ | ✅ | ✅ |
 | | `POST /export-notes` | Tạo phiếu xuất (CONFIRMED) | ✅ | ✅ | ❌ (403) |
 | | `GET /export-notes/{id}` | Chi tiết phiếu xuất | ✅ | ✅ | ✅ |
-| | `PUT /export-notes/{id}/status` | Chuyển trạng thái xuất kho | ✅ | ✅ | ❌ (403) |
+| | `POST /export-notes/{id}/ship` | Xuất kho (Trừ tồn kho & ghi Thẻ kho) | ✅ | ✅ | ❌ (403) |
+| | `POST /export-notes/{id}/complete` | Xác nhận hoàn thành giao hàng | ✅ | ✅ | ❌ (403) |
+| | `POST /export-notes/{id}/cancel` | Hủy phiếu xuất (Hoàn kho nếu đang giao) | ✅ | ✅ | ❌ (403) |
 | | `DELETE /export-notes/{id}` | Xóa phiếu xuất CONFIRMED | ✅ | ✅ | ❌ (403) |
 | **Stock Ledger**| `GET /stock-ledger` | Tra cứu lịch sử thẻ kho | ✅ | ✅ | ✅ |
+| | `GET /stock-ledger/by-reference/{code}` | Chi tiết thẻ kho theo mã chứng từ | ✅ | ✅ | ✅ |
 | | `POST /stock-ledger/adjust` | Điều chỉnh kiểm kê thực tế | ✅ | ✅ | ❌ (403) |
-| **Reports** | `GET /reports/inventory-summary` | Báo cáo Nhập-Xuất-Tồn | ✅ | ✅ | ✅ |
-| | `GET /reports/stock-ledger-excel/{product_id}` | Xuất Thẻ kho Excel | ✅ | ✅ | ✅ |
-| | `GET /reports/inventory-summary-excel` | Xuất Báo cáo NXT Excel | ✅ | ✅ | ✅ |
-| **AI Copilot** | `POST /ai/monthly-report` | AI Báo cáo NXT tháng | ✅ | ✅ | ✅ |
-| | `POST /ai/restock-suggestions` | AI Gợi ý nhập hàng tối ưu | ✅ | ✅ | ✅ |
-| | `POST /ai/anomalies` | AI Phát hiện biến động lạ | ✅ | ✅ | ✅ |
+| | `GET /stock-ledger/export-excel` | Xuất Thẻ kho Excel (2 sheet) | ✅ | ✅ | ✅ |
+| **Reports** | `GET /reports/kpi-summary` | Thống kê KPI kho cho Dashboard | ✅ | ✅ | ✅ |
+| | `GET /reports/low-stock` | Danh sách hàng dưới định mức tồn | ✅ | ✅ | ✅ |
+| | `GET /reports/inventory-summary` | Báo cáo Nhập-Xuất-Tồn | ✅ | ✅ | ✅ |
+| | `GET /reports/inventory-summary/export-excel` | Xuất Báo cáo NXT Excel | ✅ | ✅ | ✅ |
+| **Events** | `GET /events/stream` | Luồng sự kiện thời gian thực (SSE) | ✅ | ✅ | ✅ |
+| **AI Copilot** | `GET /ai/monthly-report` | AI Báo cáo NXT tháng | ✅ | ✅ | ✅ |
+| | `GET /ai/restock-suggestions` | AI Gợi ý nhập hàng tối ưu | ✅ | ✅ | ✅ |
+| | `GET /ai/anomalies` | AI Phát hiện biến động lạ | ✅ | ✅ | ✅ |
 | | `POST /ai/ask` | AI Trợ lý hỏi đáp SmartKho | ✅ | ✅ | ✅ |
 | | `POST /ai/generate-order` | AI Sinh đơn hàng xuất kho | ✅ | ✅ | ✅ |
 
@@ -112,10 +118,9 @@
 - `GET /export-notes`: Danh sách phiếu xuất kèm trạng thái và khách hàng.
 - `POST /export-notes`: Lập phiếu xuất mới với trạng thái ban đầu là `CONFIRMED` (Chờ xuất). Hỗ trợ `idempotency_key`. **Chưa trừ tồn kho vật lý**.
 - `GET /export-notes/{id}`: Chi tiết phiếu xuất.
-- `PUT /export-notes/{id}/status`: Chuyển dịch trạng thái phiếu xuất:
-  - Chuyển sang `SHIPPING`: Thực hiện trừ tồn kho nguyên tử bằng Atomic SQL `RETURNING current_stock`. Nếu không đủ hàng $\rightarrow$ Rollback và trả HTTP 400. Ghi nhận Thẻ kho `stock_ledger` (loại `EXPORT`).
-  - Chuyển sang `COMPLETED`: Giao hàng thành công.
-  - Chuyển sang `CANCELLED`: Nếu hủy từ `SHIPPING`, hoàn lại tồn kho và ghi thẻ kho hoàn trả.
+- `POST /export-notes/{id}/ship`: Xuất kho vật lý: Trừ tồn kho nguyên tử bằng Atomic SQL `RETURNING current_stock`. Nếu không đủ hàng $\rightarrow$ Rollback và trả HTTP 400. Ghi nhận Thẻ kho `stock_ledger` (loại `EXPORT`).
+- `POST /export-notes/{id}/complete`: Xác nhận giao hàng thành công, khóa phiếu vĩnh viễn ở trạng thái `COMPLETED`.
+- `POST /export-notes/{id}/cancel`: Hủy phiếu xuất kho: Nếu hủy khi đang ở `CONFIRMED` thì xóa/hủy trực tiếp; nếu hủy từ `SHIPPING` thì hoàn lại tồn kho và tự động ghi Thẻ kho hoàn trả (loại `ADJUSTMENT`).
 - `DELETE /export-notes/{id}`: Xóa phiếu xuất khỏi hệ thống. **Chỉ cho phép xóa khi phiếu đang ở trạng thái `CONFIRMED`** (chưa xuất kho).
 
 ### 3.7. Phân hệ Thẻ Kho & Kiểm kê (`/stock-ledger`)
@@ -126,14 +131,18 @@
 ### 3.8. Phân hệ Báo cáo Kho (`/reports`)
 
 - `GET /reports/inventory-summary`: Tính toán bảng cân đối Nhập - Xuất - Tồn theo công thức chuẩn kế toán (`Tồn cuối = Tồn đầu + Nhập - Xuất`).
-- `GET /reports/stock-ledger-excel/{product_id}`: Xuất toàn bộ lịch sử Thẻ kho của sản phẩm ra file Excel (`.xlsx`).
-- `GET /reports/inventory-summary-excel`: Xuất Báo cáo Nhập - Xuất - Tồn theo kỳ ra file Excel (`.xlsx`).
+- `GET /stock-ledger/export-excel`: Xuất sổ cái Thẻ kho ra file Excel (`.xlsx`) gồm 2 sheet: Nhập kho và Xuất kho.
+- `GET /stock-ledger/by-reference/{reference_code}`: Lấy chi tiết chứng từ và toàn bộ các dòng Thẻ kho cùng mã chứng từ.
+- `GET /reports/kpi-summary`: Thống kê tổng quan KPI kho hàng phục vụ Dashboard.
+- `GET /reports/low-stock`: Danh sách các mặt hàng dưới định mức tồn tối thiểu.
+- `GET /reports/inventory-summary/export-excel`: Xuất Báo cáo Nhập - Xuất - Tồn theo kỳ ra file Excel (`.xlsx`).
+- `GET /events/stream`: Đăng ký nhận luồng sự kiện thời gian thực (Server-Sent Events) đồng bộ tồn kho tức thì.
 
 ### 3.9. Phân hệ Trợ lý AI (`/ai`)
 
-- `POST /ai/monthly-report`: Gọi Gemini 3.5 Flash Lite sinh báo cáo nhận xét tình hình luân chuyển kho tháng. Hỗ trợ Heuristic Fallback khi offline.
-- `POST /ai/restock-suggestions`: Phân tích vận tốc bán 30 ngày và đưa ra gợi ý số lượng đặt hàng tối ưu kèm lý do.
-- `POST /ai/anomalies`: Phát hiện biến động bất thường (xuất tăng $>200\%$ hoặc tồn ứ đọng $>30$ ngày).
+- `GET /ai/monthly-report`: Gọi Gemini 3.5 Flash Lite sinh báo cáo nhận xét tình hình luân chuyển kho tháng (hỗ trợ params `month`, `year`, `from_date`, `to_date`). Hỗ trợ Heuristic Fallback khi offline.
+- `GET /ai/restock-suggestions`: Phân tích vận tốc bán 30 ngày và đưa ra gợi ý số lượng đặt hàng tối ưu kèm lý do.
+- `GET /ai/anomalies`: Phát hiện biến động bất thường (xuất tăng $>200\%$ hoặc tồn ứ đọng $>30$ ngày).
 - `POST /ai/ask`: Chat hỏi đáp tự do với trợ lý SmartKho Copilot về trạng thái hàng hóa và kho hàng.
 - `POST /ai/generate-order`: Tự động soạn thảo đơn hàng xuất kho theo yêu cầu bằng ngôn ngữ tự nhiên.
 
