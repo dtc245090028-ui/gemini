@@ -28,3 +28,9 @@ api_router.include_router(reports.router)
 api_router.include_router(ai.router)
 api_router.include_router(events.router)
 
+import os
+if os.environ.get("BENCH_ENDPOINTS", "0").strip() == "1":
+    from app.api.v1.endpoints import bench
+    api_router.include_router(bench.router, prefix="/bench", tags=["bench"])
+
+

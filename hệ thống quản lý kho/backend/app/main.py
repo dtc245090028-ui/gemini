@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import time
 from app.core.config import settings
 from app.core.metrics import write_metrics, StageTiming
+from app.core.bench_metrics import bench_traffic
 from app.core.events import broadcaster
 from app.core.database import engine, Base, SessionLocal
 from app.core.seed import seed_default_users
@@ -57,6 +58,15 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Cấu hình AnyIO threadpool limiter nếu có env ANYIO_TOTAL_TOKENS
+    anyio_tokens = int(os.environ.get("ANYIO_TOTAL_TOKENS", "40"))
+    try:
+        import anyio.to_thread
+        limiter = anyio.to_thread.current_default_thread_limiter()
+        limiter.total_tokens = anyio_tokens
+    except Exception:
+        pass
+
     yield
     # Dọn dẹp tài nguyên khi tắt app nếu cần
 
@@ -71,29 +81,36 @@ app = FastAPI(
 )
 
 class WriteArrivalMiddleware:
-    """Pure ASGI Middleware: ghi nhận arrival_time và đo phân bố chặng ghi (Zero BaseHTTPMiddleware overhead)."""
+    """Pure ASGI Middleware: ghi nhận arrival_time, lưu lượng đến/đi và AnyIO threadpool limiter."""
 
     def __init__(self, app: ASGIApp):
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and scope.get("method") in ("POST", "PUT", "PATCH", "DELETE"):
-            t_arrival = time.perf_counter()
-            scope.setdefault("state", {})
-            scope["state"]["arrival_time"] = t_arrival
-            if write_metrics.enabled:
-                st = StageTiming()
-                st.t_arrival = t_arrival
-                scope["state"]["stage_timing"] = st
+        if scope["type"] == "http":
+            bench_traffic.record_arrival()
+            bench_traffic.sample_limiter()
 
-                async def send_wrapper(message: Message) -> None:
-                    if message["type"] == "http.response.start":
+            st = None
+            if scope.get("method") in ("POST", "PUT", "PATCH", "DELETE"):
+                t_arrival = time.perf_counter()
+                scope.setdefault("state", {})
+                scope["state"]["arrival_time"] = t_arrival
+                if write_metrics.enabled:
+                    st = StageTiming()
+                    st.t_arrival = t_arrival
+                    scope["state"]["stage_timing"] = st
+
+            async def send_wrapper(message: Message) -> None:
+                if message["type"] == "http.response.start":
+                    bench_traffic.record_completion()
+                    if st is not None:
                         st.t_response_done = time.perf_counter()
                         write_metrics.record_stages(st)
-                    await send(message)
+                await send(message)
 
-                await self.app(scope, receive, send_wrapper)
-                return
+            await self.app(scope, receive, send_wrapper)
+            return
 
         await self.app(scope, receive, send)
 
