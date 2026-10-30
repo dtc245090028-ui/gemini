@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import {
   Package,
   AlertTriangle,
@@ -50,25 +51,12 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
     loadData();
   }, []);
 
-  // Lắng nghe biến động kho để cập nhật dashboard ngầm (Keep-Alive Sync)
-  useEffect(() => {
-    const unsubscribe = stockEvents.subscribe(() => {
-      if (isActive) {
-        loadData(true);
-      } else {
-        isStaleRef.current = true;
-      }
-    });
-    return unsubscribe;
-  }, [isActive]);
-
-  // Khi kích hoạt tab Dashboard -> luôn cập nhật ngầm không nháy
-  useEffect(() => {
-    if (isActive) {
-      isStaleRef.current = false;
-      loadData(true);
-    }
-  }, [isActive]);
+  // Tự động đồng bộ chuẩn mực theo trang: Debounce, MaxWait, Single-Flight, Sparse Polling
+  usePageSync({
+    fetchFn: loadData,
+    isActive,
+    resource: 'reports',
+  });
 
   // KPI Stats được đồng bộ trực tiếp từ backend kpi-summary
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import {
   AlertCircle,
   Calendar,
@@ -199,27 +200,16 @@ export const StockLedger = ({ defaultProductId, isActive = true }) => {
     fetchLedger();
   }, [selectedProductId, transactionType, debouncedQ, dateFrom, dateTo, currentPage, pageSize]);
 
-  // Lắng nghe biến động kho để cập nhật thẻ kho ngầm (Keep-Alive Sync)
-  useEffect(() => {
-    const unsubscribe = stockEvents.subscribe(() => {
-      if (isActive) {
-        fetchLedger(true);
-        fetchProducts();
-      } else {
-        isStaleRef.current = true;
-      }
-    });
-    return unsubscribe;
-  }, [isActive, selectedProductId, transactionType, debouncedQ, dateFrom, dateTo, currentPage, pageSize]);
+  // Đồng bộ thẻ kho tự động theo chuẩn Item 5 (Debounce, Single-Flight, MaxWait, Sparse Polling)
+  const syncLedgerData = useCallback(async (silent = true) => {
+    await Promise.all([fetchLedger(silent), fetchProducts()]);
+  }, [fetchLedger, fetchProducts]);
 
-  // Khi kích hoạt tab Thẻ kho & kiểm kê -> luôn cập nhật ngầm không nháy
-  useEffect(() => {
-    if (isActive) {
-      isStaleRef.current = false;
-      fetchLedger(true);
-      fetchProducts();
-    }
-  }, [isActive]);
+  usePageSync({
+    fetchFn: syncLedgerData,
+    isActive,
+    resource: 'stock_ledger',
+  });
 
   // Mở popup Chi tiết chứng từ (E)
   const handleOpenReferenceDetail = async (referenceCode) => {

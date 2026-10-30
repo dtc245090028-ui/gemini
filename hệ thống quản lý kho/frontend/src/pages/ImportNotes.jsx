@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import {
   Plus,
   Trash2,
@@ -82,23 +83,12 @@ export const ImportNotes = ({ isActive = true }) => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = stockEvents.subscribe(() => {
-      if (isActive) {
-        fetchData(true);
-      } else {
-        isStaleRef.current = true;
-      }
-    });
-    return unsubscribe;
-  }, [isActive]);
-
-  useEffect(() => {
-    if (isActive) {
-      isStaleRef.current = false;
-      fetchData(true);
-    }
-  }, [isActive]);
+  // Đồng bộ thời gian thực theo chuẩn Item 5 (Debounce, Single-Flight, MaxWait, Sparse Polling)
+  usePageSync({
+    fetchFn: fetchData,
+    isActive,
+    resource: 'import_notes',
+  });
 
   const handleOpenCreate = () => {
     isSubmittingRef.current = false;

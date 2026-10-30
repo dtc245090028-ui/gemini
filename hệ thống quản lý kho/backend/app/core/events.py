@@ -80,6 +80,11 @@ class EventBroadcaster:
         Hoàn toàn an toàn trong môi trường synchronous unit testing (nếu không có event loop thì bỏ qua).
         """
         self.total_mutations_recorded += 1
+        try:
+            from app.core.http_cache import increment_resource_version
+            increment_resource_version(resource)
+        except Exception:
+            pass
         loop = self._get_loop()
         if loop is not None and loop.is_running():
             try:

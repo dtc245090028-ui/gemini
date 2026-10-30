@@ -44,6 +44,8 @@ def test_etag_and_304(client, admin_token):
     etag = resp1.headers.get("etag")
     assert etag is not None, "Header ETag phải tồn tại trong response 200"
     assert len(resp1.content) > 0
+    assert "private" in resp1.headers.get("cache-control", ""), "Cache-Control phải chứa 'private'"
+    assert "Authorization" in resp1.headers.get("vary", ""), "Vary phải chứa 'Authorization'"
 
     # 2. Second GET request with matching If-None-Match -> 304 Not Modified
     headers_with_etag = {**headers, "If-None-Match": etag}
@@ -69,3 +71,26 @@ def test_gzip_compression(client, admin_token):
     # Ta kiểm tra response hợp lệ và có thể parse JSON
     data = resp.json()
     assert isinstance(data, list) or "items" in data
+
+
+def test_resource_version_fast_etag(client, admin_token):
+    from app.core.http_cache import RESOURCE_VERSIONS, increment_resource_version
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # Lấy phiên bản danh mục categories hiện tại
+    cur_ver = RESOURCE_VERSIONS.get("categories", 1)
+    fast_etag = f'W/"categories-v{cur_ver}"'
+
+    # Gửi If-None-Match với fast version -> Nhận 304 ngay lập tức
+    resp = client.get("/api/v1/categories/", headers={**headers, "If-None-Match": fast_etag})
+    assert resp.status_code == 304, f"Expected 304 for fast version ETag, got {resp.status_code}"
+    assert len(resp.content) == 0
+
+    # Khi có mutation làm tăng version -> version cũ bị từ chối và trả về 200 kèm version mới
+    increment_resource_version("categories")
+    new_ver = RESOURCE_VERSIONS["categories"]
+    assert new_ver > cur_ver
+
+    resp_after = client.get("/api/v1/categories/", headers={**headers, "If-None-Match": fast_etag})
+    assert resp_after.status_code == 200, "Sau khi tăng version, If-None-Match cũ không được trả về 304"
+    assert f"categories-v{new_ver}" in resp_after.headers.get("etag", "")
