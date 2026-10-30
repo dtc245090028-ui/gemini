@@ -1,3 +1,5 @@
+from app.core.write_gate import WriteGateContext
+import time
 import os
 from pathlib import Path
 import shutil
@@ -125,34 +127,40 @@ def create_product(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Nhà cung cấp với ID {chosen_supplier_id} không tồn tại trong hệ thống.",
             )
+        if hasattr(supplier, "status") and supplier.status != "ACTIVE":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nhà cung cấp '{supplier.name}' không ở trạng thái ACTIVE.",
+            )
 
-    initial_sup_id = product_in.initial_supplier_id or (
-        product_in.supplier_id
-        if product_in.initial_quantity is not None and product_in.initial_quantity > 0
-        else None
+    # 2. Xử lý tồn kho ban đầu (Phương án A: Chặn gán ngầm supplier_id=1, bắt buộc có NCC hợp lệ)
+    effective_init_qty = (
+        product_in.initial_quantity
+        if (product_in.initial_quantity is not None and product_in.initial_quantity > 0)
+        else (product_in.current_stock if (product_in.current_stock is not None and product_in.current_stock > 0) else None)
     )
-    has_initial_import = (
-        initial_sup_id is not None
-        and product_in.initial_quantity is not None
-        and product_in.initial_quantity > 0
-    )
+
+    has_initial_import = (effective_init_qty is not None and effective_init_qty > 0)
+
+    if has_initial_import:
+        if chosen_supplier_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng chỉ định nhà cung cấp hợp lệ khi tạo sản phẩm có tồn kho ban đầu.",
+            )
+        initial_sup_id = chosen_supplier_id
+    else:
+        initial_sup_id = None
+
     if product_in.initial_supplier_id is not None and not has_initial_import:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Số lượng nhập kho ban đầu phải lớn hơn 0 khi chọn nhà cung cấp.",
         )
 
-    if has_initial_import and initial_sup_id != chosen_supplier_id:
-        supplier = db.query(Supplier).filter(Supplier.id == initial_sup_id).first()
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nhà cung cấp với ID {initial_sup_id} không tồn tại trong hệ thống.",
-            )
-
     # 4. Tạo sản phẩm mới
-    # Nếu có phiếu nhập ban đầu, tồn ban đầu bắt đầu từ 0 để create_import_note tăng lên và ghi Thẻ kho (StockLedger) chính xác
-    starting_stock = 0 if has_initial_import else product_in.current_stock
+    # Tồn kho ban đầu luôn bắt đầu từ 0; nếu có tồn kho (> 0), create_import_note sẽ tăng lên và ghi Thẻ kho (StockLedger) chính xác 100%
+    starting_stock = 0
 
     product = Product(
         code=sku_code,
@@ -184,18 +192,22 @@ def create_product(
             details=[
                 ImportNoteDetailCreate(
                     product_id=product.id,
-                    quantity=product_in.initial_quantity,
+                    quantity=effective_init_qty,
                     unit_price=unit_price,
                 )
             ],
         )
-        created_note = create_import_note(
-            db=db,
-            note_in=import_note_in,
-            current_user_id=current_user.id,
-        )
-        db.refresh(product)
-        setattr(product, "initial_import_note_code", created_note.code)
+        try:
+            created_note = create_import_note(
+                db=db,
+                note_in=import_note_in,
+                current_user_id=current_user.id,
+            )
+            db.refresh(product)
+            setattr(product, "initial_import_note_code", created_note.code)
+        except Exception:
+            db.rollback()
+            raise
     else:
         db.commit()
         db.refresh(product)
@@ -344,8 +356,9 @@ def delete_product(
         }
 
     # Nếu chưa có lịch sử giao dịch thì cho phép xóa hoàn toàn
-    db.delete(product)
-    db.commit()
+    with WriteGateContext(arrival_time=time.perf_counter(), db=db):
+        db.delete(product)
+        db.commit()
     broadcaster.publish_after_commit(resource="products", action="DELETE")
     return {
         "success": True,
