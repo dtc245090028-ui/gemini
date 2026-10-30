@@ -173,26 +173,107 @@ def check_invariants(db_path):
         print("  >> KẾT QUẢ BẤT BIẾN 2: ĐẠT (0 dòng vi phạm lũy kế, 0 số dư lặp bất thường)")
 
     # ---------------------------------------------------------
-    # BẤT BIẾN 3: Tổng dòng chi tiết phiếu xuất đã xuất kho (SHIPPING/COMPLETED) = Số dòng thẻ kho EXPORT
+    # BẤT BIẾN 3: ĐỐI SOÁT HAI CHIỀU PHIẾU XUẤT VS THẺ KHO (A + B + C)
     # ---------------------------------------------------------
-    print("\n--- 3. BẤT BIẾN 3: ĐỐI SOÁT DÒNG PHIẾU XUẤT ĐÃ XUẤT KHO VS THẺ KHO ---")
+    print("\n--- 3. BẤT BIẾN 3: ĐỐI SOÁT HAI CHIỀU PHIẾU XUẤT VS THẺ KHO ---")
+    inv3_passed = True
+
+    # 1. Chiều Xuôi (Phiếu xuất -> Thẻ kho) theo bảng trạng thái kỳ vọng
+    # (a) Phiếu CONFIRMED: Không được có bất kỳ dòng EXPORT nào
     cur.execute("""
-        SELECT count(*)
-        FROM export_note_details d
-        JOIN export_notes n ON n.id = d.export_note_id
-        WHERE n.status IN ('SHIPPING', 'COMPLETED')
+        SELECT n.code, count(l.id)
+        FROM export_notes n
+        JOIN stock_ledger l ON l.reference_code = n.code AND l.transaction_type = 'EXPORT'
+        WHERE n.status = 'CONFIRMED'
+        GROUP BY n.code
     """)
-    shipped_detail_count = cur.fetchone()[0]
+    confirmed_with_export = cur.fetchall()
+    if confirmed_with_export:
+        print(f"  [LỖI] Có {len(confirmed_with_export)} phiếu CONFIRMED nhưng đã sinh thẻ kho EXPORT:")
+        for code, cnt in confirmed_with_export[:3]:
+            print(f"    - Phiếu {code}: {cnt} dòng EXPORT")
+        inv3_passed = False
 
+    # (b) Phiếu SHIPPING / COMPLETED: Mỗi dòng chi tiết phải có đúng 1 dòng EXPORT đối ứng
+    cur.execute("""
+        SELECT n.code, d.product_id, d.quantity, count(l.id)
+        FROM export_notes n
+        JOIN export_note_details d ON d.export_note_id = n.id
+        LEFT JOIN stock_ledger l ON l.reference_code = n.code 
+            AND l.product_id = d.product_id 
+            AND l.transaction_type = 'EXPORT'
+            AND l.quantity_change = -d.quantity
+        WHERE n.status IN ('SHIPPING', 'COMPLETED')
+        GROUP BY n.code, d.product_id, d.quantity
+        HAVING count(l.id) != 1
+    """)
+    missing_export = cur.fetchall()
+    if missing_export:
+        print(f"  [LỖI] Có {len(missing_export)} dòng chi tiết thuộc phiếu SHIPPING/COMPLETED thiếu hoặc thừa thẻ kho EXPORT đối ứng:")
+        for code, pid, qty, cnt in missing_export[:3]:
+            print(f"    - Phiếu {code}, SP {pid}, SL {qty}: có {cnt} thẻ kho EXPORT")
+        inv3_passed = False
+
+    # (c) Phiếu CANCELLED có thẻ kho EXPORT (hủy sau ship): Phải có đủ các dòng ADJUSTMENT (CANCEL-<code>) hoàn trả đúng số lượng
+    cur.execute("""
+        SELECT n.code, d.product_id, d.quantity,
+               (SELECT count(*) FROM stock_ledger WHERE reference_code = n.code AND product_id = d.product_id AND transaction_type = 'EXPORT'),
+               (SELECT coalesce(sum(quantity_change), 0) FROM stock_ledger WHERE reference_code = 'CANCEL-' || n.code AND product_id = d.product_id AND transaction_type = 'ADJUSTMENT')
+        FROM export_notes n
+        JOIN export_note_details d ON d.export_note_id = n.id
+        WHERE n.status = 'CANCELLED'
+          AND n.code IN (SELECT DISTINCT reference_code FROM stock_ledger WHERE transaction_type = 'EXPORT')
+    """)
+    cancelled_after_ship = cur.fetchall()
+    for code, pid, qty, exp_cnt, refund_sum in cancelled_after_ship:
+        if exp_cnt == 0:
+            print(f"  [LỖI] Phiếu CANCELLED {code} không khớp logic EXPORT")
+            inv3_passed = False
+        if refund_sum != qty:
+            print(f"  [LỖI] Phiếu CANCELLED {code}, SP {pid}: Đã xuất {qty} nhưng tổng hoàn trả CANCEL- chỉ có {refund_sum}")
+            inv3_passed = False
+
+    # (d) Phiếu CANCELLED chưa từng ship: Không được có thẻ kho EXPORT và không được có thẻ kho CANCEL-
+    cur.execute("""
+        SELECT n.code, count(l.id)
+        FROM export_notes n
+        JOIN stock_ledger l ON (l.reference_code = n.code AND l.transaction_type = 'EXPORT')
+                            OR (l.reference_code = 'CANCEL-' || n.code AND l.transaction_type = 'ADJUSTMENT')
+        WHERE n.status = 'CANCELLED'
+          AND n.code NOT IN (SELECT DISTINCT reference_code FROM stock_ledger WHERE transaction_type = 'EXPORT')
+        GROUP BY n.code
+    """)
+    cancelled_unshipped_err = cur.fetchall()
+    if cancelled_unshipped_err:
+        print(f"  [LỖI] Có {len(cancelled_unshipped_err)} phiếu CANCELLED chưa từng xuất nhưng phát sinh thẻ kho bất thường:")
+        inv3_passed = False
+
+    # 2. Chiều Ngược (Thẻ kho -> Phiếu xuất): Mọi dòng EXPORT phải trỏ về phiếu xuất có thật
+    cur.execute("""
+        SELECT l.id, l.reference_code, l.product_id, l.quantity_change
+        FROM stock_ledger l
+        LEFT JOIN export_notes n ON n.code = l.reference_code
+        WHERE l.transaction_type = 'EXPORT' AND n.id IS NULL
+    """)
+    orphan_exports = cur.fetchall()
+    if orphan_exports:
+        print(f"  [LỖI] Có {len(orphan_exports)} dòng Thẻ kho EXPORT mồ côi (không tìm thấy phiếu xuất tương ứng):")
+        for lid, ref, pid, qc in orphan_exports[:3]:
+            print(f"    - Ledger ID {lid}: mã {ref}, SP {pid}, biến động {qc}")
+        inv3_passed = False
+
+    # Đếm tổng để báo cáo
+    cur.execute("SELECT count(*) FROM export_notes WHERE status IN ('SHIPPING', 'COMPLETED')")
+    total_active_notes = cur.fetchone()[0]
     cur.execute("SELECT count(*) FROM stock_ledger WHERE transaction_type = 'EXPORT'")
-    export_ledger_count = cur.fetchone()[0]
+    total_export_ledger = cur.fetchone()[0]
 
-    print(f"  • Tổng dòng hàng thuộc phiếu SHIPPING/COMPLETED: {shipped_detail_count}")
-    print(f"  • Tổng dòng Thẻ kho loại EXPORT                : {export_ledger_count}")
-    print(f"  • Độ chênh lệch                                : {shipped_detail_count - export_ledger_count}")
+    print(f"  • Tổng phiếu xuất SHIPPING/COMPLETED          : {total_active_notes}")
+    print(f"  • Tổng dòng Thẻ kho loại EXPORT                : {total_export_ledger}")
+    print(f"  • Kết quả kiểm tra đối soát 2 chiều            : {'HỢP LỆ (Khớp 100%)' if inv3_passed else 'VI PHẠM'}")
 
-    if shipped_detail_count == export_ledger_count:
-        print("  >> KẾT QUẢ BẤT BIẾN 3: ĐẠT (Khớp 100% tỷ lệ 1:1)")
+    if inv3_passed:
+        print("  >> KẾT QUẢ BẤT BIẾN 3: ĐẠT")
     else:
         print("  >> KẾT QUẢ BẤT BIẾN 3: KHÔNG ĐẠT")
         invariants_passed = False
