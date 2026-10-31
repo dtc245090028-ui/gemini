@@ -3,20 +3,21 @@
     "report_type": "monthly_report",
     "start_date": "2026-10-01",
     "end_date": "2026-10-31",
-    "date": "2026-10-30",
-    "cached_at": "21:24:01 30/10/2026",
+    "date": "2026-10-31",
+    "cached_at": "13:18:31 31/10/2026",
     "is_fallback": false,
     "fingerprint": {
-      "ledger_count": 77,
-      "max_ledger_id": 1550,
-      "net_change": -63,
-      "active_days_count": 13
+      "ledger_count": 81,
+      "max_ledger_id": 1554,
+      "net_change": -33,
+      "active_days_count": 14
     },
     "commentary": {
-      "executive_summary": "Trong kỳ 10/2026, doanh nghiệp quản lý tổng số 109 mặt hàng, với 57 mặt hàng có phát sinh giao dịch. Tổng lượng hàng xuất kho (234 đơn vị) vượt đáng kể so với tổng lượng nhập kho (96 đơn vị), cho thấy nhu cầu tiêu thụ cao và có nguy cơ hao hụt tồn kho. Đáng chú ý, hiện có 4 mặt hàng đang nằm dưới mức tồn kho tối thiểu cần được chú ý. Các sản phẩm chủ lực dẫn đầu lượng xuất kho gồm Chuột không dây Logitech G304, Logitech M185, Dell Inspiron 15 3520 i5, Cáp mạng bấm sẵn Cat6 UTP 10 mét và iPhone 16 128GB.",
+      "executive_summary": "Trong kỳ 10/2026, doanh nghiệp quản lý tổng số 110 mặt hàng, trong đó có 58 mặt hàng phát sinh giao dịch. Tổng lượng hàng xuất kho (234 đơn vị) vượt đáng kể so với tổng lượng nhập kho (126 đơn vị), cho thấy nhu cầu tiêu thụ cao và có nguy cơ giảm tồn kho. Đáng chú ý, có 4 mặt hàng hiện đang dưới mức tồn kho tối thiểu cần được chú ý. Các sản phẩm xuất kho nhiều nhất gồm Chuột không dây Logitech G304, Logitech M185, Dell Inspiron 15 3520 i5, Cáp mạng bấm sẵn Cat6 UTP 10 mét và iPhone 16 128GB.",
       "recommendations": [
-        "Khẩn trương bổ sung hàng hóa cho 4 mặt hàng đang có số lượng dưới mức tồn tối thiểu để tránh tình trạng đứt gãy nguồn cung.",
-        "Lên kế hoạch tăng lượng nhập kho cho các mặt hàng có tốc độ xuất kho cao như SP002, SP050, SP036, SP016 và SP023 nhằm đáp ứng kịp thời nhu cầu thị trường."
+        "Tiến hành lập kế hoạch nhập bổ sung hàng hóa ngay lập tức đối với 4 mặt hàng đang có số lượng dưới mức tồn tối thiểu để đảm bảo hoạt động kinh doanh không bị gián đoạn.",
+        "Ưu tiên bổ sung tồn kho cho nhóm các mặt hàng có tốc độ xuất kho cao trong kỳ như Chuột không dây Logitech G304, Logitech M185, Dell Inspiron 15 3520 i5, Cáp mạng Cat6 và iPhone 16 128GB.",
+        "Theo dõi sát sao tỷ lệ xuất kho lớn hơn nhập kho để điều chỉnh lại kế hoạch cung ứng và dòng vốn lưu động cho phù hợp trong các kỳ tiếp theo."
       ]
     }
   },
@@ -432,6 +433,422 @@
           "anomaly_type": "DEAD_STOCK",
           "analysis": "Sản phẩm Loa Bluetooth JBL Go 3 tồn kho 32 cái, không xuất kho trong 33 ngày.",
           "suggested_action": "Chạy chiến dịch quảng cáo theo mùa du lịch, dã ngoại hoặc giảm giá nhẹ."
+        }
+      }
+    }
+  },
+  "restock_suggestions:2026-10-02:2026-10-31": {
+    "report_type": "restock_suggestions",
+    "start_date": "2026-10-02",
+    "end_date": "2026-10-31",
+    "date": "2026-10-31",
+    "cached_at": "13:14:39 31/10/2026",
+    "is_fallback": false,
+    "fingerprint": {
+      "ledger_count": 81,
+      "max_ledger_id": 1554,
+      "net_change": -33,
+      "active_days_count": 14,
+      "product_count": 108,
+      "sum_current_stock": 3673,
+      "sum_min_stock": 924
+    },
+    "commentary": {
+      "executive_summary": "Tình trạng kho có 4 mặt hàng cần xem xét bổ sung để đảm bảo mức tồn an toàn và đáp ứng nhu cầu trong 30 ngày tới, trong đó các mã SP023, SP036 và SP050 đang có tồn kho dưới mức tối thiểu cần được ưu tiên nhập hàng ngay.",
+      "ai_item_map": {
+        "SP023": {
+          "product_code": "SP023",
+          "suggested_quantity": 11,
+          "priority": "HIGH",
+          "reason": "Tồn kho hiện tại (2) thấp hơn mức tối thiểu (3) và chỉ đủ bán trong 4.6 ngày, cần nhập để đáp ứng nhu cầu 30 ngày tới (khoảng 13 sản phẩm, trừ tồn kho)."
+        },
+        "SP035": {
+          "product_code": "SP035",
+          "suggested_quantity": 3,
+          "priority": "LOW",
+          "reason": "Tồn kho (3) bằng mức tối thiểu (3) nhưng vận tốc bán bằng 0, chỉ cần duy trì hoặc nhập nhẹ để đạt mức an toàn (2 * min_stock = 6)."
+        },
+        "SP036": {
+          "product_code": "SP036",
+          "suggested_quantity": 18,
+          "priority": "HIGH",
+          "reason": "Tồn kho (3) thấp hơn mức tối thiểu (5) với vận tốc bán cao (0.7/ngày), hết hàng trong 4.3 ngày, cần nhập để đạt mức an toàn 10 sản phẩm và đáp ứng nhu cầu 30 ngày."
+        },
+        "SP050": {
+          "product_code": "SP050",
+          "suggested_quantity": 25,
+          "priority": "MEDIUM",
+          "reason": "Tồn kho (8) thấp hơn mức tối thiểu (15) và sắp hết trong 9.6 ngày, cần bổ sung để đạt mức an toàn (30 sản phẩm) và đáp ứng nhu cầu."
+        }
+      }
+    }
+  },
+  "anomaly_detection:2026-10-02:2026-10-31": {
+    "report_type": "anomaly_detection",
+    "start_date": "2026-10-02",
+    "end_date": "2026-10-31",
+    "date": "2026-10-31",
+    "cached_at": "13:14:55 31/10/2026",
+    "is_fallback": false,
+    "fingerprint": {
+      "ledger_count": 81,
+      "max_ledger_id": 1554,
+      "net_change": -33,
+      "active_days_count": 14,
+      "product_count": 108,
+      "sum_current_stock": 3673,
+      "sum_min_stock": 924
+    },
+    "commentary": {
+      "executive_summary": "Hệ thống ghi nhận tổng cộng 59 mặt hàng nằm trong nhóm DEAD_STOCK (tồn kho lâu ngày không phát sinh xuất kho từ 30 đến 137 ngày), không phát hiện trường hợp SURGE_EXPORT nào trong giai đoạn từ 2026-10-02 đến 2026-10-31. Việc tồn ứ dòng vốn ở các mặt hàng linh kiện, thiết bị điện tử, điện thoại và laptop đang gây áp lực lớn lên chi phí lưu kho và rủi ro giảm giá trị sản phẩm.",
+      "ai_action_map": {
+        "SP003": {
+          "product_code": "SP003",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sản phẩm Cáp chuyển đổi VGA to HDMI tồn kho 60 chiếc và không phát sinh giao dịch xuất kho trong 30 ngày qua, cho thấy nhu cầu thị trường đối với phụ kiện này đang chững lại hoặc dòng hàng bị bỏ quên.",
+          "suggested_action": "Đẩy mạnh chương trình bán kèm (bundling) với các thiết bị màn hình hoặc máy tính, đồng thời cân nhắc chạy chương trình giảm giá nhẹ để xả kho."
+        },
+        "SP006": {
+          "product_code": "SP006",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "RAM Corsair Vengeance 16GB DDR4 tồn đọng 91 chiếc trong 45 ngày, dấu hiệu của việc nhập vượt quá sức tiêu thụ thực tế của phân khúc linh kiện nâng cấp PC.",
+          "suggested_action": "Thực hiện chương trình khuyến mại trực tiếp cho khách hàng build PC mới hoặc liên hệ các đại lý bán lẻ để đẩy hàng lô."
+        },
+        "SP009": {
+          "product_code": "SP009",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Webcam Logitech C920 Pro Full HD tồn 39 chiếc, không có phát sinh xuất kho trong 37 ngày. Nhu cầu mua webcam rời có thể đã giảm sau giai đoạn cao điểm làm việc/học tập từ xa.",
+          "suggested_action": "Tạo các gói combo ưu đãi dành cho văn phòng hoặc trường học đang có nhu cầu trang bị thiết bị họp trực tuyến."
+        },
+        "SP011": {
+          "product_code": "SP011",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Nguồn máy tính Corsair CV650 650W tồn 68 chiếc trong 40 ngày, không có giao dịch xuất kho.",
+          "suggested_action": "Đánh giá lại chính sách giá bán so với đối thủ cạnh tranh và áp dụng chính sách chiết khấu cho kỹ thuật viên lắp ráp máy tính."
+        },
+        "SP012": {
+          "product_code": "SP012",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Bộ phát Wifi Mesh Mercusys Halo H50G tồn 47 chiếc suốt 35 ngày.",
+          "suggested_action": "Thực hiện chương trình miễn phí lắp đặt hoặc kết hợp dịch vụ tư vấn mạng gia đình để kích cầu tiêu thụ."
+        },
+        "SP013": {
+          "product_code": "SP013",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Ổ cứng di động WD My Passport 2TB tồn kho 23 chiếc và đã bất động trong 104 ngày - mức tồn ứ lâu ngày nghiêm trọng.",
+          "suggested_action": "Tổ chức xả hàng thanh lý hoặc đưa vào danh sách quà tặng kèm cho các dòng laptop cao cấp."
+        },
+        "SP014": {
+          "product_code": "SP014",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Loa vi tính Microlab M-108 2.1 tồn kho 38 chiếc trong 63 ngày không phát sinh xuất kho.",
+          "suggested_action": "Đưa sản phẩm vào chương trình flash sale hoặc combo giảm giá khi mua kèm PC/Laptop phổ thông."
+        },
+        "SP015": {
+          "product_code": "SP015",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Tản nhiệt CPU Deepcool Gammaxx 400 tồn 59 chiếc trong 61 ngày.",
+          "suggested_action": "Khuyến khích bộ phận kinh doanh tư vấn sản phẩm này vào các cấu hình máy tính gaming tầm trung."
+        },
+        "SP019": {
+          "product_code": "SP019",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Giá treo tai nghe kim loại đa năng tồn 42 chiếc trong 90 ngày.",
+          "suggested_action": "Tặng kèm sản phẩm này cho các đơn hàng mua tai nghe hoặc bàn phím cơ có giá trị cao để giải phóng không gian kho."
+        },
+        "SP021": {
+          "product_code": "SP021",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Keo tản nhiệt Arctic MX-4 4g tồn 48 chiếc trong 62 ngày không có hoạt động xuất kho.",
+          "suggested_action": "Tặng kèm sản phẩm khi khách hàng sử dụng dịch vụ vệ sinh, bảo dưỡng máy tính tại cửa hàng."
+        },
+        "SP022": {
+          "product_code": "SP022",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Màn hình LG 27 inch 4K IPS tồn 23 chiếc trong 31 ngày.",
+          "suggested_action": "Kiểm tra lại chiến lược giá và trưng bày sản phẩm tại showroom để kích thích thị giác khách mua trực tiếp."
+        },
+        "SP024": {
+          "product_code": "SP024",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "iPhone 15 128GB tồn kho 19 chiếc, không phát sinh giao dịch trong 31 ngày.",
+          "suggested_action": "Điều chỉnh giá bán cạnh tranh hơn hoặc áp dụng chương trình thu cũ đổi mới để đẩy nhanh tốc độ quay vòng vốn."
+        },
+        "SP025": {
+          "product_code": "SP025",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "iPhone 14 128GB tồn 20 chiếc trong 93 ngày, là dòng máy đời trước có nguy cơ mất giá nhanh.",
+          "suggested_action": "Thực hiện giảm giá sâu hoặc chạy chương trình trả góp 0% để giải phóng dứt điểm hàng tồn lâu ngày."
+        },
+        "SP026": {
+          "product_code": "SP026",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Samsung Galaxy S24 tồn kho 16 chiếc, ngưng xuất kho trong 40 ngày.",
+          "suggested_action": "Đẩy mạnh các chương trình quà tặng kèm phụ kiện công nghệ để tăng sức hút cho sản phẩm."
+        },
+        "SP027": {
+          "product_code": "SP027",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Samsung Galaxy A55 5G tồn kho 22 chiếc trong 45 ngày.",
+          "suggested_action": "Đào tạo lại nhân viên bán hàng để tư vấn nổi bật các tính năng của dòng máy này tới phân khúc khách hàng phổ thông."
+        },
+        "SP028": {
+          "product_code": "SP028",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Samsung Galaxy Z Fold6 tồn 13 chiếc trong 61 ngày, dòng máy phân khúc cao cấp gập có thanh khoản chậm.",
+          "suggested_action": "Tổ chức các sự kiện trải nghiệm trực tiếp hoặc áp dụng chính sách ưu đãi VIP độc quyền."
+        },
+        "SP029": {
+          "product_code": "SP029",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Xiaomi 14 tồn 23 chiếc trong 90 ngày không phát sinh xuất kho.",
+          "suggested_action": "Xem xét điều chỉnh giá bán hoặc chạy chương trình trợ giá để cạnh tranh với các hãng đối thủ."
+        },
+        "SP030": {
+          "product_code": "SP030",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Xiaomi Redmi Note 13 tồn 26 chiếc trong 64 ngày.",
+          "suggested_action": "Đưa sản phẩm vào các chiến dịch khuyến mại học sinh - sinh viên hoặc giảm giá trực tiếp."
+        },
+        "SP031": {
+          "product_code": "SP031",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Oppo Reno12 tồn 14 chiếc trong 98 ngày không có giao dịch xuất.",
+          "suggested_action": "Kết hợp với các kênh Affiliate/KOL công nghệ để review và kích cầu dòng máy này."
+        },
+        "SP032": {
+          "product_code": "SP032",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Oppo A79 tồn 26 chiếc trong 43 ngày.",
+          "suggested_action": "Đẩy mạnh trưng bày tại mặt tiền cửa hàng và áp dụng mức chiết khấu hấp dẫn cho nhân viên bán hàng."
+        },
+        "SP033": {
+          "product_code": "SP033",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Vivo V30 tồn 16 chiếc trong 33 ngày.",
+          "suggested_action": "Chạy các mini game hoặc chương trình quay số trúng thưởng kèm sản phẩm để tăng nhận diện và xả kho."
+        },
+        "SP035": {
+          "product_code": "SP035",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "MacBook Pro M3 14 inch tồn 3 chiếc trong 67 ngày.",
+          "suggested_action": "Liên hệ trực tiếp với các khách hàng doanh nghiệp hoặc khách hàng tiềm năng có nhu cầu làm việc đồ họa cao cấp."
+        },
+        "SP037": {
+          "product_code": "SP037",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Dell XPS 13 tồn 5 chiếc trong 88 ngày.",
+          "suggested_action": "Đánh giá lại mức giá niêm yết và đưa ra chính sách ưu đãi bảo hành mở rộng để thu hút khách."
+        },
+        "SP038": {
+          "product_code": "SP038",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Asus Vivobook 15 R5 tồn 28 chiếc trong 78 ngày.",
+          "suggested_action": "Tập trung tiếp thị dòng laptop văn phòng/học sinh sinh viên này qua các hội nhóm trường đại học."
+        },
+        "SP039": {
+          "product_code": "SP039",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Asus TUF Gaming F15 tồn 22 chiếc trong 62 ngày.",
+          "suggested_action": "Kết hợp tặng kèm chuột gaming hoặc balo khi mua máy để tăng tính hấp dẫn."
+        },
+        "SP040": {
+          "product_code": "SP040",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "HP Pavilion 14 tồn 17 chiếc trong 92 ngày.",
+          "suggested_action": "Tạo chương trình giảm giá đặc biệt dịp cuối tuần để giải phóng lượng hàng tồn đọng."
+        },
+        "SP041": {
+          "product_code": "SP041",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "HP Envy x360 tồn 7 chiếc trong 94 ngày.",
+          "suggested_action": "Tư vấn trực tiếp cho khách hàng là phụ nữ hoặc người làm sáng tạo nội dung cần thiết kế xoay gập tiện lợi."
+        },
+        "SP042": {
+          "product_code": "SP042",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Lenovo ThinkPad E14 tồn 15 chiếc, đã ngưng xuất kho tới 137 ngày (mức độ tồn ứ rất cao).",
+          "suggested_action": "Thanh lý lô hàng cho các doanh nghiệp vừa và nhỏ hoặc văn phòng startup có nhu cầu trang bị máy trạm làm việc văn phòng bền bỉ."
+        },
+        "SP043": {
+          "product_code": "SP043",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Lenovo Legion 5 tồn 9 chiếc trong 54 ngày.",
+          "suggested_action": "Chạy chiến dịch quảng cáo nhắm tới đối tượng game thủ trẻ tuổi với các quà tặng kèm giá trị."
+        },
+        "SP044": {
+          "product_code": "SP044",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Acer Aspire 5 tồn 27 chiếc trong 59 ngày.",
+          "suggested_action": "Áp dụng chính sách giá tốt cho học sinh sinh viên mùa tự trường hoặc mùa thi."
+        },
+        "SP045": {
+          "product_code": "SP045",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Acer Nitro 5 tồn 18 chiếc trong 30 ngày.",
+          "suggested_action": "Đẩy mạnh truyền thông sản phẩm trên các nền tảng mạng xã hội chuyên về gaming."
+        },
+        "SP046": {
+          "product_code": "SP046",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "PC Gaming Gigabyte i5 RTX4060 tồn 10 chiếc trong 48 ngày.",
+          "suggested_action": "Tạo combo trọn gói gồm PC, màn hình và phím chuột với giá ưu đãi để thu hút game thủ."
+        },
+        "SP047": {
+          "product_code": "SP047",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "PC Văn phòng Dell OptiPlex tồn 24 chiếc trong 109 ngày.",
+          "suggested_action": "Tiếp cận trực tiếp các phòng ban mua sắm doanh nghiệp, ngân hàng hoặc cơ quan hành chính đang có nhu cầu thay thế thiết bị."
+        },
+        "SP048": {
+          "product_code": "SP048",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Mini PC Intel NUC tồn 26 chiếc trong 35 ngày.",
+          "suggested_action": "Tiếp thị cho các không gian làm việc nhỏ gọn, quán cà phê hoặc hệ thống hiển thị kỹ thuật số (Digital Signage)."
+        },
+        "SP049": {
+          "product_code": "SP049",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "iMac 24 inch M3 tồn 8 chiếc trong 32 ngày.",
+          "suggested_action": "Trưng bày nổi bật tại khu vực sản phẩm Apple của cửa hàng để thu hút khách trải nghiệm."
+        },
+        "SP051": {
+          "product_code": "SP051",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Logitech G102 tồn 50 chiếc trong 51 ngày.",
+          "suggested_action": "Tổ chức chương trình bán giá sốc hoặc combo kèm lót chuột để đẩy nhanh số lượng lớn."
+        },
+        "SP052": {
+          "product_code": "SP052",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Razer DeathAdder V2 tồn 41 chiếc trong 33 ngày.",
+          "suggested_action": "Áp dụng chương trình giảm giá trực tiếp trên các sàn thương mại điện tử."
+        },
+        "SP053": {
+          "product_code": "SP053",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Chuột không dây Rapoo M100 tồn 20 chiếc trong 90 ngày.",
+          "suggested_action": "Làm quà tặng kèm khi khách mua các dòng laptop văn phòng phổ thông."
+        },
+        "SP054": {
+          "product_code": "SP054",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Dell S2421H 24 inch tồn 31 chiếc trong 62 ngày.",
+          "suggested_action": "Đẩy mạnh bán sỉ cho các phòng nét hoặc văn phòng công ty mới thành lập."
+        },
+        "SP055": {
+          "product_code": "SP055",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "LG UltraGear 27GP850 tồn 26 chiếc trong 37 ngày.",
+          "suggested_action": "Tư vấn trực tiếp cho khách hàng mua cấu hình PC chơi game phân khúc trung-cao cấp."
+        },
+        "SP056": {
+          "product_code": "SP056",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Samsung Odyssey G5 tồn 8 chiếc trong 78 ngày.",
+          "suggested_action": "Giảm giá kích cầu hoặc bán kèm các phụ kiện tản nhiệt, ghế gaming."
+        },
+        "SP057": {
+          "product_code": "SP057",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "ViewSonic VA2432 tồn 33 chiếc trong 86 ngày.",
+          "suggested_action": "Xây dựng gói combo màn hình giá rẻ cho học sinh học tập tại nhà."
+        },
+        "SP058": {
+          "product_code": "SP058",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "RAM Kingston 8GB DDR4 tồn 30 chiếc trong 57 ngày.",
+          "suggested_action": "Tư vấn nâng cấp RAM miễn phí công lắp đặt cho khách hàng mua linh kiện tại cửa hàng."
+        },
+        "SP059": {
+          "product_code": "SP059",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "RAM Corsair Vengeance 16GB tồn 36 chiếc trong 73 ngày.",
+          "suggested_action": "Chạy chương trình flash sale trên các sàn TMĐT để thanh lý nhanh lượng tồn kho."
+        },
+        "SP060": {
+          "product_code": "SP060",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "SSD Samsung 970 Evo 500GB tồn 38 chiếc trong 93 ngày.",
+          "suggested_action": "Tư vấn nâng cấp ổ cứng tốc độ cao cho khách hàng mang laptop/PC đến bảo dưỡng."
+        },
+        "SP061": {
+          "product_code": "SP061",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "SSD WD Blue 1TB tồn 36 chiếc trong 102 ngày không có phát sinh xuất kho.",
+          "suggested_action": "Đánh giá lại giá bán so với thị trường hiện tại và áp dụng chiết khấu để xả hàng."
+        },
+        "SP062": {
+          "product_code": "SP062",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Bàn phím cơ Akko 3068 tồn 34 chiếc trong 35 ngày.",
+          "suggested_action": "Đẩy mạnh quảng cáo trên các cộng đồng yêu thích phím cơ và setup góc làm việc."
+        },
+        "SP063": {
+          "product_code": "SP063",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Bàn phím Newmen GM610 tồn 40 chiếc trong 30 ngày.",
+          "suggested_action": "Tạo chương trình ưu đãi giảm giá khi mua kèm chuột hoặc tai nghe gaming."
+        },
+        "SP064": {
+          "product_code": "SP064",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Tai nghe Sony WH-1000XM5 tồn 24 chiếc trong 30 ngày.",
+          "suggested_action": "Tăng cường trưng bày sản phẩm trải nghiệm âm thanh tại cửa hàng để thu hút người mua."
+        },
+        "SP065": {
+          "product_code": "SP065",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Tai nghe JBL Tune 510BT tồn 50 chiếc trong 30 ngày.",
+          "suggested_action": "Thực hiện chương trình đồng giá hoặc giảm giá mạnh dịp cuối tuần."
+        },
+        "SP066": {
+          "product_code": "SP066",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sạc dự phòng Anker 10000mAh tồn 49 chiếc trong 54 ngày.",
+          "suggested_action": "Đưa sản phẩm lên kệ thanh toán (checkout counter) để kích thích khách hàng mua thêm dạng tiện ích."
+        },
+        "SP067": {
+          "product_code": "SP067",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Sạc dự phòng Xiaomi 20000mAh tồn 49 chiếc trong 48 ngày.",
+          "suggested_action": "Chạy chương trình giảm giá đặc biệt khi khách hàng mua kèm điện thoại hoặc máy tính bảng."
+        },
+        "SP069": {
+          "product_code": "SP069",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Cáp sạc Lightning chính hãng Apple tồn 50 chiếc trong 31 ngày.",
+          "suggested_action": "Tặng kèm cáp sạc khi khách hàng mua các dòng iPhone đời cũ tồn kho để thúc đẩy thanh khoản."
+        },
+        "SP071": {
+          "product_code": "SP071",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Ốp lưng iPhone 16 silicon tồn 64 chiếc trong 59 ngày.",
+          "suggested_action": "Tổ chức chương trình mua 1 tặng 1 hoặc bán combo ốp lưng kèm cường lực với giá rẻ."
+        },
+        "SP072": {
+          "product_code": "SP072",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Túi chống sốc laptop 15.6 inch tồn 40 chiếc trong 30 ngày.",
+          "suggested_action": "Tặng kèm miễn phí khi khách mua các dòng laptop có kích thước màn hình tương ứng."
+        },
+        "SP074": {
+          "product_code": "SP074",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Thẻ nhớ SanDisk 128GB tồn 29 chiếc trong 40 ngày.",
+          "suggested_action": "Đẩy mạnh bán kèm cho các dòng camera an ninh hoặc máy ảnh kỹ thuật số."
+        },
+        "SP075": {
+          "product_code": "SP075",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Webcam Logitech C270 tồn 30 chiếc trong 43 ngày.",
+          "suggested_action": "Giảm giá bán để giải phóng nhanh lượng hàng phân khúc phổ thông này."
+        },
+        "SP076": {
+          "product_code": "SP076",
+          "anomaly_type": "DEAD_STOCK",
+          "analysis": "Loa Bluetooth JBL Go 3 tồn 32 chiếc trong 34 ngày.",
+          "suggested_action": "Trưng bày bắt mắt và áp dụng chương trình ưu đãi khi mua sắm các sản phẩm di động cầm tay."
         }
       }
     }
