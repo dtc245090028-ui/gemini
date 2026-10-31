@@ -1,3 +1,4 @@
+import os
 """Điểm khởi chạy ứng dụng FastAPI, đăng ký Middleware, Handlers và Router."""
 
 import logging
@@ -11,30 +12,46 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
+import time
 from app.core.config import settings
-from app.core.database import engine, Base, SessionLocal
+from app.core.metrics import write_metrics, StageTiming
+from app.core.bench_metrics import bench_traffic
+from app.core.events import broadcaster
+from app.core.database import engine, Base, SessionLocal, ensure_triggers
 from app.core.seed import seed_default_users
 import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
 from app.api.v1.api import api_router
+from app.core.http_cache import ETagMiddleware, SelectiveGZipMiddleware
+from starlette.types import ASGIApp, Scope, Receive, Send, Message
+from fastapi.encoders import jsonable_encoder
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+    broadcaster.set_loop(asyncio.get_running_loop())
     """Quản lý vòng đời ứng dụng: Tự động khởi tạo cấu trúc bảng CSDL và nạp dữ liệu ban đầu."""
     # Tự động tạo các bảng CSDL nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
+    ensure_triggers(engine)
 
     # Tự động migrate an toàn các cột mới nếu CSDL đã tồn tại trước đó
     from sqlalchemy import inspect, text
     with engine.connect() as conn:
         inspector = inspect(conn)
-        for table_name in ["import_notes", "export_notes"]:
+        for table_name in ["import_notes", "export_notes", "stock_ledger"]:
             if inspector.has_table(table_name):
                 columns = [c["name"] for c in inspector.get_columns(table_name)]
                 if "idempotency_key" not in columns:
                     conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN idempotency_key VARCHAR(100)"))
                     conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_{table_name}_idempotency_key ON {table_name} (idempotency_key)"))
                     conn.commit()
+        if inspector.has_table("products"):
+            prod_cols = [c["name"] for c in inspector.get_columns("products")]
+            if "supplier_id" not in prod_cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_supplier_id ON products (supplier_id)"))
+                conn.commit()
 
     # Tự động nạp dữ liệu tài khoản mặc định (Idempotent seed an toàn)
     db = SessionLocal()
@@ -42,6 +59,15 @@ async def lifespan(app: FastAPI):
         seed_default_users(db)
     finally:
         db.close()
+
+    # Cấu hình AnyIO threadpool limiter nếu có env ANYIO_TOTAL_TOKENS
+    anyio_tokens = int(os.environ.get("ANYIO_TOTAL_TOKENS", "40"))
+    try:
+        import anyio.to_thread
+        limiter = anyio.to_thread.current_default_thread_limiter()
+        limiter.total_tokens = anyio_tokens
+    except Exception:
+        pass
 
     yield
     # Dọn dẹp tài nguyên khi tắt app nếu cần
@@ -56,7 +82,42 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Cấu hình CORS middleware
+class WriteArrivalMiddleware:
+    """Pure ASGI Middleware: ghi nhận arrival_time, lưu lượng đến/đi và AnyIO threadpool limiter."""
+
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            bench_traffic.record_arrival()
+            bench_traffic.sample_limiter()
+
+            st = None
+            if scope.get("method") in ("POST", "PUT", "PATCH", "DELETE"):
+                t_arrival = time.perf_counter()
+                scope.setdefault("state", {})
+                scope["state"]["arrival_time"] = t_arrival
+                if write_metrics.enabled:
+                    st = StageTiming()
+                    st.t_arrival = t_arrival
+                    scope["state"]["stage_timing"] = st
+
+            async def send_wrapper(message: Message) -> None:
+                if message["type"] == "http.response.start":
+                    bench_traffic.record_completion()
+                    if st is not None:
+                        st.t_response_done = time.perf_counter()
+                        write_metrics.record_stages(st)
+                await send(message)
+
+            await self.app(scope, receive, send_wrapper)
+            return
+
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(WriteArrivalMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -64,6 +125,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Bước E2: Tối ưu đọc với GZip & ETag Middleware
+app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
+app.add_middleware(ETagMiddleware)
 
 
 # Global Exception Handlers chuẩn hóa định dạng lỗi trả về tiếng Việt
@@ -87,7 +152,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "detail": "Dữ liệu gửi lên không đúng định dạng hợp lệ.",
-            "errors": exc.errors(),
+            "errors": jsonable_encoder(exc.errors()),
             "error_code": "VALIDATION_ERROR",
         },
     )

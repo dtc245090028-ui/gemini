@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.core.events import broadcaster
 from app.models.supplier import Supplier
 from app.models.user import User
 from app.schemas.supplier import SupplierCreate, SupplierResponse, SupplierUpdate
@@ -97,6 +98,7 @@ def create_supplier(
     db.add(supplier)
     db.commit()
     db.refresh(supplier)
+    broadcaster.publish_after_commit(resource="suppliers", action="CREATE")
     return supplier
 
 
@@ -143,6 +145,7 @@ def update_supplier(
 
     db.commit()
     db.refresh(supplier)
+    broadcaster.publish_after_commit(resource="suppliers", action="UPDATE")
     return supplier
 
 
@@ -167,6 +170,7 @@ def delete_supplier(
     if supplier.import_notes:
         supplier.is_active = False
         db.commit()
+        broadcaster.publish_after_commit(resource="suppliers", action="DEACTIVATE")
         return {
             "success": True,
             "action": "DEACTIVATED",
@@ -175,6 +179,7 @@ def delete_supplier(
 
     db.delete(supplier)
     db.commit()
+    broadcaster.publish_after_commit(resource="suppliers", action="DELETE")
     return {
         "success": True,
         "action": "DELETED",

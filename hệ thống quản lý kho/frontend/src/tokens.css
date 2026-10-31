@@ -130,6 +130,16 @@
   --semantic-warning-bg: #F0F9FF;
   --semantic-warning-border: #BAE6FD;
 
+  /* Cảnh báo tồn thấp = Cam hổ phách rõ nét */
+  --semantic-orange: #C2410C;
+  --semantic-orange-bg: #FFF7ED;
+  --semantic-orange-border: #FDBA74;
+
+  /* Hết hàng (Nền đỏ đậm) */
+  --semantic-alert-solid-bg: #991B1B;
+  --semantic-alert-solid-text: #FFFFFF;
+  --semantic-alert-solid-border: #7F1D1D;
+
   /* ===================================================================
      7. TYPOGRAPHY & CHUẨN CỠ CHỮ TIẾNG VIỆT
      =================================================================== */
@@ -299,6 +309,16 @@
   --semantic-warning: #7DD3FC;
   --semantic-warning-bg: rgba(14, 165, 233, 0.16);
   --semantic-warning-border: rgba(56, 189, 248, 0.38);
+
+  /* Cảnh báo tồn thấp: Cam sáng dịu trên nền cam tối */
+  --semantic-orange: #FDBA74;
+  --semantic-orange-bg: rgba(249, 115, 22, 0.18);
+  --semantic-orange-border: rgba(251, 146, 60, 0.42);
+
+  /* Hết hàng (Nền đỏ đậm) */
+  --semantic-alert-solid-bg: #7F1D1D;
+  --semantic-alert-solid-text: #FFE4E6;
+  --semantic-alert-solid-border: #DC2626;
 
   /* ===================================================================
      7. ĐỔ BÓNG TRÊN NỀN TỐI

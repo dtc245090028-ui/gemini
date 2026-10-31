@@ -87,6 +87,7 @@ export const AIAssistant = ({ onNavigateToImport }) => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAllProducts, setShowAllProducts] = useState(false);
   const [isExportingSummary, setIsExportingSummary] = useState(false);
   const now = new Date();
   const [periodType, setPeriodType] = useState('month'); // 'month' | 'week' | 'day' | 'custom'
@@ -123,7 +124,14 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     setAskingAi(true);
     setQaError(null);
     try {
-      const res = await apiClient.ai.ask(q, month, year, isSmartKhoRequired);
+      const extra = { period_type: periodType };
+      if (periodType === 'day' || periodType === 'week') {
+        extra.target_date = targetDate;
+      } else if (periodType === 'custom') {
+        extra.start_date = customStartDate;
+        extra.end_date = customEndDate;
+      }
+      const res = await apiClient.ai.ask(q, month, year, isSmartKhoRequired, extra);
       setQaResponse(res.data);
     } catch (err) {
       console.error('Lỗi khi gửi câu hỏi đến AI:', err);
@@ -153,15 +161,17 @@ export const AIAssistant = ({ onNavigateToImport }) => {
         toDate: `${targetDate}T23:59:59`,
       };
     } else if (periodType === 'week') {
-      const d = new Date(targetDate);
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(d.setDate(diff));
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const [y, m, dNum] = (targetDate || getTodayStr()).split('-').map(Number);
+      const cur = new Date(y, (m || 1) - 1, dNum || 1);
+      const day = cur.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const startOfWeek = new Date(y, (m || 1) - 1, (dNum || 1) + diffToMonday);
+      const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6);
+      const fmtDate = (dt) =>
+        `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
       return {
-        fromDate: `${startOfWeek.toISOString().slice(0, 10)}T00:00:00`,
-        toDate: `${endOfWeek.toISOString().slice(0, 10)}T23:59:59`,
+        fromDate: `${fmtDate(startOfWeek)}T00:00:00`,
+        toDate: `${fmtDate(endOfWeek)}T23:59:59`,
       };
     } else {
       return {
@@ -271,9 +281,12 @@ export const AIAssistant = ({ onNavigateToImport }) => {
     }
   };
 
-  // Tự động tải dữ liệu ban đầu cho tab đang chọn (dùng bản lưu nếu có)
+  // Tự động tải dữ liệu ban đầu cho tab đang chọn và tự đồng bộ khi đổi mốc kỳ (Ngày/Tuần/Tháng/Khoảng ngày)
   useEffect(() => {
-    if (activeSubTab === 'monthly' && !monthlyData) handleFetchMonthlyReport(false);
+    if (activeSubTab === 'monthly') handleFetchMonthlyReport(false);
+  }, [activeSubTab, periodType, month, year, targetDate, customStartDate, customEndDate]);
+
+  useEffect(() => {
     if (activeSubTab === 'restock' && !restockData) handleFetchRestock(false);
     if (activeSubTab === 'anomalies' && !anomalyData) handleFetchAnomalies(false);
   }, [activeSubTab]);
@@ -482,19 +495,22 @@ export const AIAssistant = ({ onNavigateToImport }) => {
               {/* Metrics Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="card-warm p-4">
-                  <p className="text-xs text-[var(--text-secondary)]">Mặt hàng quản lý</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Mặt hàng đang kinh doanh</p>
                   <p className="text-xl font-bold font-serif text-[var(--text-primary)] mt-1">
-                    {monthlyData.metrics.total_products} <span className="text-xs font-normal text-[var(--text-muted)] font-sans">({monthlyData.metrics.active_products} hoạt động)</span>
+                    {monthlyData.metrics.total_products}{' '}
+                    <span className="text-xs font-normal text-[var(--text-muted)] font-sans">
+                      ({monthlyData.metrics.active_products} có phát sinh trong kỳ)
+                    </span>
                   </p>
                 </div>
                 <div className="card-warm p-4">
-                  <p className="text-xs text-[var(--text-secondary)]">Tổng lượng nhập kho</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Tổng lượng nhập trong kỳ</p>
                   <p className="text-xl font-bold font-serif text-[var(--semantic-success)] mt-1 font-mono">
                     +{monthlyData.metrics.total_imports_qty} <span className="text-xs font-normal text-[var(--text-muted)] font-sans">sp</span>
                   </p>
                 </div>
                 <div className="card-warm p-4">
-                  <p className="text-xs text-[var(--text-secondary)]">Tổng lượng xuất kho</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Tổng lượng xuất trong kỳ</p>
                   <p className="text-xl font-bold font-serif text-[var(--text-primary)] mt-1 font-mono">
                     -{monthlyData.metrics.total_exports_qty} <span className="text-xs font-normal text-[var(--text-muted)] font-sans">sp</span>
                   </p>
@@ -507,147 +523,234 @@ export const AIAssistant = ({ onNavigateToImport }) => {
                 </div>
               </div>
 
-              {/* BẢNG BÁO CÁO NHẬP - XUẤT - TỒN KHO CHI TIẾT (76 MẶT HÀNG) */}
-              <div className="card-warm p-4 sm:p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
-                  <div>
-                    <div className="flex items-center gap-2 text-[var(--text-primary)] font-bold font-serif text-base">
-                      <Package className="w-5 h-5 text-[var(--wood-accent)]" />
-                      <span>Báo Cáo Nhập - Xuất - Tồn Kho Hàng Hóa</span>
-                      {summaryData && (
-                        <span className="text-xs font-sans font-normal text-[var(--text-muted)]">
-                          ({summaryData.items.length} mặt hàng)
-                        </span>
-                      )}
+              {/* BẢNG BÁO CÁO NHẬP - XUẤT - TỒN KHO THEO KỲ ĐANG CHỌN */}
+              {(() => {
+                const allItems = summaryData?.items || [];
+                const activeItems = allItems.filter(
+                  (it) => it.total_import > 0 || it.total_export > 0 || it.adjustment !== 0
+                );
+                const baseList = showAllProducts ? allItems : activeItems;
+                const filteredItems = baseList.filter((it) => {
+                  if (!searchTerm.trim()) return true;
+                  const term = searchTerm.toLowerCase();
+                  return (
+                    it.product_code.toLowerCase().includes(term) ||
+                    it.product_name.toLowerCase().includes(term) ||
+                    (it.category_name && it.category_name.toLowerCase().includes(term))
+                  );
+                });
+                const hasAnyAdjustment = allItems.some((it) => it.adjustment !== 0);
+                const sumOpening = filteredItems.reduce((acc, it) => acc + (it.opening_stock || 0), 0);
+                const sumImport = filteredItems.reduce((acc, it) => acc + (it.total_import || 0), 0);
+                const sumExport = filteredItems.reduce((acc, it) => acc + (it.total_export || 0), 0);
+                const sumAdjPos = filteredItems.reduce((acc, it) => acc + (it.adjustment > 0 ? it.adjustment : 0), 0);
+                const sumAdjNeg = filteredItems.reduce((acc, it) => acc + (it.adjustment < 0 ? it.adjustment : 0), 0);
+                const sumClosing = filteredItems.reduce((acc, it) => acc + (it.closing_stock || 0), 0);
+                const sumValue = filteredItems.reduce((acc, it) => acc + (it.total_value || 0), 0);
+
+                return (
+                  <div className="card-warm p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 text-[var(--text-primary)] font-bold font-serif text-base">
+                          <Package className="w-5 h-5 text-[var(--wood-accent)]" />
+                          <span>Bảng Biến Động Nhập - Xuất - Tồn Theo Kỳ</span>
+                          {summaryData && (
+                            <Badge variant="wood">
+                              {showAllProducts
+                                ? `Toàn bộ ${allItems.length} mặt hàng`
+                                : `${activeItems.length} / ${allItems.length} mặt hàng có phát sinh`}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                          Đồng bộ theo kỳ <strong className="font-mono text-[var(--text-primary)]">{monthlyData.period}</strong>
+                          {hasAnyAdjustment
+                            ? ' • Công thức: Tồn đầu + Nhập - Xuất + Kiểm kê = Tồn cuối'
+                            : ' • Công thức: Tồn đầu + Nhập - Xuất = Tồn cuối'}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {summaryData && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllProducts((prev) => !prev)}
+                            className={`text-xs px-3 py-1.5 rounded-btn border font-medium transition-colors cursor-pointer ${
+                              !showAllProducts
+                                ? 'bg-[var(--bg-surface)] text-[var(--wood-500)] border-[var(--wood-500)]'
+                                : 'bg-[var(--bg-linen)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
+                            }`}
+                            title="Chuyển đổi giữa chỉ xem mặt hàng có giao dịch trong kỳ hoặc xem toàn bộ 109 mặt hàng"
+                          >
+                            {showAllProducts
+                              ? `Ẩn hàng đứng yên (Chỉ xem ${activeItems.length} SP phát sinh)`
+                              : `Hiện cả hàng không biến động (${allItems.length} SP)`}
+                          </button>
+                        )}
+
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Tìm SKU, tên hàng..."
+                            className="input-wood text-xs pl-8 pr-3 py-1.5 w-44 sm:w-52"
+                          />
+                          <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        </div>
+
+                        <button
+                          onClick={handleExportSummaryExcel}
+                          disabled={isExportingSummary || summaryLoading}
+                          className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5 cursor-pointer disabled:opacity-50"
+                          title="Xuất bảng số liệu ra file Excel (.xlsx)"
+                        >
+                          {isExportingSummary ? <Loader variant="inline" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>{isExportingSummary ? 'Đang xuất...' : 'Xuất Excel'}</span>
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Công thức kế toán chuẩn: Tồn đầu + Nhập - Xuất + Điều chỉnh = Tồn cuối
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Tìm SKU, tên hàng..."
-                        className="input-wood text-xs pl-8 pr-3 py-1.5 w-44 sm:w-56"
-                      />
-                      <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    </div>
+                    {summaryLoading && !summaryData && (
+                      <div className="py-8">
+                        <Loader variant="page" message="Đang tải bảng số liệu nhập - xuất - tồn..." />
+                      </div>
+                    )}
 
-                    <button
-                      onClick={handleExportSummaryExcel}
-                      disabled={isExportingSummary || summaryLoading}
-                      className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5 cursor-pointer disabled:opacity-50"
-                      title="Xuất bảng số liệu ra file Excel (.xlsx)"
-                    >
-                      {isExportingSummary ? <Loader variant="inline" /> : <Download className="w-3.5 h-3.5" />}
-                      <span>{isExportingSummary ? 'Đang xuất...' : 'Xuất Excel'}</span>
-                    </button>
-                  </div>
-                </div>
+                    {summaryError && (
+                      <div className="p-3 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] rounded-btn text-xs text-[var(--semantic-alert)] font-medium">
+                        {summaryError}
+                      </div>
+                    )}
 
-                {summaryLoading && !summaryData && (
-                  <div className="py-8">
-                    <Loader variant="page" message="Đang tải bảng số liệu nhập - xuất - tồn..." />
-                  </div>
-                )}
-
-                {summaryError && (
-                  <div className="p-3 bg-[var(--semantic-alert-bg)] border border-[var(--semantic-alert-border)] rounded-btn text-xs text-[var(--semantic-alert)] font-medium">
-                    {summaryError}
-                  </div>
-                )}
-
-                {summaryData && (
-                  <div className="overflow-x-auto rounded-card border border-[var(--border-subtle)] max-h-[520px] overflow-y-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-[var(--bg-linen)] text-[var(--text-secondary)] font-semibold border-b border-[var(--border-subtle)] sticky top-0 z-10 shadow-xs">
-                        <tr>
-                          <th className="p-2.5 text-center w-10">STT</th>
-                          <th className="p-2.5">Mã SKU</th>
-                          <th className="p-2.5 min-w-[200px]">Tên hàng hóa</th>
-                          <th className="p-2.5 text-center">ĐVT</th>
-                          <th className="p-2.5 text-right">Tồn đầu</th>
-                          <th className="p-2.5 text-right text-[var(--semantic-success)]">Nhập</th>
-                          <th className="p-2.5 text-right text-[var(--semantic-alert)]">Xuất</th>
-                          <th className="p-2.5 text-right text-amber-600">Đ.Chỉnh</th>
-                          <th className="p-2.5 text-right font-bold text-[var(--text-primary)]">Tồn cuối</th>
-                          <th className="p-2.5 text-right">Đơn giá</th>
-                          <th className="p-2.5 text-right">Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {summaryData.items
-                          .filter((it) => {
-                            if (!searchTerm.trim()) return true;
-                            const term = searchTerm.toLowerCase();
-                            return (
-                              it.product_code.toLowerCase().includes(term) ||
-                              it.product_name.toLowerCase().includes(term) ||
-                              (it.category_name && it.category_name.toLowerCase().includes(term))
-                            );
-                          })
-                          .map((item, idx) => (
-                            <tr key={item.product_id} className="hover:bg-[var(--bg-linen)]/60 transition-colors">
-                              <td className="p-2 text-center text-[var(--text-muted)]">{idx + 1}</td>
-                              <td className="p-2 font-mono font-semibold text-[var(--wood-accent)]">{item.product_code}</td>
-                              <td className="p-2">
-                                <div className="font-medium text-[var(--text-primary)]">{item.product_name}</div>
-                                {item.category_name && (
-                                  <div className="text-[10px] text-[var(--text-muted)]">{item.category_name}</div>
-                                )}
+                    {summaryData && (
+                      <div className="overflow-x-auto rounded-card border border-[var(--border-subtle)] max-h-[520px] overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-[var(--bg-linen)] text-[var(--text-secondary)] font-semibold border-b border-[var(--border-subtle)] sticky top-0 z-10 shadow-xs">
+                            <tr>
+                              <th className="p-2.5 text-center w-10">STT</th>
+                              <th className="p-2.5">Mã SKU</th>
+                              <th className="p-2.5 min-w-[200px]">Tên hàng hóa</th>
+                              <th className="p-2.5 text-center">ĐVT</th>
+                              <th className="p-2.5 text-right">Tồn đầu kỳ</th>
+                              <th className="p-2.5 text-right text-[var(--semantic-success)]">Nhập trong kỳ</th>
+                              <th className="p-2.5 text-right text-[var(--semantic-alert)]">Xuất trong kỳ</th>
+                              {hasAnyAdjustment && (
+                                <th className="p-2.5 text-right text-[var(--semantic-orange)]">Kiểm kê</th>
+                              )}
+                              <th className="p-2.5 text-right font-bold text-[var(--text-primary)]">Tồn cuối kỳ</th>
+                              <th className="p-2.5 text-right">Đơn giá</th>
+                              <th className="p-2.5 text-right">Giá trị tồn cuối</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-card)]">
+                            {filteredItems.length === 0 ? (
+                              <tr>
+                                <td colSpan={hasAnyAdjustment ? 11 : 10} className="p-8 text-center text-[var(--text-muted)]">
+                                  {!showAllProducts && activeItems.length === 0
+                                    ? 'Không có mặt hàng nào phát sinh giao dịch Nhập / Xuất / Kiểm kê trong kỳ này.'
+                                    : 'Không tìm thấy mặt hàng nào khớp với từ khóa tìm kiếm.'}
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredItems.map((item, idx) => (
+                                <tr key={item.product_id} className="hover:bg-[var(--bg-linen)]/60 transition-colors">
+                                  <td className="p-2.5 text-center text-[var(--text-muted)]">{idx + 1}</td>
+                                  <td className="p-2.5 font-mono font-semibold text-[var(--wood-accent)]">{item.product_code}</td>
+                                  <td className="p-2.5">
+                                    <div className="font-medium text-[var(--text-primary)]">{item.product_name}</div>
+                                    {item.category_name && (
+                                      <div className="text-[11px] text-[var(--text-muted)]">{item.category_name}</div>
+                                    )}
+                                  </td>
+                                  <td className="p-2.5 text-center text-[var(--text-secondary)]">{item.unit}</td>
+                                  <td className="p-2.5 text-right font-mono text-[var(--text-secondary)]">
+                                    {item.opening_stock.toLocaleString('vi-VN')}
+                                  </td>
+                                  <td className="p-2.5 text-right font-mono">
+                                    {item.total_import > 0 ? (
+                                      <span className="font-bold text-[var(--semantic-success)] bg-[var(--semantic-success-bg)] px-2 py-0.5 rounded-btn border border-[var(--semantic-success-border)] inline-block">
+                                        +{item.total_import.toLocaleString('vi-VN')}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[var(--text-muted)]">-</span>
+                                    )}
+                                  </td>
+                                  <td className="p-2.5 text-right font-mono">
+                                    {item.total_export > 0 ? (
+                                      <span className="font-bold text-[var(--semantic-alert)] bg-[var(--semantic-alert-bg)] px-2 py-0.5 rounded-btn border border-[var(--semantic-alert-border)] inline-block">
+                                        -{item.total_export.toLocaleString('vi-VN')}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[var(--text-muted)]">-</span>
+                                    )}
+                                  </td>
+                                  {hasAnyAdjustment && (
+                                    <td className="p-2.5 text-right font-mono">
+                                      {item.adjustment !== 0 ? (
+                                        <span className="font-bold text-[var(--semantic-orange)] bg-[var(--semantic-orange-bg)] px-2 py-0.5 rounded-btn border border-[var(--semantic-orange-border)] inline-block">
+                                          {item.adjustment > 0 ? `+${item.adjustment}` : item.adjustment}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[var(--text-muted)]">-</span>
+                                      )}
+                                    </td>
+                                  )}
+                                  <td className="p-2.5 text-right font-mono font-bold text-[var(--text-primary)]">
+                                    <span>{item.closing_stock.toLocaleString('vi-VN')}</span>
+                                    {item.is_low_stock && (
+                                      <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-[var(--semantic-alert-bg)] text-[var(--semantic-alert)] rounded font-semibold border border-[var(--semantic-alert-border)]">
+                                        Dưới min
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-2.5 text-right font-mono text-[var(--text-muted)]">
+                                    {Math.round(item.standard_price).toLocaleString('vi-VN')} đ
+                                  </td>
+                                  <td className="p-2.5 text-right font-mono font-semibold text-[var(--text-primary)]">
+                                    {Math.round(item.total_value).toLocaleString('vi-VN')} đ
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                          <tfoot className="bg-[var(--bg-linen)] font-bold text-[var(--text-primary)] border-t-2 border-[var(--border-subtle)] sticky bottom-0 z-10 shadow-xs">
+                            <tr>
+                              <td colSpan={4} className="p-2.5 text-center uppercase tracking-wider text-xs">
+                                Tổng cộng ({filteredItems.length} SP đang hiển thị)
                               </td>
-                              <td className="p-2 text-center text-[var(--text-secondary)]">{item.unit}</td>
-                              <td className="p-2 text-right font-mono">{item.opening_stock}</td>
-                              <td className="p-2 text-right font-mono text-[var(--semantic-success)] font-medium">
-                                {item.total_import > 0 ? `+${item.total_import}` : '0'}
+                              <td className="p-2.5 text-right font-mono">{sumOpening.toLocaleString('vi-VN')}</td>
+                              <td className="p-2.5 text-right font-mono text-[var(--semantic-success)]">
+                                {sumImport > 0 ? `+${sumImport.toLocaleString('vi-VN')}` : '-'}
                               </td>
-                              <td className="p-2 text-right font-mono text-[var(--semantic-alert)] font-medium">
-                                {item.total_export > 0 ? `-${item.total_export}` : '0'}
+                              <td className="p-2.5 text-right font-mono text-[var(--semantic-alert)]">
+                                {sumExport > 0 ? `-${sumExport.toLocaleString('vi-VN')}` : '-'}
                               </td>
-                              <td className="p-2 text-right font-mono text-amber-600">
-                                {item.adjustment !== 0 ? (item.adjustment > 0 ? `+${item.adjustment}` : item.adjustment) : '0'}
-                              </td>
-                              <td className="p-2 text-right font-mono font-bold text-[var(--text-primary)]">
-                                <span>{item.closing_stock}</span>
-                                {item.is_low_stock && (
-                                  <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-[var(--semantic-alert-bg)] text-[var(--semantic-alert)] rounded font-semibold border border-[var(--semantic-alert-border)]">
-                                    Dưới min
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-2 text-right font-mono text-[var(--text-muted)]">
-                                {Math.round(item.standard_price).toLocaleString('vi-VN')} đ
-                              </td>
-                              <td className="p-2 text-right font-mono font-semibold text-[var(--text-primary)]">
-                                {Math.round(item.total_value).toLocaleString('vi-VN')} đ
+                              {hasAnyAdjustment && (
+                                <td className="p-2.5 text-right font-mono text-[var(--semantic-orange)]">
+                                  {sumAdjPos === 0 && sumAdjNeg === 0
+                                    ? '-'
+                                    : sumAdjPos > 0 && sumAdjNeg < 0
+                                    ? `+${sumAdjPos} / ${sumAdjNeg}`
+                                    : sumAdjPos > 0
+                                    ? `+${sumAdjPos}`
+                                    : `${sumAdjNeg}`}
+                                </td>
+                              )}
+                              <td className="p-2.5 text-right font-mono font-bold">{sumClosing.toLocaleString('vi-VN')}</td>
+                              <td className="p-2.5 text-right text-[var(--text-muted)]">-</td>
+                              <td className="p-2.5 text-right font-mono text-[var(--wood-accent)]">
+                                {Math.round(sumValue).toLocaleString('vi-VN')} đ
                               </td>
                             </tr>
-                          ))}
-                      </tbody>
-                      <tfoot className="bg-[var(--bg-linen)] font-bold text-[var(--text-primary)] border-t-2 border-[var(--border-subtle)] sticky bottom-0 z-10 shadow-xs">
-                        <tr>
-                          <td colSpan={4} className="p-2.5 text-center uppercase tracking-wider text-xs">
-                            Tổng cộng ({summaryData.total_products} SP)
-                          </td>
-                          <td className="p-2.5 text-right font-mono">{summaryData.total_opening}</td>
-                          <td className="p-2.5 text-right font-mono text-[var(--semantic-success)]">+{summaryData.total_import}</td>
-                          <td className="p-2.5 text-right font-mono text-[var(--semantic-alert)]">-{summaryData.total_export}</td>
-                          <td className="p-2.5 text-right font-mono text-amber-600">{summaryData.total_adjustment || 0}</td>
-                          <td className="p-2.5 text-right font-mono font-bold">{summaryData.total_closing}</td>
-                          <td className="p-2.5 text-right">-</td>
-                          <td className="p-2.5 text-right font-mono text-[var(--wood-accent)]">
-                            {Math.round(summaryData.total_inventory_value).toLocaleString('vi-VN')} đ
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Executive Summary AI Box */}
               <div className="card-warm p-6 space-y-4">

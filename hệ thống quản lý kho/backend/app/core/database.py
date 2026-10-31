@@ -1,18 +1,28 @@
 """Quản lý kết nối Cơ sở dữ liệu và Database Session bằng SQLAlchemy."""
 
-from typing import Generator
-from sqlalchemy import create_engine, event
+from typing import Generator, Optional
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.pool import QueuePool
 from app.core.config import settings
 
-# Cấu hình tham số kết nối engine
+# Cấu hình tham số kết nối engine và Connection Pool tường minh
 connect_args = {}
+pool_kwargs = {}
+
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
+    pool_kwargs["poolclass"] = QueuePool
+    pool_kwargs["pool_size"] = 20
+    pool_kwargs["max_overflow"] = 20
+    pool_kwargs["pool_timeout"] = 30.0
+    pool_kwargs["pool_recycle"] = 1800
+    pool_kwargs["pool_pre_ping"] = True
 
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args=connect_args,
+    **pool_kwargs,
     echo=False,
 )
 
@@ -32,6 +42,46 @@ if settings.DATABASE_URL.startswith("sqlite"):
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+
+def ensure_triggers(bind=None) -> None:
+    """Tạo SQLite triggers bảo vệ trần tồn kho nếu bảng products đã tồn tại."""
+    target_engine = bind or engine
+    if not str(target_engine.url).startswith("sqlite"):
+        return
+    try:
+        with target_engine.connect() as conn:
+            # Kiểm tra xem bảng products đã được khởi tạo trong CSDL chưa
+            has_table = conn.execute(
+                text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='products'")
+            ).scalar()
+            if not has_table:
+                return
+            conn.execute(
+                text("""
+                CREATE TRIGGER IF NOT EXISTS trg_products_max_stock_ins
+                BEFORE INSERT ON products
+                FOR EACH ROW
+                WHEN NEW.current_stock > 1000000000
+                BEGIN
+                    SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000');
+                END;
+            """)
+            )
+            conn.execute(
+                text("""
+                CREATE TRIGGER IF NOT EXISTS trg_products_max_stock_upd
+                BEFORE UPDATE OF current_stock ON products
+                FOR EACH ROW
+                WHEN NEW.current_stock > 1000000000
+                BEGIN
+                    SELECT RAISE(ABORT, 'Tồn kho vượt quá trần tối đa cho phép 1.000.000.000');
+                END;
+            """)
+            )
+            conn.commit()
+    except Exception:
+        pass
 
 
 def get_db() -> Generator[Session, None, None]:

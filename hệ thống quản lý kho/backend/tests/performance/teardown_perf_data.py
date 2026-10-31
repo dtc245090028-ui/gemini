@@ -1,5 +1,32 @@
 """Script dọn dẹp sạch sẽ toàn bộ dữ liệu kiểm thử hiệu năng (prefix PERF-, perf_, SKU-PERF-)."""
 
+import os
+import subprocess
+import sys
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+# Nếu chạy trên Windows Host trong khi container warehouse_backend đang mở WAL,
+# tự động ủy quyền vào trong container để tránh xung đột SQLite WAL shared-memory.
+if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
+    chk = subprocess.run(
+        ["docker", "ps", "--filter", "name=warehouse_backend", "--filter", "status=running", "-q"],
+        capture_output=True, text=True, check=False
+    )
+    if chk.returncode == 0 and chk.stdout.strip():
+        res = subprocess.run(
+            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/teardown_perf_data.py"],
+            check=False
+        )
+        sys.exit(res.returncode)
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.models.category import Category
@@ -19,6 +46,7 @@ def teardown_perf_data():
             WHERE export_note_id IN (
                 SELECT id FROM export_notes 
                 WHERE code LIKE 'PERF-%' 
+                   OR code LIKE 'PX-GROUPA-%'
                    OR created_by IN (SELECT id FROM users WHERE username LIKE 'perf_%')
             )
             OR product_id IN (SELECT id FROM products WHERE code LIKE 'SKU-PERF-%')
@@ -26,6 +54,7 @@ def teardown_perf_data():
         res_exp = db.execute(text("""
             DELETE FROM export_notes 
             WHERE code LIKE 'PERF-%' 
+               OR code LIKE 'PX-GROUPA-%'
                OR created_by IN (SELECT id FROM users WHERE username LIKE 'perf_%')
         """))
         print(f"  - Đã xóa {res_exp.rowcount} phiếu xuất test và {res_exp_dt.rowcount} chi tiết.")
@@ -52,6 +81,8 @@ def teardown_perf_data():
             DELETE FROM stock_ledger 
             WHERE reference_code LIKE 'PERF-%'
                OR reference_code LIKE 'CANCEL-PERF-%'
+               OR reference_code LIKE 'PX-GROUPA-%'
+               OR reference_code LIKE 'INIT-SKU-PERF-%'
                OR product_id IN (SELECT id FROM products WHERE code LIKE 'SKU-PERF-%')
                OR created_by IN (SELECT id FROM users WHERE username LIKE 'perf_%')
         """))

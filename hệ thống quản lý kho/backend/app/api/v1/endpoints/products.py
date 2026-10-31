@@ -1,3 +1,5 @@
+from app.core.write_gate import WriteGateContext
+import time
 import os
 from pathlib import Path
 import shutil
@@ -6,6 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.core.events import broadcaster
 from app.models.category import Category
 from app.models.product import Product
 from app.models.supplier import Supplier
@@ -26,6 +29,7 @@ router = APIRouter(prefix="/products", tags=["Hàng hóa & Tồn kho (Products)"
 def get_products(
     search: Optional[str] = Query(None, description="Tìm theo tên sản phẩm hoặc mã SKU"),
     category_id: Optional[int] = Query(None, description="Lọc theo ID nhóm hàng"),
+    supplier_id: Optional[int] = Query(None, description="Lọc theo ID nhà cung cấp"),
     is_low_stock: Optional[bool] = Query(None, description="Lọc hàng sắp hết (current_stock <= min_stock)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái: ACTIVE, DISCONTINUED"),
     skip: int = Query(0, ge=0, description="Số bản ghi bỏ qua"),
@@ -33,8 +37,8 @@ def get_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Truy vấn danh sách hàng hóa kèm các bộ lọc tìm kiếm, nhóm hàng, cảnh báo tồn và phân trang."""
-    query = db.query(Product).options(joinedload(Product.category))
+    """Truy vấn danh sách hàng hóa kèm các bộ lọc tìm kiếm, nhóm hàng, nhà cung cấp, cảnh báo tồn và phân trang."""
+    query = db.query(Product).options(joinedload(Product.category), joinedload(Product.supplier))
 
     if search:
         pattern = f"%{search.strip()}%"
@@ -42,6 +46,9 @@ def get_products(
 
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
+
+    if supplier_id is not None:
+        query = query.filter(Product.supplier_id == supplier_id)
 
     if status_filter:
         query = query.filter(Product.status == status_filter.strip().upper())
@@ -69,7 +76,7 @@ def get_product_by_id(
     """Lấy thông tin chi tiết một mặt hàng theo ID."""
     product = (
         db.query(Product)
-        .options(joinedload(Product.category))
+        .options(joinedload(Product.category), joinedload(Product.supplier))
         .filter(Product.id == product_id)
         .first()
     )
@@ -111,34 +118,55 @@ def create_product(
             detail=f"Mã SKU '{sku_code}' đã tồn tại trong hệ thống.",
         )
 
-    # 3. Kiểm tra nhà cung cấp nếu có yêu cầu tạo phiếu nhập ban đầu
-    has_initial_import = (
-        product_in.initial_supplier_id is not None
-        and product_in.initial_quantity is not None
-        and product_in.initial_quantity > 0
+    # 3. Kiểm tra nhà cung cấp chính và nhà cung cấp cho phiếu nhập ban đầu (nếu có)
+    chosen_supplier_id = product_in.supplier_id or product_in.initial_supplier_id
+    if chosen_supplier_id is not None:
+        supplier = db.query(Supplier).filter(Supplier.id == chosen_supplier_id).first()
+        if not supplier:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nhà cung cấp với ID {chosen_supplier_id} không tồn tại trong hệ thống.",
+            )
+        if not supplier.is_active or (hasattr(supplier, "status") and supplier.status != "ACTIVE"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nhà cung cấp '{supplier.name}' đang ở trạng thái ngừng hoạt động.",
+            )
+
+    # 2. Xử lý tồn kho ban đầu (Phương án A: Chặn gán ngầm supplier_id=1, bắt buộc có NCC hợp lệ)
+    effective_init_qty = (
+        product_in.initial_quantity
+        if (product_in.initial_quantity is not None and product_in.initial_quantity > 0)
+        else (product_in.current_stock if (product_in.current_stock is not None and product_in.current_stock > 0) else None)
     )
+
+    has_initial_import = (effective_init_qty is not None and effective_init_qty > 0)
+
+    if has_initial_import:
+        if chosen_supplier_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng chỉ định nhà cung cấp hợp lệ khi tạo sản phẩm có tồn kho ban đầu.",
+            )
+        initial_sup_id = chosen_supplier_id
+    else:
+        initial_sup_id = None
+
     if product_in.initial_supplier_id is not None and not has_initial_import:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Số lượng nhập kho ban đầu phải lớn hơn 0 khi chọn nhà cung cấp.",
         )
 
-    if has_initial_import:
-        supplier = db.query(Supplier).filter(Supplier.id == product_in.initial_supplier_id).first()
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nhà cung cấp với ID {product_in.initial_supplier_id} không tồn tại trong hệ thống.",
-            )
-
     # 4. Tạo sản phẩm mới
-    # Nếu có phiếu nhập ban đầu, tồn ban đầu bắt đầu từ 0 để create_import_note tăng lên và ghi Thẻ kho (StockLedger) chính xác
-    starting_stock = 0 if has_initial_import else product_in.current_stock
+    # Tồn kho ban đầu luôn bắt đầu từ 0; nếu có tồn kho (> 0), create_import_note sẽ tăng lên và ghi Thẻ kho (StockLedger) chính xác 100%
+    starting_stock = 0
 
     product = Product(
         code=sku_code,
         name=product_in.name.strip(),
         category_id=product_in.category_id,
+        supplier_id=chosen_supplier_id,
         unit=product_in.unit.strip(),
         min_stock=product_in.min_stock,
         current_stock=starting_stock,
@@ -157,28 +185,33 @@ def create_product(
             else product_in.standard_price
         )
         import_note_in = ImportNoteCreate(
-            supplier_id=product_in.initial_supplier_id,
+            supplier_id=initial_sup_id,
             note=product_in.initial_note.strip()
             if product_in.initial_note
             else f"Nhập kho ban đầu khi tạo sản phẩm {product.code}",
             details=[
                 ImportNoteDetailCreate(
                     product_id=product.id,
-                    quantity=product_in.initial_quantity,
+                    quantity=effective_init_qty,
                     unit_price=unit_price,
                 )
             ],
         )
-        created_note = create_import_note(
-            db=db,
-            note_in=import_note_in,
-            current_user_id=current_user.id,
-        )
-        db.refresh(product)
-        setattr(product, "initial_import_note_code", created_note.code)
+        try:
+            created_note = create_import_note(
+                db=db,
+                note_in=import_note_in,
+                current_user_id=current_user.id,
+            )
+            db.refresh(product)
+            setattr(product, "initial_import_note_code", created_note.code)
+        except Exception:
+            db.rollback()
+            raise
     else:
         db.commit()
         db.refresh(product)
+        broadcaster.publish_after_commit(resource="products", action="CREATE")
 
     return product
 
@@ -212,6 +245,16 @@ def update_product(
             )
         product.category_id = product_in.category_id
 
+    if "supplier_id" in product_in.model_fields_set:
+        if product_in.supplier_id is not None:
+            supplier = db.query(Supplier).filter(Supplier.id == product_in.supplier_id).first()
+            if not supplier:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Nhà cung cấp với ID {product_in.supplier_id} không tồn tại.",
+                )
+        product.supplier_id = product_in.supplier_id
+
     if product_in.name is not None:
         product.name = product_in.name.strip()
     if product_in.unit is not None:
@@ -227,6 +270,7 @@ def update_product(
 
     db.commit()
     db.refresh(product)
+    broadcaster.publish_after_commit(resource="products", action="UPDATE")
     return product
 
 
@@ -272,6 +316,7 @@ def upload_product_image(
     product.image_url = f"/static/products/{filename}"
     db.commit()
     db.refresh(product)
+    broadcaster.publish_after_commit(resource="products", action="UPDATE")
     return product
 
 
@@ -303,6 +348,7 @@ def delete_product(
     if has_history:
         product.status = "DISCONTINUED"
         db.commit()
+        broadcaster.publish_after_commit(resource="products", action="DISCONTINUE")
         return {
             "success": True,
             "action": "DISCONTINUED",
@@ -310,8 +356,10 @@ def delete_product(
         }
 
     # Nếu chưa có lịch sử giao dịch thì cho phép xóa hoàn toàn
-    db.delete(product)
-    db.commit()
+    with WriteGateContext(arrival_time=time.perf_counter(), db=db):
+        db.delete(product)
+        db.commit()
+    broadcaster.publish_after_commit(resource="products", action="DELETE")
     return {
         "success": True,
         "action": "DELETED",

@@ -1,0 +1,32 @@
+BẰNG CHỨNG C3: ĐỐI CHIẾU SỐ LƯỢNG TEST CỦA test_negative_stock_guard.py
+
+1. Số lượng test reports ghi nhận trong negguard_result.json: Đúng 19 test
+- Nhóm A (4 test): A1, A2, A3, A4
+  • A1: Tồn 10, xuất 11 rồi ship -> 400
+  • A2: Tồn 10: xuất 10 (tồn 0), xuất tiếp 1 bị từ chối -> 400
+  • A3: 1 phiếu có 2 dòng cùng SP (6+6) trên tồn 10 -> 400
+  • A4: Phiếu xuất 2 SP: 1 đủ (5/10), 1 thiếu (15/10) -> 400
+- Nhóm B (4 test): B1, B2, B3, B4
+  • B1: Số lượng 0, -5, 2.5, 'abc', 2^31, 10^18 (Xuất & Nhập)
+  • B2: Đơn giá âm (-50k) và quá lớn (10^18)
+  • B3: Tạo/sửa sản phẩm current_stock bất thường
+  • B4: Kiểm kê đặt tồn thực tế âm (-5) và quá lớn (10^18)
+- Nhóm C (6 test): C1, C2, C3, C4, C5, C6 (Đua tranh đồng thời 3 vòng)
+  • C1: Tồn 10: 30 phiếu xuất 1 bắn /ship cùng lúc (3 vòng)
+  • C2: Tồn 10: 6 phiếu xuất 4 bắn cùng lúc (3 vòng)
+  • C3: 1 phiếu xuất CONFIRMED, gọi /ship 20 lần đồng thời (3 vòng)
+  • C4: Phiếu xuất đã xuất, gọi hủy 10 lần đồng thời (3 vòng)
+  • C5: Tồn 20: 50 nhập (x2) & 50 xuất (x3) xen kẽ đồng thời (3 vòng)
+  • C6: 10 request nhập CÙNG 1 mã phiếu đồng thời (3 vòng)
+- Nhóm D (3 test): D1, D2, D3
+  • D1: Phiếu xuất đã ship rồi hủy (hủy 2 lần)
+  • D2: Nhập 10, xuất 8 (tồn 2), hủy phiếu nhập 10
+  • D3: Xóa sản phẩm đã có giao dịch
+- Nhóm E (2 test): E1, E2
+  • E1: Kiểm toán toàn bộ SKU-NEG-*: Tồn = Sổ cái, Lũy kế, Không âm
+  • E2: Chạy check_invariants.py toàn hệ thống
+
+2. Giải thích sự khác biệt giữa 17 và 19:
+- Số 17: Là số lượng các bài test kịch bản API trực tiếp (Nhóm A: 4 + Nhóm B: 4 + Nhóm C: 6 + Nhóm D: 3 = 17 test).
+- Số 19: Là tổng số mục test_reports xuất hiện trong file kết quả JSON (bao gồm 17 bài test API cộng thêm 2 bài kiểm toán toàn vẹn cơ sở dữ liệu E1 và E2).
+- File test_negative_stock_guard.py là một runner độc lập, không dùng cấu trúc pytest thông thường nên `pytest --collect-only` thu thập 0 test khi chưa qua adapter.

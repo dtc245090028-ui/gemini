@@ -66,3 +66,12 @@ secrets/
 
 # Report archive folder (Local only, excluded from GitHub)
 HO_SO_TAI_LIEU_DO_AN_WMS_AI/
+
+# Demo 400 manifests, results & local root junction
+demo_400_manifest.json
+demo_400_result.json
+/backend
+
+# Negative stock guard test manifests & results
+negguard_manifest.json
+negguard_result.json

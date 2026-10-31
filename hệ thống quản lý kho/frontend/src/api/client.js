@@ -9,13 +9,17 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: Tự động gán JWT Bearer Token
+// Khởi tạo mã phiên Client ID duy nhất để phân biệt sự kiện tự sinh vs ngoại vi
+export const CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 10);
+
+// Request interceptor: Tự động gán JWT Bearer Token và Client ID
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['X-Client-Id'] = CLIENT_ID;
     return config;
   },
   (error) => Promise.reject(error)
@@ -42,7 +46,8 @@ const cache = new Map();
 const inFlightRequests = new Map();
 
 // TTL 60s chỉ áp dụng cho GET suppliers, categories, products
-const CACHE_TTL_MS = 60 * 1000;
+// Gỡ bỏ hard cache 60s: chỉ giữ micro-cache 500ms cho khử trùng lặp render cùng tick
+const CACHE_TTL_MS = 500;
 const CACHEABLE_PATTERNS = ['/suppliers', '/categories', '/products'];
 
 /**
@@ -231,7 +236,7 @@ export const apiClient = {
 
   // 5. Phiếu nhập kho
   importNotes: {
-    getAll: () => api.get('/import-notes/'),
+    getAll: (params) => api.get('/import-notes/', { params }),
     getById: (id) => api.get(`/import-notes/${id}`),
     create: (data, config = {}) => api.post('/import-notes/', data, config),
     cancel: (id, reason) => api.post(`/import-notes/${id}/cancel`, null, { params: reason ? { reason } : {} }),
@@ -239,7 +244,7 @@ export const apiClient = {
 
   // 6. Phiếu xuất kho
   exportNotes: {
-    getAll: () => api.get('/export-notes/'),
+    getAll: (params) => api.get('/export-notes/', { params }),
     getById: (id) => api.get(`/export-notes/${id}`),
     create: (data, config = {}) => api.post('/export-notes/', data, config),
     ship: (id) => api.post(`/export-notes/${id}/ship`),
@@ -251,6 +256,8 @@ export const apiClient = {
   // 7. Thẻ kho & Điều chỉnh kiểm kê
   stockLedger: {
     getAll: (params) => api.get('/stock-ledger/', { params }),
+    getByReference: (referenceCode) =>
+      api.get(`/stock-ledger/by-reference/${encodeURIComponent(referenceCode)}`),
     adjust: (data) => api.post('/stock-ledger/adjust', data),
     exportExcel: (params) =>
       api.get('/stock-ledger/export-excel', {
@@ -262,6 +269,11 @@ export const apiClient = {
 
   // 8. Báo cáo Nhập - Xuất - Tồn
   reports: {
+    getKpiSummary: () => api.get('/reports/kpi-summary'),
+    getLowStockAlerts: (categoryId = null) =>
+      api.get('/reports/low-stock', {
+        params: categoryId ? { category_id: categoryId } : {},
+      }),
     getSummary: (fromDate, toDate, categoryId = null) =>
       api.get('/reports/inventory-summary', {
         params: { from_date: fromDate, to_date: toDate, category_id: categoryId },
@@ -290,12 +302,13 @@ export const apiClient = {
       }),
     generateOrder: (forceRefresh = false) =>
       api.post('/ai/generate-order', null, { params: { force_refresh: forceRefresh } }),
-    ask: (question, month, year, includeSmartKho = false) =>
+    ask: (question, month, year, includeSmartKho = false, extraParams = {}) =>
       api.post('/ai/ask', {
         question,
         month,
         year,
         include_smartkho: includeSmartKho,
+        ...extraParams,
       }),
   },
 

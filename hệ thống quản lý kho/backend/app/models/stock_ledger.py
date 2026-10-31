@@ -1,6 +1,7 @@
 """SQLAlchemy Model cho Thẻ kho / Sổ kiểm toán tồn kho (stock_ledger)."""
 
 from datetime import datetime
+from app.core.config import get_now_vn
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -16,8 +17,9 @@ class StockLedger(Base):
     quantity_change = Column(Integer, nullable=False)  # + khi nhập, - khi xuất
     balance_after = Column(Integer, nullable=False)  # Số dư tồn kho tức thời sau giao dịch
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    transaction_date = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    transaction_date = Column(DateTime, nullable=False, default=get_now_vn, index=True)
     note = Column(String(255), nullable=True)
+    idempotency_key = Column(String(100), nullable=True, unique=True, index=True)
 
     __table_args__ = (
         CheckConstraint("balance_after >= 0", name="chk_balance_after_non_negative"),

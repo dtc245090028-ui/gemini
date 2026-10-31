@@ -1,6 +1,7 @@
 """SQLAlchemy Model cho Người dùng (users)."""
 
 from datetime import datetime
+from app.core.config import get_now_vn
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -15,7 +16,7 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     role = Column(String(20), nullable=False, default="WAREHOUSE_KEEPER")  # ADMIN, WAREHOUSE_KEEPER, ACCOUNTANT
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=get_now_vn)
 
     # Relationships
     import_notes = relationship("ImportNote", back_populates="creator")

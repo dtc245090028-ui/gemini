@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     reports,
     stock_ledger,
     suppliers,
+    events,
 )
 
 api_router = APIRouter()
@@ -25,4 +26,13 @@ api_router.include_router(export_notes.router)
 api_router.include_router(stock_ledger.router)
 api_router.include_router(reports.router)
 api_router.include_router(ai.router)
+api_router.include_router(events.router)
+
+import os
+from app.core.config import settings
+
+if os.environ.get("BENCH_ENDPOINTS", "0").strip() == "1" or settings.BENCH_ENDPOINTS:
+    from app.api.v1.endpoints import bench
+    api_router.include_router(bench.router, prefix="/bench", tags=["bench"])
+
 

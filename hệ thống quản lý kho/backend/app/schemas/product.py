@@ -11,27 +11,29 @@ class ProductBase(BaseModel):
     code: str = Field(..., min_length=2, max_length=50, description="Mã SKU hàng hóa")
     name: str = Field(..., min_length=1, max_length=200, description="Tên mặt hàng")
     category_id: int = Field(..., ge=1, description="ID nhóm hàng hóa")
+    supplier_id: Optional[int] = Field(None, ge=1, description="ID nhà cung cấp chính")
     unit: str = Field(default="Cái", min_length=1, max_length=20, description="Đơn vị tính")
     min_stock: int = Field(default=10, ge=0, description="Định mức tồn tối thiểu để cảnh báo")
-    standard_price: float = Field(default=0.0, ge=0.0, description="Đơn giá tiêu chuẩn (VNĐ)")
+    standard_price: float = Field(default=0.0, ge=0.0, le=100_000_000_000.0, description="Đơn giá tiêu chuẩn (VNĐ)")
     image_url: Optional[str] = Field(None, max_length=500, description="Đường dẫn hoặc URL ảnh sản phẩm")
     status: str = Field(default="ACTIVE", description="Trạng thái hàng: ACTIVE, DISCONTINUED")
 
 
 class ProductCreate(ProductBase):
-    current_stock: int = Field(default=0, ge=0, description="Số lượng tồn ban đầu (>= 0)")
+    current_stock: int = Field(default=0, ge=0, le=10_000_000, description="Số lượng tồn ban đầu (>= 0 và <= 10 triệu)")
     initial_supplier_id: Optional[int] = Field(None, ge=1, description="ID nhà cung cấp để tự động lập phiếu nhập đầu kỳ")
-    initial_quantity: Optional[int] = Field(None, ge=1, description="Số lượng nhập kho ban đầu")
-    initial_unit_price: Optional[float] = Field(None, ge=0.0, description="Đơn giá nhập ban đầu (VNĐ)")
+    initial_quantity: Optional[int] = Field(None, ge=1, le=10_000_000, description="Số lượng nhập kho ban đầu")
+    initial_unit_price: Optional[float] = Field(None, ge=0.0, le=100_000_000_000.0, description="Đơn giá nhập ban đầu (VNĐ)")
     initial_note: Optional[str] = Field(None, max_length=500, description="Ghi chú phiếu nhập ban đầu")
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200, description="Tên mặt hàng")
     category_id: Optional[int] = Field(None, ge=1, description="ID nhóm hàng hóa")
+    supplier_id: Optional[int] = Field(None, ge=1, description="ID nhà cung cấp chính")
     unit: Optional[str] = Field(None, min_length=1, max_length=20, description="Đơn vị tính")
     min_stock: Optional[int] = Field(None, ge=0, description="Định mức tồn tối thiểu")
-    standard_price: Optional[float] = Field(None, ge=0.0, description="Đơn giá tiêu chuẩn")
+    standard_price: Optional[float] = Field(None, ge=0.0, le=100_000_000_000.0, description="Đơn giá tiêu chuẩn")
     image_url: Optional[str] = Field(None, max_length=500, description="Đường dẫn hoặc URL ảnh sản phẩm")
     status: Optional[str] = Field(None, description="Trạng thái hàng: ACTIVE, DISCONTINUED")
 
@@ -41,6 +43,7 @@ class ProductResponse(ProductBase):
     current_stock: int
     created_at: datetime
     category_name: Optional[str] = None
+    supplier_name: Optional[str] = None
     category: Optional[CategoryResponse] = None
     initial_import_note_code: Optional[str] = Field(None, description="Mã phiếu nhập kho khởi tạo (nếu có)")
 

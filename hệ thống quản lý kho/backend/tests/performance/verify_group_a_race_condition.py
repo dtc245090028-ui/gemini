@@ -13,6 +13,7 @@ Mục tiêu:
 
 import sys
 import os
+import subprocess
 import time
 import threading
 import requests
@@ -25,6 +26,18 @@ if sys.stdout.encoding != 'utf-8':
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
+
+if os.name == "nt" and not os.environ.get("INSIDE_DOCKER"):
+    chk = subprocess.run(
+        ["docker", "ps", "--filter", "name=warehouse_backend", "--filter", "status=running", "-q"],
+        capture_output=True, text=True, check=False
+    )
+    if chk.returncode == 0 and chk.stdout.strip():
+        res = subprocess.run(
+            ["docker", "exec", "-e", "INSIDE_DOCKER=1", "warehouse_backend", "python", "/app/tests/performance/verify_group_a_race_condition.py"],
+            check=False
+        )
+        sys.exit(res.returncode)
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker

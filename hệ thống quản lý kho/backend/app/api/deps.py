@@ -95,9 +95,14 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 
 def get_current_user(
+    request: Request,
     token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_deps_start = time.perf_counter()
+        st.t_auth_start = st.t_deps_start
     """Dependency trích xuất và xác thực người dùng từ Bearer JWT token."""
     if not token:
         raise HTTPException(
@@ -129,6 +134,8 @@ def get_current_user(
             detail="Tài khoản này hiện đang bị tạm khóa.",
         )
 
+    if st:
+        st.t_auth_end = time.perf_counter()
     return user
 
 

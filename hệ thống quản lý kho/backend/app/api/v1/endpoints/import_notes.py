@@ -2,7 +2,8 @@
 
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+import time
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -14,6 +15,7 @@ from app.schemas.import_note import (
     ImportNoteResponse,
 )
 from app.services.inventory_service import cancel_import_note, create_import_note
+from app.core.write_gate import WriteGateContext
 
 router = APIRouter(prefix="/import-notes", tags=["Phiếu nhập kho (Import Notes)"])
 
@@ -61,7 +63,7 @@ def get_import_notes(
     supplier_id: Optional[int] = Query(None, description="Lọc theo ID nhà cung cấp"),
     status_filter: Optional[str] = Query(None, alias="status", description="Lọc theo trạng thái (COMPLETED, CANCELLED)"),
     skip: int = Query(0, ge=0, description="Số lượng bỏ qua"),
-    limit: int = Query(50, ge=1, le=200, description="Số lượng lấy tối đa"),
+    limit: int = Query(50, ge=1, le=2000, description="Số lượng lấy tối đa"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -123,19 +125,37 @@ def get_import_note_by_id(
     summary="Lập phiếu nhập kho (ACID Transaction)",
 )
 def create_new_import_note(
+    request: Request,
     note_in: ImportNoteCreate,
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key", description="Khóa chống ghi trùng lặp (Idempotency Key)"),
+    x_client_id: Optional[str] = Header(None, alias="X-Client-Id", description="Định danh phiên client"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
 ):
     """Lập phiếu nhập kho: Tăng tồn kho và tự động ghi Thẻ kho (StockLedger)."""
-    note = create_import_note(
-        db=db,
-        note_in=note_in,
-        current_user_id=current_user.id,
-        idempotency_key=x_idempotency_key,
-    )
-    return _serialize_import_note(note)
+    st = getattr(request.state, "stage_timing", None)
+    if st:
+        st.t_handler_enter = time.perf_counter()
+    arrival_t = getattr(request.state, "arrival_time", None)
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = create_import_note(
+            db=db,
+            note_in=note_in,
+            current_user_id=current_user.id,
+            idempotency_key=x_idempotency_key,
+            stage_timing=st,
+            client_id=x_client_id,
+        )
+    resp = _serialize_import_note(note)
+    if st:
+        st.t_handler_exit = time.perf_counter()
+    return resp
+
+
+from pydantic import BaseModel, Field
+
+class CancelImportNoteRequest(BaseModel):
+    reason: Optional[str] = Field(None, description="Lý do hủy phiếu nhập")
 
 
 @router.post(
@@ -145,6 +165,7 @@ def create_new_import_note(
 )
 def cancel_existing_import_note(
     import_note_id: int,
+    payload: Optional[CancelImportNoteRequest] = None,
     reason: Optional[str] = Query(None, description="Lý do hủy phiếu nhập"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(["ADMIN", "WAREHOUSE_KEEPER"])),
@@ -154,7 +175,10 @@ def cancel_existing_import_note(
     Nếu hàng đã bị xuất đi dẫn đến tồn kho hiện tại không đủ để hoàn trả,
     hệ thống sẽ từ chối và hướng dẫn tạo phiếu Điều chỉnh tồn kho (Stock Adjustment).
     """
-    note = cancel_import_note(
-        db=db, import_note_id=import_note_id, current_user_id=current_user.id, reason=reason
-    )
-    return _serialize_import_note(note)
+    arrival_t = time.perf_counter()
+    effective_reason = payload.reason if (payload and payload.reason is not None) else reason
+    with WriteGateContext(arrival_time=arrival_t, db=db):
+        note = cancel_import_note(
+            db=db, import_note_id=import_note_id, current_user_id=current_user.id, reason=effective_reason
+        )
+        return _serialize_import_note(note)

@@ -1,0 +1,16 @@
+BẰNG CHỨNG C4: KIỂM SOÁT PHÂN QUYỀN 3 ENDPOINT RESET
+
+1. Kết quả thực nghiệm khi gọi 3 endpoint reset trên server thử nghiệm (BENCH_ENDPOINTS=1):
+
+| Endpoint | HTTP Method | Không Token | Non-Admin (WAREHOUSE_KEEPER) | ADMIN |
+|---|---|---|---|---|
+| /api/v1/bench/reset | POST | 401 Unauthorized | 403 Forbidden | 200 OK |
+| /api/v1/reports/write-metrics/reset | POST | 401 Unauthorized | 403 Forbidden | 200 OK |
+| /api/v1/reports/write-gate/reset | POST | 401 Unauthorized | 403 Forbidden | 200 OK |
+
+2. Nhận xét phân quyền:
+- Cả 3 endpoint reset đều được phân quyền nghiêm ngặt:
+  • Bắt buộc xác thực: Không có Bearer token trả về mã HTTP 401 Unauthorized.
+  • Kiểm tra quyền hạn: Token người dùng không mang role 'ADMIN' (ví dụ tài khoản thủ kho WAREHOUSE_KEEPER) bị từ chối với mã HTTP 403 Forbidden.
+  • Chỉ duy nhất tài khoản mang role 'ADMIN' được phép reset số liệu (HTTP 200 OK).
+- Lưu ý đặc thù về /api/v1/bench/reset: Router bench chỉ được nạp vào ứng dụng khi cấu hình cờ môi trường `BENCH_ENDPOINTS=1`. Khi cờ này tắt (mặc định môi trường sản xuất), endpoint này trả về 404 Not Found.

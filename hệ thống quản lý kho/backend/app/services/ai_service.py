@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import settings, get_now_vn
 from app.models.category import Category
 from app.models.export_note import ExportNote, ExportNoteDetail
 from app.models.import_note import ImportNote, ImportNoteDetail
@@ -182,7 +182,7 @@ class AIService:
             end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
             effective_days = max((end_d - start_d).days + 1, 1)
         else:
-            end_dt = datetime.now()
+            end_dt = get_now_vn()
             start_dt = end_dt - timedelta(days=lookback_days)
             effective_days = max(lookback_days, 1)
 
@@ -242,7 +242,7 @@ class AIService:
             recent_window_days = min(7, max(1, effective_days // 2)) if effective_days > 7 else effective_days
             recent_7d_cutoff = end_dt - timedelta(days=recent_window_days)
         else:
-            end_dt = datetime.now()
+            end_dt = get_now_vn()
             recent_7d_cutoff = end_dt - timedelta(days=7)
             previous_cutoff = end_dt - timedelta(days=lookback_days)
             effective_days = max(lookback_days, 1)
@@ -550,7 +550,7 @@ class AIService:
         - Số liệu tồn kho, tốc độ xuất luôn tính mới từ CSDL.
         - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
         """
-        today_d = datetime.now().date()
+        today_d = get_now_vn().date()
         if start_date and end_date:
             start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
             effective_days = max((end_d - start_d).days + 1, 1)
@@ -718,7 +718,7 @@ class AIService:
         - Số liệu bất thường luôn tính mới từ CSDL.
         - Tái sử dụng nhận xét AI nếu dấu vết dữ liệu trong khoảng chưa đổi.
         """
-        today_d = datetime.now().date()
+        today_d = get_now_vn().date()
         if start_date and end_date:
             start_d, end_d = (start_date, end_date) if start_date <= end_date else (end_date, start_date)
             effective_days = max((end_d - start_d).days + 1, 1)
@@ -1067,13 +1067,17 @@ class AIService:
         month: Optional[int] = None,
         year: Optional[int] = None,
         include_smartkho: bool = False,
+        period_type: Optional[str] = None,
+        target_date: Optional[date] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> AskAIResponse:
         """Hỏi đáp tương tác với Trợ lý AI.
 
         - include_smartkho=False: Gửi thuần câu hỏi, để AI hoàn toàn tự do trả lời, không chèn số liệu kho hay đề mục báo cáo.
         - include_smartkho=True: Nạp ngữ cảnh số liệu #SmartKho và chèn cấu trúc phân tích điều hành kho bãi.
         """
-        now = datetime.now()
+        now = get_now_vn()
         timestamp_str = now.strftime("%H:%M:%S %d/%m/%Y")
 
         # ==============================================================
@@ -1125,47 +1129,169 @@ class AIService:
         target_month = month or now.month
         target_year = year or now.year
 
-        metrics = cls.get_monthly_aggregated_data(db, month=target_month, year=target_year)
+        start_d, end_d, period_str, is_subperiod = AICacheManager.resolve_period_range(
+            period_type=period_type,
+            target_date=target_date,
+            start_date=start_date,
+            end_date=end_date,
+            month=target_month,
+            year=target_year,
+        )
+        metrics = (
+            cls.get_period_aggregated_data(db, start_d, end_d)
+            if is_subperiod
+            else cls.get_monthly_aggregated_data(db, month=target_month, year=target_year)
+        )
         top_str_list = [
             f"{p.product_code} - {p.product_name} (xuất {p.quantity})"
             for p in metrics.top_exported_products
         ]
         top_exports_text = ", ".join(top_str_list) if top_str_list else "Chưa có lượt xuất trong kỳ."
 
+        # G. Tổng hợp số phiếu và tổng giá trị tiền nhập / xuất hợp lệ trong kỳ + tổng giá trị tồn kho ước tính
+        start_dt = datetime(start_d.year, start_d.month, start_d.day, 0, 0, 0)
+        end_dt = datetime(end_d.year, end_d.month, end_d.day, 23, 59, 59, 999999)
+
+        valid_import_notes_count = int(
+            db.query(func.count(ImportNote.id))
+            .filter(
+                ImportNote.status != "CANCELLED",
+                ImportNote.status == "COMPLETED",
+                ImportNote.note_date >= start_dt,
+                ImportNote.note_date <= end_dt,
+            )
+            .scalar()
+            or 0
+        )
+        total_import_money = int(
+            round(
+                float(
+                    db.query(func.coalesce(func.sum(ImportNote.total_amount), 0.0))
+                    .filter(
+                        ImportNote.status != "CANCELLED",
+                        ImportNote.status == "COMPLETED",
+                        ImportNote.note_date >= start_dt,
+                        ImportNote.note_date <= end_dt,
+                    )
+                    .scalar()
+                    or 0.0
+                )
+            )
+        )
+
+        valid_export_notes_count = int(
+            db.query(func.count(ExportNote.id))
+            .filter(
+                ExportNote.status != "CANCELLED",
+                ExportNote.status == "COMPLETED",
+                ExportNote.note_date >= start_dt,
+                ExportNote.note_date <= end_dt,
+            )
+            .scalar()
+            or 0
+        )
+        total_export_money = int(
+            round(
+                float(
+                    db.query(func.coalesce(func.sum(ExportNote.total_amount), 0.0))
+                    .filter(
+                        ExportNote.status != "CANCELLED",
+                        ExportNote.status == "COMPLETED",
+                        ExportNote.note_date >= start_dt,
+                        ExportNote.note_date <= end_dt,
+                    )
+                    .scalar()
+                    or 0.0
+                )
+            )
+        )
+
+        estimated_inventory_money = int(
+            round(
+                float(
+                    db.query(
+                        func.coalesce(func.sum(Product.current_stock * Product.standard_price), 0.0)
+                    ).scalar()
+                    or 0.0
+                )
+            )
+        )
+
+        import_money_fmt = f"{total_import_money:,} VNĐ"
+        export_money_fmt = f"{total_export_money:,} VNĐ"
+        inventory_money_fmt = f"{estimated_inventory_money:,} VNĐ"
+
+        # I. Truy vấn danh sách mặt hàng dưới tồn an toàn (current_stock <= min_stock), sắp theo mức thiếu giảm dần, tối đa 20 dòng
+        low_stock_products = (
+            db.query(Product.code, Product.name, Product.current_stock, Product.min_stock)
+            .filter(Product.current_stock <= Product.min_stock)
+            .order_by((Product.min_stock - Product.current_stock).desc(), Product.current_stock.asc(), Product.id.asc())
+            .limit(20)
+            .all()
+        )
+        if low_stock_products:
+            low_stock_details_lines = [
+                f"  + {row[0]} - {row[1]} (tồn hiện tại: {row[2]}, tồn an toàn tối thiểu: {row[3]}, thiếu: {max(0, row[3] - row[2])})"
+                for row in low_stock_products
+            ]
+            low_stock_details_text = "\n".join(low_stock_details_lines)
+        else:
+            low_stock_details_text = "  + Không có mặt hàng nào dưới mức tồn an toàn."
+
+        # H. Cập nhật diễn giải chính xác cho active_products + ghép đầy đủ thông tin tài chính & danh sách hàng dưới tồn an toàn
         context_info = (
-            f"- Kỳ phân tích: Tháng {target_month}/{target_year}\n"
-            f"- Tổng số mặt hàng quản lý: {metrics.total_products} ({metrics.active_products} đang hoạt động)\n"
+            f"- Kỳ phân tích: {period_str} ({start_d.isoformat()} đến {end_d.isoformat()})\n"
+            f"- Tổng số mặt hàng quản lý: {metrics.total_products} mặt hàng đang kinh doanh (trong đó {metrics.active_products} mặt hàng có phát sinh nhập/xuất trong kỳ)\n"
             f"- Số mặt hàng dưới mức tồn kho an toàn (low stock): {metrics.low_stock_count}\n"
-            f"- Tổng số lượng nhập kho trong kỳ: {metrics.total_imports_qty}\n"
-            f"- Tổng số lượng xuất kho trong kỳ: {metrics.total_exports_qty}\n"
+            f"- Danh sách mặt hàng dưới mức tồn an toàn (tối đa 20 mã, sắp theo mức thiếu giảm dần):\n{low_stock_details_text}\n"
+            f"- Tổng số lượng nhập kho trong kỳ: {metrics.total_imports_qty} đơn vị ({valid_import_notes_count} phiếu nhập hợp lệ)\n"
+            f"- Tổng giá trị tiền nhập kho trong kỳ: {import_money_fmt}\n"
+            f"- Tổng số lượng xuất kho trong kỳ: {metrics.total_exports_qty} đơn vị ({valid_export_notes_count} phiếu xuất hợp lệ)\n"
+            f"- Tổng giá trị tiền xuất kho trong kỳ: {export_money_fmt}\n"
+            f"- Tổng giá trị tồn kho hiện tại ước tính: {inventory_money_fmt}\n"
             f"- Top mặt hàng xuất nhiều nhất: {top_exports_text}\n"
         )
 
         def _build_smartkho_fallback() -> AskAIResponse:
             q_lower = question.lower()
+            low_stock_inline = ", ".join(
+                [f"{r[0]} ({r[1]}: tồn {r[2]}/{r[3]})" for r in low_stock_products[:10]]
+            ) or "Không có"
             if any(k in q_lower for k in ["tồn kho", "an toàn", "dưới mức", "hết hàng", "thiếu"]):
                 ans = (
                     f"**[Báo Cáo #SmartKho - Tồn Kho An Toàn Kỳ {target_month}/{target_year}]**\n\n"
-                    f"• Ghi nhận **{metrics.low_stock_count} mặt hàng** đang dưới mức tồn kho an toàn (min_stock).\n"
-                    f"• Đề xuất hành động: Kiểm tra danh sách gợi ý nhập hàng để tạo phiếu bổ sung kịp thời, tránh đứt gãy nguồn cung."
+                    f"• Quy mô: **{metrics.total_products} mặt hàng đang kinh doanh** (trong đó {metrics.active_products} mặt hàng có phát sinh nhập/xuất trong kỳ).\n"
+                    f"• Ghi nhận **{metrics.low_stock_count} mặt hàng** đang dưới mức tồn kho an toàn (min_stock): {low_stock_inline}.\n"
+                    f"• Tổng giá trị tồn kho hiện tại ước tính: **{inventory_money_fmt}**.\n"
+                    f"• Đề xuất hành động: Ưu tiên nhập bổ sung ngay các mã hàng thiếu hụt cao nhất ở trên để tránh đứt gãy nguồn cung."
+                )
+            elif any(k in q_lower for k in ["tiền", "giá trị", "doanh thu", "chi phí", "ra vào"]):
+                ans = (
+                    f"**[Báo Cáo #SmartKho - Lưuuyển Hàng Hóa & Giá Trị Kỳ {target_month}/{target_year}]**\n\n"
+                    f"• Nhập kho: **{metrics.total_imports_qty} sản phẩm** qua **{valid_import_notes_count} phiếu nhập hợp lệ** — Tổng tiền nhập: **{import_money_fmt}**.\n"
+                    f"• Xuất kho: **{metrics.total_exports_qty} sản phẩm** qua **{valid_export_notes_count} phiếu xuất hợp lệ** — Tổng tiền xuất: **{export_money_fmt}**.\n"
+                    f"• Tổng giá trị tồn kho hiện tại ước tính: **{inventory_money_fmt}**.\n"
+                    f"• Mặt hàng dưới tồn an toàn ({metrics.low_stock_count} mã): {low_stock_inline}."
                 )
             elif any(k in q_lower for k in ["xuất", "bán", "tiêu thụ", "chạy"]):
                 ans = (
                     f"**[Báo Cáo #SmartKho - Xuất Kho & Tiêu Thụ Kỳ {target_month}/{target_year}]**\n\n"
-                    f"• Tổng sản lượng xuất trong tháng: **{metrics.total_exports_qty} sản phẩm**.\n"
+                    f"• Tổng sản lượng xuất trong tháng: **{metrics.total_exports_qty} sản phẩm** ({valid_export_notes_count} phiếu xuất, tổng giá trị xuất **{export_money_fmt}**).\n"
                     f"• Top mặt hàng xuất nhiều nhất: {top_exports_text}."
                 )
             elif any(k in q_lower for k in ["nhập", "mua", "nhà cung cấp"]):
                 ans = (
                     f"**[Báo Cáo #SmartKho - Nhập Kho Kỳ {target_month}/{target_year}]**\n\n"
-                    f"• Tổng số lượng nhập kho: **{metrics.total_imports_qty} sản phẩm** "
-                    f"(so với lượng xuất {metrics.total_exports_qty} sản phẩm)."
+                    f"• Tổng số lượng nhập kho: **{metrics.total_imports_qty} sản phẩm** ({valid_import_notes_count} phiếu nhập, tổng giá trị nhập **{import_money_fmt}**) "
+                    f"so với lượng xuất {metrics.total_exports_qty} sản phẩm ({export_money_fmt})."
                 )
             else:
                 ans = (
                     f"**[Báo Cáo #SmartKho Tổng Thể Kỳ {target_month}/{target_year}]**\n\n"
-                    f"• Quy mô quản lý: {metrics.total_products} mặt hàng (Nhập: +{metrics.total_imports_qty}, Xuất: -{metrics.total_exports_qty}).\n"
-                    f"• Tồn kho an toàn: Có {metrics.low_stock_count} mặt hàng dưới mức tối thiểu.\n"
+                    f"• Quy mô quản lý: {metrics.total_products} mặt hàng đang kinh doanh (trong đó {metrics.active_products} mặt hàng có phát sinh nhập/xuất trong kỳ).\n"
+                    f"• Lưu chuyển trong kỳ: Nhập +{metrics.total_imports_qty} ({valid_import_notes_count} phiếu, {import_money_fmt}), Xuất -{metrics.total_exports_qty} ({valid_export_notes_count} phiếu, {export_money_fmt}).\n"
+                    f"• Tổng giá trị tồn kho hiện tại ước tính: {inventory_money_fmt}.\n"
+                    f"• Tồn kho an toàn: Có {metrics.low_stock_count} mặt hàng dưới mức tối thiểu ({low_stock_inline}).\n"
                     f"• Tư vấn cho câu hỏi '{question}': Cần bám sát kế hoạch cân đối tồn kho theo tốc độ tiêu thụ thực tế."
                 )
 

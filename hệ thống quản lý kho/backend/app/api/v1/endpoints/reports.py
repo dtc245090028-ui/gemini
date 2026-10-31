@@ -1,3 +1,5 @@
+from app.core.config import get_now_vn
+from app.core.write_gate import write_gate
 """API Endpoints cho Báo cáo Nhập - Xuất - Tồn và Cảnh báo Tồn kho."""
 
 import io
@@ -7,9 +9,12 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
+from app.models.import_note import ImportNote
+from app.models.export_note import ExportNote
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, require_roles
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.product import ProductResponse
@@ -41,7 +46,7 @@ def get_inventory_summary(
 
     Luôn thỏa mãn công thức: Tồn đầu kỳ + Nhập trong kỳ - Xuất trong kỳ = Tồn cuối kỳ.
     """
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     if to_date is None:
         to_date = now
     if from_date is None:
@@ -74,7 +79,7 @@ def export_inventory_summary_excel(
     current_user: User = Depends(get_current_user),
 ):
     """Xuất bảng tổng hợp Nhập - Xuất - Tồn của tất cả mặt hàng theo kỳ ra tệp Excel."""
-    now = datetime.now(timezone.utc)
+    now = get_now_vn()
     if to_date is None:
         to_date = now
     if from_date is None:
@@ -256,3 +261,54 @@ def get_low_stock_alerts(
 
     products = query.order_by(Product.current_stock.asc()).all()
     return products
+
+
+@router.get(
+    "/kpi-summary",
+    summary="Thống kê tổng quan KPI kho hàng cho Dashboard",
+)
+def get_kpi_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lấy số liệu tổng hợp chính xác theo thời gian thực cho Bảng điều khiển (Dashboard)."""
+    total_products = db.query(Product).count()
+    total_stock = db.query(func.coalesce(func.sum(Product.current_stock), 0)).scalar()
+    low_stock_count = (
+        db.query(Product)
+        .filter(
+            Product.current_stock <= Product.min_stock,
+            Product.status == "ACTIVE",
+        )
+        .count()
+    )
+    total_import_notes = db.query(ImportNote).count()
+    total_export_notes = db.query(ExportNote).count()
+
+    return {
+        "total_products": total_products,
+        "total_stock": int(total_stock or 0),
+        "low_stock_count": low_stock_count,
+        "total_import_notes": total_import_notes,
+        "total_export_notes": total_export_notes,
+    }
+
+
+@router.get("/write-metrics", summary="Thống kê hiệu năng ghi & tranh chấp khóa")
+def get_write_metrics():
+    return write_metrics.get_stats()
+
+@router.post("/write-metrics/reset", summary="Reset thống kê hiệu năng ghi")
+def reset_write_metrics(current_user: User = Depends(require_roles(["ADMIN"]))):
+    write_metrics.reset()
+    return {"status": "ok"}
+
+
+@router.get("/write-gate", summary="Thống kê cổng điều phối ghi & backpressure")
+def get_write_gate_stats():
+    return write_gate.get_stats()
+
+@router.post("/write-gate/reset", summary="Reset thống kê cổng ghi")
+def reset_write_gate_stats(current_user: User = Depends(require_roles(["ADMIN"]))):
+    write_gate.reset_stats()
+    return {"status": "ok"}

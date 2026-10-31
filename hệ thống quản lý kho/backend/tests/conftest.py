@@ -15,7 +15,16 @@ os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
 
 import pytest
 from app.api.deps import rate_limiter
-from app.core.database import Base, engine
+from app.core.database import Base, engine, ensure_triggers
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database_schema():
+    """Khởi tạo cấu trúc bảng CSDL và triggers kiểm soát tồn kho cho phiên kiểm thử."""
+    import app.models  # Nạp toàn bộ models để Base.metadata nhận diện bảng
+    Base.metadata.create_all(bind=engine)
+    ensure_triggers(engine)
+    yield
 
 
 @pytest.fixture(autouse=True)

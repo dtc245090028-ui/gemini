@@ -1,5 +1,6 @@
 """Pydantic schemas cho module AI Trợ lý và Heuristic Fallback Engine."""
 
+from datetime import date
 from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
@@ -132,6 +133,10 @@ class AskAIRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000, description="Nội dung câu hỏi gửi đến AI")
     month: Optional[int] = Field(None, ge=1, le=12, description="Tháng báo cáo ngữ cảnh")
     year: Optional[int] = Field(None, ge=2020, le=2100, description="Năm báo cáo ngữ cảnh")
+    period_type: Optional[str] = Field(None, description="Loại kỳ phân tích: month | week | day | custom")
+    target_date: Optional[date] = Field(None, description="Ngày mốc YYYY-MM-DD (cho day/week)")
+    start_date: Optional[date] = Field(None, description="Ngày bắt đầu YYYY-MM-DD (cho custom)")
+    end_date: Optional[date] = Field(None, description="Ngày kết thúc YYYY-MM-DD (cho custom)")
     include_smartkho: bool = Field(
         default=False,
         description="Nút tích 'Yêu cầu về #SmartKho': Nếu tích chọn thì chèn số liệu kho và cấu trúc đề mục báo cáo; nếu không tích thì chỉ gửi thuần câu hỏi.",

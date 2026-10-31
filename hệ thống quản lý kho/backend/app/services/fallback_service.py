@@ -70,7 +70,7 @@ class FallbackService:
 
         summary = (
             f"Kỳ báo cáo {period}: Tổng nhập {metrics.total_imports_qty} sản phẩm, "
-            f"tổng xuất {metrics.total_exports_qty} sản phẩm qua {metrics.active_products}/{metrics.total_products} mặt hàng hoạt động. "
+            f"tổng xuất {metrics.total_exports_qty} sản phẩm. Tổng quản lý {metrics.total_products} mặt hàng đang kinh doanh (trong đó {metrics.active_products} mặt hàng có phát sinh nhập/xuất trong kỳ). "
             f"{flow_comment}{top_item_str}{low_stock_str}"
         )
 

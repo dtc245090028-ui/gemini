@@ -13,9 +13,11 @@ import { StockLedger } from './pages/StockLedger';
 import { AIAssistant } from './pages/AIAssistant';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader } from './components/Loader';
+import { useServerEvents } from './hooks/useServerEvents';
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
+  useServerEvents();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [visitedTabs, setVisitedTabs] = useState(() => new Set(['dashboard']));
   const [ledgerProductId, setLedgerProductId] = useState(null);

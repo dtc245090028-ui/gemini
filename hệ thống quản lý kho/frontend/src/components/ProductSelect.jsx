@@ -30,14 +30,19 @@ export const getInitials = (str) => {
 
 /**
  * Kiểm tra sản phẩm có khớp với từ khóa tìm kiếm hay không:
- * 1. Khớp chuỗi con trong tên (có dấu hoặc không dấu, ví dụ: "bàn" hoặc "ban")
- * 2. Khớp theo chữ cái đầu các từ (ví dụ: "blv" cho "Bàn Làm Việc")
- * 3. Khớp tiền tố của bất kỳ từ nào (ví dụ: gõ "soi" khớp "Gỗ Sồi")
+ * 0. Khớp mã SKU (product.code)
+ * 1. Khớp chuỗi con trong tên (có dấu hoặc không dấu)
+ * 2. Khớp theo chữ cái đầu các từ
+ * 3. Khớp tiền tố của bất kỳ từ nào
  */
 export const matchProduct = (product, query) => {
   if (!query || !query.trim()) return true;
   const qClean = removeVietnameseDiacritics(query);
+  const codeClean = removeVietnameseDiacritics(product.code || '');
   const nameClean = removeVietnameseDiacritics(product.name || '');
+
+  // 0. Khớp mã SKU
+  if (codeClean && codeClean.includes(qClean)) return true;
 
   // 1. Khớp chuỗi con trực tiếp
   if (nameClean.includes(qClean)) return true;
@@ -60,6 +65,10 @@ export const ProductSelect = ({
   placeholder = 'Gõ tên hoặc chữ cái đầu (VD: blv)...',
   disabled = false,
   className = '',
+  allowEmptyOption = false,
+  emptyLabel = 'Tất cả mặt hàng',
+  onSearchChange = null,
+  clearable = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,17 +79,22 @@ export const ProductSelect = ({
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  const selectedProduct = products.find((p) => p.id === Number(value));
+  const selectedProduct = value ? products.find((p) => p.id === Number(value)) : null;
 
   // Lọc danh sách sản phẩm theo từ khóa (nếu người dùng đang gõ tìm kiếm)
   const filteredProducts = isTyping
     ? products.filter((p) => matchProduct(p, searchQuery))
     : products;
 
+  const formatSelectedLabel = (prod) => {
+    if (!prod) return '';
+    return prod.code ? `[${prod.code}] ${prod.name}` : prod.name;
+  };
+
   // Đồng bộ giá trị hiển thị trên ô nhập với sản phẩm đã chọn
   useEffect(() => {
     if (!isOpen) {
-      setSearchQuery(selectedProduct ? selectedProduct.name : '');
+      setSearchQuery(selectedProduct ? formatSelectedLabel(selectedProduct) : '');
       setIsTyping(false);
     }
   }, [value, selectedProduct, isOpen]);
@@ -91,7 +105,7 @@ export const ProductSelect = ({
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
         setIsTyping(false);
-        setSearchQuery(selectedProduct ? selectedProduct.name : '');
+        setSearchQuery(selectedProduct ? formatSelectedLabel(selectedProduct) : '');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -110,28 +124,48 @@ export const ProductSelect = ({
   const handleFocus = () => {
     if (disabled) return;
     setIsOpen(true);
-    // Bôi đen toàn bộ chữ hiện tại để người dùng có thể gõ đè ngay lập tức
     if (inputRef.current) {
       inputRef.current.select();
     }
   };
 
   const handleInputChange = (e) => {
-    setSearchQuery(e.target.value);
+    const val = e.target.value;
+    setSearchQuery(val);
     setIsTyping(true);
     setIsOpen(true);
     setHighlightedIndex(0);
+    if (onSearchChange) {
+      onSearchChange(val);
+    }
   };
 
   const handleSelect = (product) => {
+    if (!product) {
+      onChange('');
+      setSearchQuery('');
+      setIsTyping(false);
+      setIsOpen(false);
+      return;
+    }
     onChange(product.id);
-    setSearchQuery(product.name);
+    setSearchQuery(formatSelectedLabel(product));
     setIsTyping(false);
     setIsOpen(false);
   };
 
   const handleClear = (e) => {
     e.stopPropagation();
+    if (allowEmptyOption || clearable) {
+      onChange('');
+      setSearchQuery('');
+      setIsTyping(false);
+      setIsOpen(false);
+      if (onSearchChange) {
+        onSearchChange('');
+      }
+      return;
+    }
     setSearchQuery('');
     setIsTyping(true);
     setIsOpen(true);
@@ -165,7 +199,7 @@ export const ProductSelect = ({
     } else if (e.key === 'Escape') {
       setIsOpen(false);
       setIsTyping(false);
-      setSearchQuery(selectedProduct ? selectedProduct.name : '');
+      setSearchQuery(selectedProduct ? formatSelectedLabel(selectedProduct) : '');
     }
   };
 
@@ -179,20 +213,20 @@ export const ProductSelect = ({
           onChange={handleInputChange}
           onFocus={handleFocus}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={allowEmptyOption && !value ? emptyLabel : placeholder}
           disabled={disabled}
-          className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input pl-3 pr-12 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] focus:ring-1 focus:ring-[var(--wood-500)] placeholder:text-[var(--text-muted)] transition-colors"
+          className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input pl-3 pr-12 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] focus:ring-1 focus:ring-[var(--wood-500)] placeholder:text-[var(--text-primary)] transition-colors"
           autoComplete="off"
         />
 
         <div className="absolute right-1.5 flex items-center gap-0.5">
-          {searchQuery && isOpen && (
+          {(searchQuery || ((allowEmptyOption || clearable) && value)) && (
             <button
               type="button"
               tabIndex={-1}
               onClick={handleClear}
               className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-btn cursor-pointer"
-              title="Xóa tìm kiếm"
+              title={allowEmptyOption ? 'Chọn tất cả mặt hàng' : (clearable ? 'Bỏ chọn mặt hàng' : 'Xóa tìm kiếm')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -224,11 +258,30 @@ export const ProductSelect = ({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute left-0 right-0 top-full mt-1.5 bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-card shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-[var(--border-subtle)]"
+          className="absolute left-0 right-0 top-full mt-1.5 bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-card shadow-lg z-50 max-h-60 overflow-y-auto divide-y divide-[var(--border-subtle)]"
         >
+          {allowEmptyOption && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(null);
+              }}
+              className={`flex items-center justify-between px-3.5 py-2.5 cursor-pointer text-xs transition-colors ${
+                !value
+                  ? 'bg-[var(--bg-surface-warm)] font-semibold text-[var(--text-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {!value && <Check className="w-3.5 h-3.5 text-[var(--semantic-success)] shrink-0" />}
+                <span>{emptyLabel} ({products.length} mặt hàng)</span>
+              </div>
+            </div>
+          )}
+
           {filteredProducts.length === 0 ? (
             <div className="p-3.5 text-center text-xs text-[var(--text-muted)] italic">
-              Không tìm thấy hàng hóa (thử gõ chữ cái đầu hoặc từ khóa khác)
+              Không tìm thấy hàng hóa (thử gõ mã SKU, chữ cái đầu hoặc từ khóa khác)
             </div>
           ) : (
             filteredProducts.map((p, index) => {
@@ -254,6 +307,11 @@ export const ProductSelect = ({
                   <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                     {isSelected && (
                       <Check className="w-3.5 h-3.5 text-[var(--semantic-success)] shrink-0" />
+                    )}
+                    {p.code && (
+                      <span className="font-mono text-[11px] text-[var(--text-secondary)] shrink-0">
+                        [{p.code}]
+                      </span>
                     )}
                     <span className="truncate">{p.name}</span>
                   </div>

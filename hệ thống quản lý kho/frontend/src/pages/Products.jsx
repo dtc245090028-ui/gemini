@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Package,
   Plus,
@@ -7,6 +7,7 @@ import {
   Edit2,
   Trash2,
   Eye,
+  EyeOff,
   CheckCircle,
   XCircle,
   Image as ImageIcon,
@@ -18,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +30,7 @@ import Modal from '../components/Modal';
 import { useDelayedLoading } from '../hooks/useDelayedLoading';
 import { Loader } from '../components/Loader';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -51,7 +55,9 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
 
   // Debounce tìm kiếm 300ms chống spam API khi gõ phím
   useEffect(() => {
@@ -79,6 +85,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     code: '',
     name: '',
     category_id: '',
+    supplier_id: '',
     unit: 'Chiếc',
     min_stock: 10,
     standard_price: 100000,
@@ -118,6 +125,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       const params = {};
       if (debouncedSearch) params.search = debouncedSearch;
       if (selectedCategory) params.category_id = selectedCategory;
+      if (selectedSupplier) params.supplier_id = selectedSupplier;
       if (filterLowStock) params.is_low_stock = true;
       params.limit = 500;
 
@@ -153,12 +161,26 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [debouncedSearch, selectedCategory, filterLowStock]);
+  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
 
-  // Lắng nghe biến động kho qua kênh sự kiện (Keep-Alive Sync)
+  const reloadAll = useCallback(async (silent = true) => {
+    await Promise.all([
+      fetchCategories(),
+      fetchSuppliers(),
+      fetchProducts(silent),
+    ]);
+  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock]);
+
+  // Tự động đồng bộ chuẩn mực theo trang: Debounce, MaxWait, Single-Flight, Sparse Polling
+  usePageSync({
+    fetchFn: reloadAll,
+    isActive,
+    resource: ['products', 'categories', 'suppliers', 'stock_ledger', 'import_notes', 'export_notes'],
+  });
+
+  // Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)
   useEffect(() => {
     const unsubscribe = stockEvents.subscribe((event) => {
-      // 1. Áp dụng Patch cục bộ tức thì nếu có danh sách patches [{ id, current_stock }] (Giải pháp A)
       if (event.patches && Array.isArray(event.patches) && event.patches.length > 0) {
         setProducts((prev) =>
           prev.map((p) => {
@@ -169,29 +191,14 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           })
         );
       }
-
-      // 2. Đồng bộ ngầm (Stale-While-Revalidate): nếu đang xem tab thì tải ngầm êm ái, nếu đang ẩn thì đánh dấu stale
-      if (isActive) {
-        fetchProducts(true);
-      } else {
-        isStaleRef.current = true;
-      }
     });
 
     return unsubscribe;
-  }, [isActive, debouncedSearch, selectedCategory, filterLowStock]);
-
-  // Khi quay trở lại tab Hàng hóa & kho sau khi đã phát sinh biến động kho -> refetch ngầm tức thì
-  useEffect(() => {
-    if (isActive && isStaleRef.current) {
-      isStaleRef.current = false;
-      fetchProducts(true);
-    }
-  }, [isActive]);
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedCategory, filterLowStock]);
+  }, [debouncedSearch, selectedCategory, selectedSupplier, filterLowStock, showDiscontinued]);
 
   useEffect(() => {
     if (notification) {
@@ -215,9 +222,21 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
     });
   };
 
+  // Đếm số lượng hàng ngưng kinh doanh để hiển thị huy hiệu trên công tắc
+  const discontinuedCount = useMemo(
+    () => products.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'DISCONTINUED').length,
+    [products]
+  );
+
+  // Mặc định ẩn hàng "Ngưng bán" khỏi danh sách, bật công tắc khi cần xem lại
+  const visibleProducts = useMemo(() => {
+    if (showDiscontinued) return products;
+    return products.filter((p) => (p.status || 'ACTIVE').toUpperCase() !== 'DISCONTINUED');
+  }, [products, showDiscontinued]);
+
   const sortedProducts = useMemo(() => {
-    if (!sortConfig.key) return products;
-    return [...products].sort((a, b) => {
+    if (!sortConfig.key) return visibleProducts;
+    return [...visibleProducts].sort((a, b) => {
       if (sortConfig.key === 'name') {
         const comp = (a.name || '').localeCompare(b.name || '', 'vi', { sensitivity: 'base' });
         return sortConfig.direction === 'asc' ? comp : -comp;
@@ -232,7 +251,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       }
       return 0;
     });
-  }, [products, sortConfig]);
+  }, [visibleProducts, sortConfig]);
 
   // Phân trang dữ liệu
   const totalItems = sortedProducts.length;
@@ -277,6 +296,8 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
   };
 
   const handleOpenCreate = () => {
+    fetchCategories();
+    fetchSuppliers();
     isSubmittingRef.current = false;
     setModalMode('create');
     setCurrentProduct(null);
@@ -295,6 +316,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
         code: `SP${String(products.length + 1).padStart(3, '0')}`,
         name: '',
         category_id: categories[0]?.id || '',
+        supplier_id: suppliers[0]?.id || '',
         unit: 'Chiếc',
         min_stock: 10,
         standard_price: defaultPrice,
@@ -331,6 +353,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       code: `SP${String(products.length + 1).padStart(3, '0')}`,
       name: '',
       category_id: categories[0]?.id || '',
+      supplier_id: suppliers[0]?.id || '',
       unit: 'Chiếc',
       min_stock: 10,
       standard_price: defaultPrice,
@@ -353,6 +376,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       code: p.code,
       name: p.name,
       category_id: p.category_id,
+      supplier_id: p.supplier_id || '',
       unit: p.unit,
       min_stock: p.min_stock,
       standard_price: p.standard_price,
@@ -389,6 +413,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           code: formData.code,
           name: formData.name,
           category_id: Number(formData.category_id),
+          supplier_id: formData.supplier_id ? Number(formData.supplier_id) : undefined,
           unit: formData.unit,
           min_stock: Number(formData.min_stock),
           standard_price: Number(formData.standard_price),
@@ -396,7 +421,8 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
         };
 
         if (formData.has_initial_import) {
-          if (!formData.initial_supplier_id) {
+          const chosenInitialSup = formData.initial_supplier_id || formData.supplier_id;
+          if (!chosenInitialSup) {
             setFormError('Vui lòng chọn nhà cung cấp cho phiếu nhập ban đầu.');
             isSubmittingRef.current = false;
             setIsSubmitting(false);
@@ -408,7 +434,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
             setIsSubmitting(false);
             return;
           }
-          payload.initial_supplier_id = Number(formData.initial_supplier_id);
+          payload.initial_supplier_id = Number(chosenInitialSup);
           payload.initial_quantity = Number(formData.initial_quantity);
           payload.initial_unit_price = Number(formData.initial_unit_price) || 0;
           if (formData.initial_note) {
@@ -426,6 +452,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
         const res = await apiClient.products.update(currentProduct.id, {
           name: formData.name,
           category_id: Number(formData.category_id),
+          supplier_id: formData.supplier_id ? Number(formData.supplier_id) : null,
           unit: formData.unit,
           min_stock: Number(formData.min_stock),
           standard_price: Number(formData.standard_price),
@@ -487,6 +514,23 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       fetchProducts();
     } catch (err) {
       showError(err.response?.data?.detail || 'Không thể xóa mặt hàng này.');
+    }
+  };
+
+  const handleRestoreProduct = async (p) => {
+    const isConfirmed = await confirm({
+      title: 'Mở lại kinh doanh?',
+      message: `Bạn có chắc chắn muốn mở lại kinh doanh cho mặt hàng "${p.name}" (${p.code})? Hàng sẽ được phép xuất/nhập kho bình thường trở lại.`,
+      confirmText: 'Mở lại kinh doanh',
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await apiClient.products.update(p.id, { status: 'ACTIVE' });
+      showSuccess(`Đã mở lại kinh doanh cho mặt hàng "${p.name}" thành công!`);
+      fetchProducts();
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Không thể mở lại kinh doanh cho mặt hàng.');
     }
   };
 
@@ -558,6 +602,19 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
               </option>
             ))}
           </select>
+
+          <select
+            value={selectedSupplier}
+            onChange={(e) => setSelectedSupplier(e.target.value)}
+            className="w-full sm:w-auto py-2 px-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer shrink-0"
+          >
+            <option value="">Tất cả nhà cung cấp</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Low Stock Toggle */}
@@ -571,6 +628,49 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
           <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
         </label>
+
+        {/* Toggle Hiện hàng ngưng bán (Mặc định ẩn) */}
+        <label
+          className={`flex items-center gap-2 text-xs font-semibold cursor-pointer select-none px-3 py-2 rounded-input border transition-colors shrink-0 ${
+            showDiscontinued
+              ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)] text-[var(--semantic-alert)]'
+              : 'bg-[var(--bg-surface-warm)] border-[var(--border-medium)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+          title={showDiscontinued ? 'Đang hiển thị cả hàng ngưng bán (bấm để ẩn)' : 'Mặc định đang ẩn hàng ngưng bán (bấm để xem lại khi cần)'}
+        >
+          <input
+            type="checkbox"
+            checked={showDiscontinued}
+            onChange={(e) => setShowDiscontinued(e.target.checked)}
+            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
+          />
+          {showDiscontinued ? (
+            <Eye className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
+          ) : (
+            <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+          )}
+          <span>Hiện hàng ngưng bán</span>
+          {discontinuedCount > 0 && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none ${
+                showDiscontinued
+                  ? 'bg-[var(--semantic-alert)] text-white'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-medium)]'
+              }`}
+            >
+              {discontinuedCount}
+            </span>
+          )}
+        </label>
+        {/* Nút Làm mới dữ liệu */}
+        <button
+          onClick={() => fetchProducts()}
+          title="Làm mới danh sách hàng hóa"
+          className="flex items-center gap-1.5 px-3 py-2 bg-[var(--bg-surface-warm)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-medium)] rounded-input text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>Làm mới</span>
+        </button>
       </div>
 
       {/* Products Table */}
@@ -590,7 +690,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
                     {renderSortIcon('name')}
                   </div>
                 </th>
-                <th className="py-3.5 px-4">Nhóm hàng</th>
+                <th className="py-3.5 px-4">Nhóm hàng & Nhà cung cấp</th>
                 <th className="py-3.5 px-4 text-center">ĐVT</th>
                 <th
                   onClick={() => handleSort('current_stock')}
@@ -665,7 +765,12 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
                         <div className="leading-snug">{p.name}</div>
                         <span className="font-mono text-xs text-[var(--text-secondary)]">{p.code}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-[var(--text-secondary)] align-middle">{p.category_name || p.category?.name || 'Chưa phân loại'}</td>
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)] align-middle">
+                        <div className="font-medium text-[var(--text-primary)]">{p.category_name || p.category?.name || 'Chưa phân loại'}</div>
+                        <div className="text-[11px] text-[var(--wood-500)] font-medium mt-0.5">
+                          NCC: {p.supplier_name || suppliers.find((s) => s.id === p.supplier_id)?.name || 'Chưa gắn NCC'}
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4 text-center text-[var(--text-secondary)] align-middle">{p.unit}</td>
                       <td className="py-3.5 px-4 text-center align-middle">
                         <span
@@ -706,13 +811,23 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
                             </button>
                           )}
                           {canDelete && (
-                            <button
-                              onClick={() => handleDeleteProduct(p)}
-                              title="Ngưng kinh doanh"
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            p.status === 'DISCONTINUED' ? (
+                              <button
+                                onClick={() => handleRestoreProduct(p)}
+                                title="Mở lại kinh doanh"
+                                className="p-1.5 text-[var(--semantic-success)] hover:bg-[var(--semantic-success-bg)] rounded-btn transition-colors cursor-pointer"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteProduct(p)}
+                                title="Ngưng kinh doanh"
+                                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>
@@ -855,16 +970,41 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Tên mặt hàng</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="VD: Bàn làm việc gỗ sồi tự nhiên..."
-              className="input-wood"
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Tên mặt hàng</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="VD: Bàn phím cơ Akko 3087..."
+                className="input-wood"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Nhà cung cấp chính</label>
+              <select
+                value={formData.supplier_id || ''}
+                onChange={(e) => {
+                  const supVal = e.target.value;
+                  setFormData({
+                    ...formData,
+                    supplier_id: supVal,
+                    initial_supplier_id: formData.has_initial_import ? (supVal || formData.initial_supplier_id) : formData.initial_supplier_id,
+                  });
+                }}
+                className="input-wood cursor-pointer"
+                required
+              >
+                <option value="">-- Chọn nhà cung cấp --</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -925,7 +1065,7 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
                     setFormData({
                       ...formData,
                       has_initial_import: checked,
-                      initial_supplier_id: checked ? (formData.initial_supplier_id || suppliers[0]?.id || '') : '',
+                      initial_supplier_id: checked ? (formData.supplier_id || formData.initial_supplier_id || suppliers[0]?.id || '') : '',
                       initial_unit_price: checked ? (formData.initial_unit_price || Math.round(Number(formData.standard_price || 0) * 0.7)) : '',
                     });
                   }}

@@ -1,8 +1,18 @@
 """Cấu hình ứng dụng tập trung sử dụng Pydantic Settings."""
 
 from typing import List, Union
+from datetime import datetime, timezone, timedelta
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Định nghĩa múi giờ Việt Nam (UTC+7) áp dụng toàn hệ thống
+VN_TZ = timezone(timedelta(hours=7))
+
+
+def get_now_vn() -> datetime:
+    """Lấy thời điểm hiện tại theo Giờ Việt Nam (UTC+7), dạng naive datetime để tương thích 100% với SQLite và Seed Data."""
+    return datetime.now(VN_TZ).replace(tzinfo=None)
+
 
 
 class Settings(BaseSettings):
@@ -22,6 +32,15 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     AI_PROVIDER: str = "gemini"
     AI_MODEL_NAME: str = "gemini-3.5-flash-lite"
+
+    # Tối ưu tải & Benchmark (mặc định tắt trong production)
+    BENCH_ENDPOINTS: bool = False
+    WRITE_METRICS: bool = False
+
+    # Giới hạn trần nghiệp vụ tập trung
+    MAX_STOCK_QUANTITY: int = 1_000_000_000
+    MAX_TRANSACTION_QUANTITY: int = 10_000_000
+    MAX_PRICE: float = 1_000_000_000_000.0
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [

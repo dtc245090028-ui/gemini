@@ -637,3 +637,96 @@ def test_ai_range_cache_fingerprint_single_day_and_fallback(client, admin_header
         ).delete(synchronize_session=False)
         db.commit()
         db.close()
+
+
+def test_ask_ai_context_info_financials_and_low_stock(client, admin_headers, ai_test_data):
+    """Kiểm tra context_info của ask_ai (include_smartkho=True) chứa:
+    - Tổng tiền nhập/xuất hợp lệ và tổng giá trị tồn kho ước tính (VNĐ có dấu phân cách hàng nghìn)
+    - Danh sách mã hàng dưới tồn an toàn (ví dụ AI_SP01_FAST)
+    - Nhãn diễn giải đúng: 'mặt hàng đang kinh doanh (trong đó ... mặt hàng có phát sinh nhập/xuất trong kỳ)'
+    - Bảo mật: Tuyệt đối không chứa chữ 'unit_price' trong prompt gửi đi.
+    """
+    db = SessionLocal()
+    now = datetime.now()
+    try:
+        user = db.query(User).filter(User.username == "thukho").first()
+        sup = db.query(Supplier).filter(Supplier.code == "SUP_AI").first()
+        p1 = db.query(Product).filter(Product.code == "AI_SP01_FAST").first()
+
+        # Đảm bảo p1 đang dưới tồn an toàn (current_stock <= min_stock)
+        p1.current_stock = 3
+        p1.min_stock = 15
+
+        # Tạo 1 phiếu nhập hợp lệ trong tháng hiện tại nếu chưa có để kiểm tra tổng tiền nhập > 0
+        imp = db.query(ImportNote).filter(ImportNote.code == "PN-AI-CTX-TEST").first()
+        if not imp:
+            imp = ImportNote(
+                code="PN-AI-CTX-TEST",
+                supplier_id=sup.id,
+                created_by=user.id,
+                note_date=now,
+                total_amount=2500000.0,
+                status="COMPLETED",
+                note="Phiếu nhập test context_info AI",
+            )
+            db.add(imp)
+            db.flush()
+            db.add(
+                ImportNoteDetail(
+                    import_note_id=imp.id,
+                    product_id=p1.id,
+                    quantity=5,
+                    unit_price=500000.0,
+                    subtotal=2500000.0,
+                )
+            )
+        db.commit()
+
+        captured_prompts = []
+
+        def fake_call_gemini(prompt_content, generation_config=None):
+            captured_prompts.append(prompt_content)
+            return '{"answer": "Báo cáo phân tích tài chính và tồn kho từ Gemini."}'
+
+        with patch.object(settings, "GEMINI_API_KEY", "dummy_test_api_key"):
+            with patch.object(AIService, "_call_gemini_with_models", side_effect=fake_call_gemini):
+                res = client.post(
+                    "/api/v1/ai/ask",
+                    json={
+                        "question": "Trong tháng này có bao nhiêu hàng hóa ra vào, số tiền vào và ra là bao nhiêu?",
+                        "month": now.month,
+                        "year": now.year,
+                        "include_smartkho": True,
+                    },
+                    headers=admin_headers,
+                )
+                assert res.status_code == 200
+                assert len(captured_prompts) == 1
+                sent_prompt = captured_prompts[0]
+
+                # 1. Có nhãn diễn giải đúng cho active_products
+                assert "mặt hàng đang kinh doanh" in sent_prompt
+                assert "có phát sinh nhập/xuất trong kỳ" in sent_prompt
+                assert "đang hoạt động)" not in sent_prompt
+
+                # 2. Có tổng giá trị tiền nhập / xuất và tổng giá trị tồn kho định dạng VNĐ
+                assert "Tổng giá trị tiền nhập kho trong kỳ:" in sent_prompt
+                assert "Tổng giá trị tiền xuất kho trong kỳ:" in sent_prompt
+                assert "Tổng giá trị tồn kho hiện tại ước tính:" in sent_prompt
+                assert "VNĐ" in sent_prompt
+
+                # 3. Có danh sách mã hàng dưới tồn an toàn cụ thể (AI_SP01_FAST)
+                assert "Danh sách mặt hàng dưới mức tồn an toàn" in sent_prompt
+                assert "AI_SP01_FAST" in sent_prompt
+
+                # 4. Không chứa từ khóa nhạy cảm unit_price
+                assert "unit_price" not in sent_prompt
+    finally:
+        db.query(ImportNoteDetail).filter(
+            ImportNoteDetail.import_note_id.in_(
+                db.query(ImportNote.id).filter(ImportNote.code == "PN-AI-CTX-TEST")
+            )
+        ).delete(synchronize_session=False)
+        db.query(ImportNote).filter(ImportNote.code == "PN-AI-CTX-TEST").delete(synchronize_session=False)
+        db.commit()
+        db.close()

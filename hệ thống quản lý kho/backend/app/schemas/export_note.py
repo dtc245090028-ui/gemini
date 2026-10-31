@@ -7,8 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ExportNoteDetailBase(BaseModel):
     product_id: int = Field(..., ge=1, description="ID mặt hàng")
-    quantity: int = Field(..., gt=0, description="Số lượng xuất (phải > 0)")
-    unit_price: float = Field(default=0.0, ge=0.0, description="Đơn giá xuất (>= 0)")
+    quantity: int = Field(..., gt=0, le=10_000_000, description="Số lượng xuất (phải > 0 và <= 10,000,000)")
+    unit_price: float = Field(default=0.0, ge=0.0, le=100_000_000_000.0, description="Đơn giá xuất (>= 0 và <= 100 tỷ)")
 
 
 class ExportNoteDetailCreate(ExportNoteDetailBase):

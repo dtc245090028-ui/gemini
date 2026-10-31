@@ -11,6 +11,8 @@ import {
   Building2,
   RotateCcw,
   Clock,
+  Package,
+  Eye,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -22,11 +24,15 @@ import { Loader } from '../components/Loader';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
-export const Suppliers = () => {
+import { usePageSync } from '../hooks/usePageSync';
+
+export const Suppliers = ({ isActive = true }) => {
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
   const { confirm } = useConfirm();
   const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [viewSupplierProducts, setViewSupplierProducts] = useState(null);
   const [loading, setLoading] = useState(false);
   const showLoader = useDelayedLoading(loading);
   const [search, setSearch] = useState('');
@@ -53,17 +59,27 @@ export const Suppliers = () => {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_KEEPER';
   const canDelete = user?.role === 'ADMIN';
 
-  const fetchSuppliers = async () => {
-    setLoading(true);
+  const fetchSuppliers = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await apiClient.suppliers.getAll();
+      const [res, prodRes] = await Promise.all([
+        apiClient.suppliers.getAll(),
+        apiClient.products.getAll({ limit: 500 }),
+      ]);
       setSuppliers(Array.isArray(res.data) ? res.data : (res.data.items || []));
+      setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.items || []));
     } catch (err) {
       console.error('Lỗi tải nhà cung cấp:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  usePageSync({
+    fetchFn: fetchSuppliers,
+    isActive,
+    resource: ['suppliers', 'products'],
+  });
 
   useEffect(() => {
     fetchSuppliers();
@@ -297,6 +313,55 @@ export const Suppliers = () => {
                     <span className="line-clamp-2 text-[var(--text-secondary)]">{s.address || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
+
+                {/* Danh sách mặt hàng cung ứng */}
+                {(() => {
+                  const suppliedProducts = products.filter((p) => Number(p.supplier_id) === Number(s.id));
+                  return (
+                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[11px] font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-[var(--wood-500)]" />
+                          <span>Hàng hóa cung ứng ({suppliedProducts.length})</span>
+                        </span>
+                        {suppliedProducts.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setViewSupplierProducts({ supplier: s, items: suppliedProducts })}
+                            className="text-[11px] font-semibold text-[var(--wood-500)] hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Xem tất cả</span>
+                          </button>
+                        )}
+                      </div>
+                      {suppliedProducts.length === 0 ? (
+                        <p className="text-[11px] text-[var(--text-muted)] italic">Chưa gắn mặt hàng nào</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {suppliedProducts.slice(0, 3).map((prod) => (
+                            <span
+                              key={prod.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] text-[var(--text-primary)] max-w-full truncate"
+                              title={`[${prod.code}] ${prod.name} (Tồn: ${prod.current_stock})`}
+                            >
+                              {prod.name}
+                            </span>
+                          ))}
+                          {suppliedProducts.length > 3 && (
+                            <button
+                              type="button"
+                              onClick={() => setViewSupplierProducts({ supplier: s, items: suppliedProducts })}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[11px] font-semibold bg-[var(--wood-500)]/10 text-[var(--wood-500)] cursor-pointer hover:bg-[var(--wood-500)]/20"
+                            >
+                              +{suppliedProducts.length - 3} SP khác
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Actions */}
@@ -422,6 +487,68 @@ export const Suppliers = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal Xem Danh Sách Hàng Hóa Của Nhà Cung Cấp */}
+      <Modal
+        isOpen={!!viewSupplierProducts}
+        onClose={() => setViewSupplierProducts(null)}
+        title={`Danh mục hàng hóa cung ứng — ${viewSupplierProducts?.supplier?.name || ''}`}
+        maxWidth="max-w-2xl"
+      >
+        {viewSupplierProducts && (
+          <div className="space-y-3 text-xs">
+            <div className="p-3 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-card flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-[var(--text-muted)]">Mã đối tác: </span>
+                <strong className="font-mono text-[var(--text-primary)]">{viewSupplierProducts.supplier.code}</strong>
+              </div>
+              <div>
+                <span className="text-[var(--text-muted)]">Tổng số mặt hàng phụ trách: </span>
+                <strong className="font-mono text-[var(--wood-500)]">{viewSupplierProducts.items.length} sản phẩm</strong>
+              </div>
+            </div>
+
+            <div className="border border-[var(--border-medium)] rounded-card overflow-hidden max-h-[55vh] overflow-y-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[var(--bg-surface-warm)] text-[var(--text-primary)] font-semibold border-b border-[var(--border-medium)] sticky top-0">
+                  <tr>
+                    <th className="p-2.5">Mã SKU</th>
+                    <th className="p-2.5">Tên hàng hóa</th>
+                    <th className="p-2.5">Nhóm hàng</th>
+                    <th className="p-2.5 text-center">Tồn kho</th>
+                    <th className="p-2.5 text-right">Giá niêm yết</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  {viewSupplierProducts.items.map((prod) => (
+                    <tr key={prod.id} className="hover:bg-[var(--bg-surface-hover)]">
+                      <td className="p-2.5 font-mono font-semibold text-[var(--wood-500)]">{prod.code}</td>
+                      <td className="p-2.5 font-medium text-[var(--text-primary)]">{prod.name}</td>
+                      <td className="p-2.5 text-[var(--text-secondary)]">{prod.category_name || 'N/A'}</td>
+                      <td className="p-2.5 text-center font-mono font-bold text-[var(--text-primary)]">
+                        {prod.current_stock} {prod.unit}
+                      </td>
+                      <td className="p-2.5 text-right font-mono text-[var(--text-primary)]">
+                        {prod.standard_price?.toLocaleString('vi-VN')} đ
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setViewSupplierProducts(null)}
+                className="btn-outline"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

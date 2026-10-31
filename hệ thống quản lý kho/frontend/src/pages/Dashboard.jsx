@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { stockEvents } from '../utils/stockEvents';
+import { usePageSync } from '../hooks/usePageSync';
 import {
   Package,
   AlertTriangle,
@@ -19,23 +20,25 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
   const [loading, setLoading] = useState(true);
   const isStaleRef = useRef(false);
   const showLoader = useDelayedLoading(loading);
-  const [products, setProducts] = useState([]);
-  const [importNotes, setImportNotes] = useState([]);
-  const [exportNotes, setExportNotes] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [kpiStats, setKpiStats] = useState({
+    total_products: 0,
+    total_stock: 0,
+    low_stock_count: 0,
+    total_import_notes: 0,
+    total_export_notes: 0,
+  });
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [prodRes, impRes, expRes, lowRes] = await Promise.all([
-        apiClient.products.getAll({ limit: 100 }),
-        apiClient.importNotes.getAll(),
-        apiClient.exportNotes.getAll(),
-        apiClient.products.getAll({ is_low_stock: true }),
+      const [kpiRes, lowRes] = await Promise.all([
+        apiClient.reports.getKpiSummary(),
+        apiClient.reports.getLowStockAlerts(),
       ]);
-      setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.items || []));
-      setImportNotes(Array.isArray(impRes.data) ? impRes.data : (impRes.data.items || []));
-      setExportNotes(Array.isArray(expRes.data) ? expRes.data : (expRes.data.items || []));
+      if (kpiRes && kpiRes.data) {
+        setKpiStats(kpiRes.data);
+      }
       setLowStockProducts(Array.isArray(lowRes.data) ? lowRes.data : (lowRes.data.items || []));
     } catch (err) {
       console.error('Lỗi khi tải dữ liệu dashboard:', err);
@@ -48,27 +51,14 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
     loadData();
   }, []);
 
-  // Lắng nghe biến động kho để cập nhật dashboard ngầm (Keep-Alive Sync)
-  useEffect(() => {
-    const unsubscribe = stockEvents.subscribe(() => {
-      if (isActive) {
-        loadData(true);
-      } else {
-        isStaleRef.current = true;
-      }
-    });
-    return unsubscribe;
-  }, [isActive]);
+  // Tự động đồng bộ chuẩn mực theo trang: Debounce, MaxWait, Single-Flight, Sparse Polling
+  usePageSync({
+    fetchFn: loadData,
+    isActive,
+    resource: ['reports', 'import_notes', 'export_notes', 'products', 'stock_ledger', 'categories'],
+  });
 
-  // Khi quay lại dashboard sau khi có biến động kho -> cập nhật ngầm không nháy
-  useEffect(() => {
-    if (isActive && isStaleRef.current) {
-      isStaleRef.current = false;
-      loadData(true);
-    }
-  }, [isActive]);
-
-  const totalStockCount = products.reduce((acc, p) => acc + (p.current_stock || 0), 0);
+  // KPI Stats được đồng bộ trực tiếp từ backend kpi-summary
 
   return (
     <div className="space-y-6">
@@ -114,8 +104,8 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
           </div>
           <div>
             <p className="text-xs font-medium text-[var(--text-secondary)]">Mặt hàng quản lý</p>
-            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{products.length}</h3>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">Tổng tồn: <strong className="font-mono text-[var(--text-primary)]">{totalStockCount.toLocaleString()}</strong> sp</p>
+            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{kpiStats.total_products}</h3>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">Tổng tồn: <strong className="font-mono text-[var(--text-primary)]">{(kpiStats.total_stock || 0).toLocaleString()}</strong> sp</p>
           </div>
         </div>
 
@@ -126,7 +116,7 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
           </div>
           <div>
             <p className="text-xs font-medium text-[var(--text-secondary)]">Dưới tồn tối thiểu</p>
-            <h3 className="font-serif text-2xl font-bold text-[var(--semantic-alert)] mt-0.5">{lowStockProducts.length}</h3>
+            <h3 className="font-serif text-2xl font-bold text-[var(--semantic-alert)] mt-0.5">{kpiStats.low_stock_count}</h3>
             <p className="text-xs text-[var(--semantic-alert)] mt-0.5 font-semibold">Cần bổ sung kho</p>
           </div>
         </div>
@@ -138,7 +128,7 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
           </div>
           <div>
             <p className="text-xs font-medium text-[var(--text-secondary)]">Phiếu nhập kho</p>
-            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{importNotes.length}</h3>
+            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{kpiStats.total_import_notes}</h3>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">Đã ghi nhận toàn kho</p>
           </div>
         </div>
@@ -150,7 +140,7 @@ export const Dashboard = ({ onNavigate, isActive = true }) => {
           </div>
           <div>
             <p className="text-xs font-medium text-[var(--text-secondary)]">Phiếu xuất kho</p>
-            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{exportNotes.length}</h3>
+            <h3 className="font-serif text-2xl font-bold text-[var(--text-primary)] mt-0.5">{kpiStats.total_export_notes}</h3>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">Đã xuất bán & bàn giao</p>
           </div>
         </div>
