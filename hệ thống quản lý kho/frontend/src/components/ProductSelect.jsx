@@ -68,6 +68,7 @@ export const ProductSelect = ({
   allowEmptyOption = false,
   emptyLabel = 'Tất cả mặt hàng',
   onSearchChange = null,
+  clearable = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -155,7 +156,7 @@ export const ProductSelect = ({
 
   const handleClear = (e) => {
     e.stopPropagation();
-    if (allowEmptyOption) {
+    if (allowEmptyOption || clearable) {
       onChange('');
       setSearchQuery('');
       setIsTyping(false);
@@ -219,13 +220,13 @@ export const ProductSelect = ({
         />
 
         <div className="absolute right-1.5 flex items-center gap-0.5">
-          {(searchQuery || (allowEmptyOption && value)) && (
+          {(searchQuery || ((allowEmptyOption || clearable) && value)) && (
             <button
               type="button"
               tabIndex={-1}
               onClick={handleClear}
               className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-btn cursor-pointer"
-              title={allowEmptyOption ? 'Chọn tất cả mặt hàng' : 'Xóa tìm kiếm'}
+              title={allowEmptyOption ? 'Chọn tất cả mặt hàng' : (clearable ? 'Bỏ chọn mặt hàng' : 'Xóa tìm kiếm')}
             >
               <X className="w-3.5 h-3.5" />
             </button>

@@ -13,6 +13,7 @@ import {
   Truck,
   CheckCircle2,
   Zap,
+  X,
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,7 @@ export const ExportNotes = ({ isActive = true }) => {
   const [exportNotes, setExportNotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   // Danh sách mặt hàng đang kinh doanh (dùng riêng cho Modal lập phiếu mới)
   const activeProducts = React.useMemo(
     () => products.filter((p) => (p.status || 'ACTIVE').toUpperCase() === 'ACTIVE'),
@@ -68,14 +70,16 @@ export const ExportNotes = ({ isActive = true }) => {
   const fetchData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [expRes, prodRes, catRes] = await Promise.all([
+      const [expRes, prodRes, catRes, supRes] = await Promise.all([
         apiClient.exportNotes.getAll(),
         apiClient.products.getAll({ limit: 500 }),
         apiClient.categories.getAll(),
+        apiClient.suppliers.getAll(),
       ]);
       setExportNotes(Array.isArray(expRes.data) ? expRes.data : (expRes.data.items || []));
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.items || []));
       setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.items || []));
+      setSuppliers(Array.isArray(supRes.data) ? supRes.data : (supRes.data.items || []));
     } catch (err) {
       console.error('Lỗi tải phiếu xuất:', err);
     } finally {
@@ -103,25 +107,37 @@ export const ExportNotes = ({ isActive = true }) => {
 
     // Kiểm tra xem có bản nháp phiếu xuất trong vòng 24h không
     const draft = draftStorage.load(user?.username, 'export_note');
-    const fallbackProd = activeProducts[0] || products[0];
     if (draft && draft.data) {
       setRecipientName(draft.data.recipientName || '');
       setNoteText(draft.data.noteText || '');
       setAiSuggestion(null);
-      // Lọc bỏ hàng đã ngừng kinh doanh nếu có trong bản nháp cũ
-      const validItems = (draft.data.items || []).filter((it) => {
-        const prod = products.find((p) => p.id === Number(it.product_id));
-        return prod && (prod.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
-      });
+      // Lọc bỏ hàng đã ngừng kinh doanh nếu có trong bản nháp cũ, đồng thời fallback supplier_id
+      const validItems = (draft.data.items || [])
+        .filter((it) => {
+          if (!it.product_id) return true;
+          const prod = products.find((p) => p.id === Number(it.product_id));
+          return prod && (prod.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+        })
+        .map((it) => {
+          const prod = products.find((p) => p.id === Number(it.product_id));
+          return {
+            category_id: it.category_id || prod?.category_id || '',
+            supplier_id: it.supplier_id || prod?.supplier_id || '',
+            product_id: it.product_id || '',
+            quantity: it.quantity || 1,
+            unit_price: it.unit_price !== undefined ? it.unit_price : (prod?.standard_price || 0),
+          };
+        });
       setItems(
         validItems.length > 0
           ? validItems
           : [
               {
-                category_id: fallbackProd?.category_id || '',
-                product_id: fallbackProd?.id || '',
+                category_id: '',
+                supplier_id: '',
+                product_id: '',
                 quantity: 1,
-                unit_price: fallbackProd?.standard_price || 100000,
+                unit_price: 0,
               },
             ]
       );
@@ -131,13 +147,13 @@ export const ExportNotes = ({ isActive = true }) => {
       setRecipientName('');
       setNoteText('');
       setAiSuggestion(null);
-      const defaultProd = fallbackProd;
       setItems([
         {
-          category_id: defaultProd?.category_id || '',
-          product_id: defaultProd?.id || '',
+          category_id: '',
+          supplier_id: '',
+          product_id: '',
           quantity: 1,
-          unit_price: defaultProd?.standard_price || 100000,
+          unit_price: 0,
         },
       ]);
       setIsDraftRestored(false);
@@ -169,13 +185,13 @@ export const ExportNotes = ({ isActive = true }) => {
     setIsDraftRestored(false);
     setRecipientName('');
     setNoteText('');
-    const defaultProd = activeProducts[0] || products[0];
     setItems([
       {
-        category_id: defaultProd?.category_id || '',
-        product_id: defaultProd?.id || '',
+        category_id: '',
+        supplier_id: '',
+        product_id: '',
         quantity: 1,
-        unit_price: defaultProd?.standard_price || 100000,
+        unit_price: 0,
       },
     ]);
   };
@@ -194,6 +210,7 @@ export const ExportNotes = ({ isActive = true }) => {
       setItems([
         {
           category_id: matchedProd?.category_id || '',
+          supplier_id: matchedProd?.supplier_id || '',
           product_id: order.product_id,
           quantity: order.quantity,
           unit_price: order.unit_price,
@@ -209,16 +226,14 @@ export const ExportNotes = ({ isActive = true }) => {
   };
 
   const handleAddItemRow = () => {
-    const pool = activeProducts.length > 0 ? activeProducts : products;
-    if (pool.length === 0) return;
-    const defaultProd = pool[0];
     setItems([
       ...items,
       {
-        category_id: defaultProd?.category_id || '',
-        product_id: defaultProd.id,
+        category_id: '',
+        supplier_id: '',
+        product_id: '',
         quantity: 1,
-        unit_price: defaultProd.standard_price,
+        unit_price: 0,
       },
     ]);
   };
@@ -230,31 +245,56 @@ export const ExportNotes = ({ isActive = true }) => {
 
   const handleItemChange = (idx, field, val) => {
     const updated = [...items];
-    updated[idx][field] = val;
+    const pool = activeProducts.length > 0 ? activeProducts : products;
 
-    // Xử lý khi thay đổi nhóm hàng: Tự động lọc và chọn mặt hàng phù hợp
     if (field === 'category_id') {
-      const catId = val;
-      const pool = activeProducts.length > 0 ? activeProducts : products;
-      const available = catId
-        ? pool.filter((p) => p.category_id === Number(catId))
-        : pool;
-      if (available.length > 0 && !available.some((p) => p.id === Number(updated[idx].product_id))) {
-        updated[idx].product_id = available[0].id;
-        updated[idx].unit_price = available[0].standard_price;
-      }
-    }
-
-    // Tự gợi ý giá chuẩn và đồng bộ nhóm hàng nếu đổi sản phẩm
-    if (field === 'product_id') {
-      const p = products.find((prod) => prod.id === Number(val));
-      if (p) {
-        updated[idx].unit_price = p.standard_price;
-        if (p.category_id && updated[idx].category_id !== p.category_id) {
-          updated[idx].category_id = p.category_id;
+      const catId = val ? Number(val) : '';
+      updated[idx].category_id = catId;
+      // Bỏ hành vi tự chọn sản phẩm đầu tiên; nếu SP đang chọn không còn khớp -> đặt product_id = ''
+      if (updated[idx].product_id) {
+        const curProd = pool.find((p) => p.id === Number(updated[idx].product_id));
+        const matchCat = !catId || (curProd && curProd.category_id === catId);
+        const matchSup = !updated[idx].supplier_id || (curProd && Number(curProd.supplier_id) === Number(updated[idx].supplier_id));
+        if (!matchCat || !matchSup) {
+          updated[idx].product_id = '';
+          updated[idx].unit_price = 0;
         }
       }
+    } else if (field === 'supplier_id') {
+      const supId = val ? Number(val) : '';
+      updated[idx].supplier_id = supId;
+      // Nếu SP đang chọn không còn khớp với NCC mới -> đặt product_id = ''
+      if (updated[idx].product_id) {
+        const curProd = pool.find((p) => p.id === Number(updated[idx].product_id));
+        const matchCat = !updated[idx].category_id || (curProd && curProd.category_id === Number(updated[idx].category_id));
+        const matchSup = !supId || (curProd && Number(curProd.supplier_id) === supId);
+        if (!matchCat || !matchSup) {
+          updated[idx].product_id = '';
+          updated[idx].unit_price = 0;
+        }
+      }
+    } else if (field === 'product_id') {
+      const prodId = val ? Number(val) : '';
+      updated[idx].product_id = prodId;
+      if (prodId) {
+        const p = pool.find((prod) => prod.id === prodId);
+        if (p) {
+          updated[idx].unit_price = p.standard_price || 0;
+          // Tự động điền ngược Nhóm hàng & Nhà cung cấp
+          if (p.category_id) {
+            updated[idx].category_id = p.category_id;
+          }
+          if (p.supplier_id) {
+            updated[idx].supplier_id = p.supplier_id;
+          }
+        }
+      } else {
+        updated[idx].unit_price = 0;
+      }
+    } else {
+      updated[idx][field] = val;
     }
+
     setItems(updated);
   };
 
@@ -290,6 +330,13 @@ export const ExportNotes = ({ isActive = true }) => {
 
     if (items.length === 0) {
       setFormError('Vui lòng thêm ít nhất một mặt hàng xuất kho');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    const unselected = items.some((it) => !it.product_id);
+    if (unselected) {
+      setFormError('Vui lòng chọn sản phẩm cho tất cả các dòng trước khi lưu phiếu');
       isSubmittingRef.current = false;
       return;
     }
@@ -580,7 +627,7 @@ export const ExportNotes = ({ isActive = true }) => {
       </div>
 
       {/* Modal Lập Phiếu Xuất */}
-      <Modal isOpen={isCreateOpen} onClose={handleCloseCreate} title="Lập phiếu xuất kho mới" maxWidth="max-w-3xl">
+      <Modal isOpen={isCreateOpen} onClose={handleCloseCreate} title="Lập phiếu xuất kho mới" maxWidth="max-w-4xl">
         {isDraftRestored && (
           <div className="mb-4 p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-card flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-primary)]">
             <div className="flex items-center gap-2">
@@ -702,12 +749,39 @@ export const ExportNotes = ({ isActive = true }) => {
               </button>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {items.map((row, idx) => {
                 const pool = activeProducts.length > 0 ? activeProducts : products;
-                const availableProducts = row.category_id
-                  ? pool.filter((p) => p.category_id === Number(row.category_id))
-                  : pool;
+
+                // 1. Nhóm hàng khả dụng cho dòng này (thu hẹp theo NCC dòng nếu có)
+                const rowCategories = row.supplier_id
+                  ? categories.filter((c) =>
+                      pool.some(
+                        (p) =>
+                          p.category_id === Number(c.id) &&
+                          Number(p.supplier_id) === Number(row.supplier_id)
+                      )
+                    )
+                  : categories;
+
+                // 2. Nhà cung cấp khả dụng cho dòng này (thu hẹp theo Nhóm dòng nếu có)
+                const rowSuppliers = row.category_id
+                  ? suppliers.filter((s) =>
+                      pool.some(
+                        (p) =>
+                          Number(p.supplier_id) === Number(s.id) &&
+                          p.category_id === Number(row.category_id)
+                      )
+                    )
+                  : suppliers;
+
+                // 3. Sản phẩm khả dụng cho dòng này
+                const rowProducts = pool.filter((p) => {
+                  if (row.category_id && p.category_id !== Number(row.category_id)) return false;
+                  if (row.supplier_id && Number(p.supplier_id) !== Number(row.supplier_id)) return false;
+                  return true;
+                });
+
                 const currentProd = products.find((p) => p.id === Number(row.product_id));
                 const availableStock = currentProd ? currentProd.current_stock : 0;
                 const isOverStock = (Number(row.quantity) || 0) > availableStock;
@@ -716,80 +790,138 @@ export const ExportNotes = ({ isActive = true }) => {
                   <div
                     key={idx}
                     style={{ zIndex: items.length - idx }}
-                    className={`grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center p-2.5 sm:p-3 rounded-card border transition-colors relative ${
-                      isOverStock ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)]' : 'bg-[var(--bg-card)] border-[var(--border-subtle)]'
+                    className={`p-2.5 sm:p-3 rounded-card border transition-colors relative space-y-2.5 shadow-xs ${
+                      isOverStock
+                        ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)]'
+                        : 'bg-[var(--bg-surface)] border-[var(--border-medium)]'
                     }`}
                   >
-                    {/* Chọn nhóm hàng */}
-                    <div className="md:col-span-3 min-w-0">
-                      <select
-                        value={row.category_id || ''}
-                        onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
-                        className="w-full text-xs input-wood p-2"
-                        title="Lọc danh sách theo nhóm hàng"
-                      >
-                        <option value="">-- Tất cả nhóm --</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                    {/* Hàng 1: 3 ô lựa chọn độc lập [Nhóm hàng ✕] [Nhà cung cấp ✕] [Sản phẩm ✕] */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                      {/* Ô 1: Nhóm hàng */}
+                      <div className="sm:col-span-3 min-w-0">
+                        <div className="relative flex items-center">
+                          <select
+                            value={row.category_id || ''}
+                            onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
+                            className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input pl-2.5 pr-7 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer truncate"
+                            title="Lọc theo nhóm hàng"
+                          >
+                            <option value="">-- Tất cả nhóm --</option>
+                            {rowCategories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                          {row.category_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleItemChange(idx, 'category_id', '')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 cursor-pointer"
+                              title="Xóa lọc nhóm hàng"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ô 2: Nhà cung cấp (dùng hỗ trợ lọc tìm kiếm) */}
+                      <div className="sm:col-span-4 min-w-0">
+                        <div className="relative flex items-center">
+                          <select
+                            value={row.supplier_id || ''}
+                            onChange={(e) => handleItemChange(idx, 'supplier_id', e.target.value)}
+                            className="w-full text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input pl-2.5 pr-7 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] cursor-pointer truncate"
+                            title="Lọc theo nhà cung cấp (nguồn hàng)"
+                          >
+                            <option value="">-- Tất cả nhà cung cấp --</option>
+                            {rowSuppliers.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                          {row.supplier_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleItemChange(idx, 'supplier_id', '')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 cursor-pointer"
+                              title="Xóa lọc nhà cung cấp"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ô 3: Sản phẩm (Combobox tìm kiếm tự do) */}
+                      <div className="sm:col-span-5 min-w-0">
+                        <ProductSelect
+                          products={rowProducts}
+                          value={row.product_id}
+                          onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
+                          placeholder="Tìm sản phẩm (mã, tên, chữ cái đầu)..."
+                          clearable={true}
+                          className="w-full min-w-0"
+                        />
+                      </div>
                     </div>
 
-                    {/* Chọn tên hàng hóa hỗ trợ gõ tìm kiếm & gõ tắt chữ cái đầu */}
-                    <div className="md:col-span-4 min-w-0">
-                      <ProductSelect
-                        products={availableProducts}
-                        value={row.product_id}
-                        onChange={(newId) => handleItemChange(idx, 'product_id', newId)}
-                        placeholder="Gõ tên hoặc chữ cái đầu (VD: blv)..."
-                        className="w-full min-w-0"
-                      />
-                    </div>
+                    {/* Hàng 2: [SL (Tồn)] [Đơn giá] [Thành tiền] [Xóa dòng] */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-subtle)]">
+                      <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[200px]">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">SL xuất:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={row.quantity}
+                            onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                            placeholder="SL"
+                            className={`w-20 text-xs rounded-input p-1.5 text-center font-mono font-bold focus:outline-none border ${
+                              isOverStock
+                                ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert)] text-[var(--semantic-alert)]'
+                                : 'bg-[var(--bg-surface-warm)] border-[var(--border-medium)] text-[var(--text-primary)] focus:border-[var(--wood-500)]'
+                            }`}
+                            required
+                          />
+                          <span className={`text-[11px] font-mono shrink-0 ${isOverStock ? 'text-[var(--semantic-alert)] font-bold' : 'text-[var(--text-muted)]'}`}>
+                            (Tồn: {availableStock})
+                          </span>
+                        </div>
 
-                    {/* Cụm Số lượng + Đơn giá + Thành tiền + Xóa */}
-                    <div className="md:col-span-5 grid grid-cols-12 gap-2 items-center min-w-0">
-                      <div className="col-span-3 text-center min-w-0">
-                        <input
-                          type="number"
-                          min="1"
-                          value={row.quantity}
-                          onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                          placeholder="SL"
-                          className={`w-full text-xs rounded-btn p-1.5 text-center font-mono focus:outline-none border ${
-                            isOverStock
-                              ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert)] text-[var(--semantic-alert)] font-bold'
-                              : 'input-wood'
-                          }`}
-                          required
-                        />
-                        <span className="text-[11px] text-[var(--text-muted)] block mt-0.5 truncate">Tồn: {availableStock}</span>
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">Giá bán:</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1000"
+                            value={row.unit_price}
+                            onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                            placeholder="Đơn giá"
+                            className="w-28 text-xs bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input p-1.5 text-right font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)]"
+                            required
+                          />
+                          <span className="text-xs text-[var(--text-muted)]">đ</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <span className="text-[11px] text-[var(--text-muted)]">Thành tiền:</span>
+                          <span className="font-mono font-bold text-xs text-[var(--text-primary)]">
+                            {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="col-span-4 min-w-0">
-                        <input
-                          type="number"
-                          min="0"
-                          step="1000"
-                          value={row.unit_price}
-                          onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
-                          placeholder="Giá bán"
-                          className="w-full text-xs input-wood p-1.5 text-right font-mono"
-                          required
-                        />
-                      </div>
-
-                      <div className="col-span-4 text-right font-mono font-bold text-xs text-[var(--text-primary)] truncate">
-                        {((Number(row.quantity) || 0) * (Number(row.unit_price) || 0)).toLocaleString()} đ
-                      </div>
-
-                      <div className="col-span-1 flex justify-end">
+                      <div className="flex items-center shrink-0">
                         <button
                           type="button"
                           onClick={() => handleRemoveItemRow(idx)}
                           disabled={items.length <= 1}
-                          className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] disabled:opacity-30 p-1 cursor-pointer"
+                          className="text-[var(--text-muted)] hover:text-[var(--semantic-alert)] hover:bg-[var(--semantic-alert-bg)] rounded-btn p-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                          title={items.length <= 1 ? 'Phiếu cần tối thiểu 1 mặt hàng' : 'Xóa dòng này'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
