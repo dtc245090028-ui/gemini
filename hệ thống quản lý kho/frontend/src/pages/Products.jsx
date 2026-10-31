@@ -3,6 +3,7 @@ import {
   Package,
   Plus,
   Search,
+  X,
   AlertTriangle,
   Edit2,
   Trash2,
@@ -577,17 +578,27 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
       </div>
 
       {/* Filters Bar */}
-      <div className="card-wood p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <div className="card-wood p-3.5 sm:p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[200px] sm:min-w-[240px]">
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo tên hàng hóa..."
-              className="w-full pl-9 pr-3.5 py-2 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] placeholder:text-[var(--text-muted)]"
+              className="w-full pl-9 pr-8 py-2 bg-[var(--bg-surface-warm)] border border-[var(--border-medium)] rounded-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--wood-500)] placeholder:text-[var(--text-muted)]"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <select
@@ -617,60 +628,63 @@ export const Products = ({ onSelectProductLedger, isActive = true }) => {
           </select>
         </div>
 
-        {/* Low Stock Toggle */}
-        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer select-none bg-[var(--bg-surface-warm)] px-3 py-2 rounded-input border border-[var(--border-medium)] shrink-0">
-          <input
-            type="checkbox"
-            checked={filterLowStock}
-            onChange={(e) => setFilterLowStock(e.target.checked)}
-            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
-          />
-          <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
-          <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          {/* Low Stock Toggle */}
+          <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer select-none bg-[var(--bg-surface-warm)] px-3 py-2 rounded-input border border-[var(--border-medium)] shrink-0">
+            <input
+              type="checkbox"
+              checked={filterLowStock}
+              onChange={(e) => setFilterLowStock(e.target.checked)}
+              className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
+            />
+            <AlertTriangle className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
+            <span>Chỉ hiện hàng dưới tồn tối thiểu</span>
+          </label>
 
-        {/* Toggle Hiện hàng ngưng bán (Mặc định ẩn) */}
-        <label
-          className={`flex items-center gap-2 text-xs font-semibold cursor-pointer select-none px-3 py-2 rounded-input border transition-colors shrink-0 ${
-            showDiscontinued
-              ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)] text-[var(--semantic-alert)]'
-              : 'bg-[var(--bg-surface-warm)] border-[var(--border-medium)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-          title={showDiscontinued ? 'Đang hiển thị cả hàng ngưng bán (bấm để ẩn)' : 'Mặc định đang ẩn hàng ngưng bán (bấm để xem lại khi cần)'}
-        >
-          <input
-            type="checkbox"
-            checked={showDiscontinued}
-            onChange={(e) => setShowDiscontinued(e.target.checked)}
-            className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
-          />
-          {showDiscontinued ? (
-            <Eye className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
-          ) : (
-            <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-          )}
-          <span>Hiện hàng ngưng bán</span>
-          {discontinuedCount > 0 && (
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none ${
-                showDiscontinued
-                  ? 'bg-[var(--semantic-alert)] text-white'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-medium)]'
-              }`}
-            >
-              {discontinuedCount}
-            </span>
-          )}
-        </label>
-        {/* Nút Làm mới dữ liệu */}
-        <button
-          onClick={() => fetchProducts()}
-          title="Làm mới danh sách hàng hóa"
-          className="flex items-center gap-1.5 px-3 py-2 bg-[var(--bg-surface-warm)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-medium)] rounded-input text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Làm mới</span>
-        </button>
+          {/* Toggle Hiện hàng ngưng bán (Mặc định ẩn) */}
+          <label
+            className={`flex items-center gap-2 text-xs font-semibold cursor-pointer select-none px-3 py-2 rounded-input border transition-colors shrink-0 ${
+              showDiscontinued
+                ? 'bg-[var(--semantic-alert-bg)] border-[var(--semantic-alert-border)] text-[var(--semantic-alert)]'
+                : 'bg-[var(--bg-surface-warm)] border-[var(--border-medium)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+            title={showDiscontinued ? 'Đang hiển thị cả hàng ngưng bán (bấm để ẩn)' : 'Mặc định đang ẩn hàng ngưng bán (bấm để xem lại khi cần)'}
+          >
+            <input
+              type="checkbox"
+              checked={showDiscontinued}
+              onChange={(e) => setShowDiscontinued(e.target.checked)}
+              className="rounded text-[var(--wood-500)] focus:ring-[var(--wood-500)] w-4 h-4 cursor-pointer accent-[var(--wood-500)] shrink-0"
+            />
+            {showDiscontinued ? (
+              <Eye className="w-3.5 h-3.5 text-[var(--semantic-alert)] shrink-0" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+            )}
+            <span>Hiện hàng ngưng bán</span>
+            {discontinuedCount > 0 && (
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none ${
+                  showDiscontinued
+                    ? 'bg-[var(--semantic-alert)] text-white'
+                    : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-medium)]'
+                }`}
+              >
+                {discontinuedCount}
+              </span>
+            )}
+          </label>
+
+          {/* Nút Làm mới dữ liệu */}
+          <button
+            onClick={() => fetchProducts()}
+            title="Làm mới danh sách hàng hóa"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[var(--bg-surface-warm)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-medium)] rounded-input text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Làm mới</span>
+          </button>
+        </div>
       </div>
 
       {/* Products Table */}
